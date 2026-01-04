@@ -71,7 +71,8 @@ serve(async (req) => {
       categoryName,
       writingStyle,
       action,
-      additionalContext 
+      additionalContext,
+      conversationHistory // Array of previous emails in the thread
     } = await req.json();
 
     const LOVABLE_API_KEY = Deno.env.get('LOVABLE_API_KEY');
@@ -90,6 +91,15 @@ serve(async (req) => {
     const cleanCategoryName = categoryName?.replace(/^\d+:\s*/, '') || 'General';
     const categoryContext = CATEGORY_CONTEXT[cleanCategoryName] || '';
 
+    // Build conversation history context
+    let historyContext = '';
+    if (conversationHistory && Array.isArray(conversationHistory) && conversationHistory.length > 0) {
+      historyContext = '\n\nPREVIOUS EMAILS IN THIS THREAD (oldest to newest):\n' +
+        conversationHistory.map((email: { from: string; date: string; body: string }, index: number) => 
+          `--- Email ${index + 1} ---\nFrom: ${email.from}\nDate: ${email.date}\n${email.body}`
+        ).join('\n\n');
+    }
+
     // Build the system prompt
     const systemPrompt = `You are an expert email assistant for business communication.
 
@@ -97,6 +107,7 @@ ${stylePrompt}
 
 CATEGORY CONTEXT: ${cleanCategoryName}
 ${categoryContext}
+${historyContext}
 
 RULES:
 - Generate a complete, ready-to-send email draft
@@ -106,7 +117,9 @@ RULES:
 - Do not include subject line in your response (it will be handled separately)
 - Start directly with the greeting
 - End with an appropriate sign-off
-- Do not add explanations before or after the email - just the email content`;
+- Do not add explanations before or after the email - just the email content
+- If conversation history is provided, reference relevant context from previous emails when appropriate
+- Maintain continuity with the thread's tone and topics`;
 
     // Build the user prompt based on action
     let userPrompt = '';
