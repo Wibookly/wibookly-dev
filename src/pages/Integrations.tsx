@@ -3,7 +3,8 @@ import { useAuth } from '@/lib/auth';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
-import { Check, ExternalLink, Clock } from 'lucide-react';
+import { Check, ExternalLink, Clock, Loader2 } from 'lucide-react';
+import { useSearchParams } from 'react-router-dom';
 
 interface Connection {
   provider: string;
@@ -12,24 +13,51 @@ interface Connection {
 }
 
 export default function Integrations() {
-  const { organization, profile } = useAuth();
+  const { organization, user } = useAuth();
   const { toast } = useToast();
   const [connections, setConnections] = useState<Connection[]>([]);
   const [loading, setLoading] = useState(true);
+  const [connecting, setConnecting] = useState<string | null>(null);
+  const [searchParams, setSearchParams] = useSearchParams();
+
+  useEffect(() => {
+    // Handle OAuth callback results
+    const connected = searchParams.get('connected');
+    const error = searchParams.get('error');
+
+    if (connected) {
+      toast({
+        title: 'Connected Successfully',
+        description: `Your ${connected === 'google' ? 'Google' : 'Microsoft Outlook'} account has been connected.`
+      });
+      setSearchParams({});
+      fetchConnections();
+    }
+
+    if (error) {
+      toast({
+        title: 'Connection Failed',
+        description: error,
+        variant: 'destructive'
+      });
+      setSearchParams({});
+    }
+  }, [searchParams]);
+
+  const fetchConnections = async () => {
+    if (!organization?.id) return;
+
+    const { data } = await supabase
+      .from('provider_connections')
+      .select('provider, is_connected, connected_at')
+      .eq('organization_id', organization.id);
+
+    setConnections(data || []);
+    setLoading(false);
+  };
 
   useEffect(() => {
     if (!organization?.id) return;
-
-    const fetchConnections = async () => {
-      const { data } = await supabase
-        .from('provider_connections')
-        .select('provider, is_connected, connected_at')
-        .eq('organization_id', organization.id);
-
-      setConnections(data || []);
-      setLoading(false);
-    };
-
     fetchConnections();
   }, [organization?.id]);
 
@@ -37,22 +65,82 @@ export default function Integrations() {
     connections.find(c => c.provider === provider);
 
   const handleConnect = async (provider: string) => {
-    if (provider === 'google') {
+    if (!user?.id || !organization?.id) {
       toast({
-        title: 'Coming Soon',
-        description: 'Google Workspace integration is not yet available.'
+        title: 'Error',
+        description: 'You must be logged in to connect an account.',
+        variant: 'destructive'
       });
       return;
     }
 
-    // For Outlook - this would normally trigger OAuth flow
-    toast({
-      title: 'OAuth Required',
-      description: 'Microsoft OAuth integration will be set up in the next phase.'
-    });
+    setConnecting(provider);
+
+    try {
+      const { data, error } = await supabase.functions.invoke('oauth-init', {
+        body: {
+          provider,
+          userId: user.id,
+          organizationId: organization.id,
+          redirectUrl: '/integrations'
+        }
+      });
+
+      if (error) {
+        throw error;
+      }
+
+      if (data?.authUrl) {
+        // Redirect to OAuth provider
+        window.location.href = data.authUrl;
+      } else {
+        throw new Error('No authorization URL received');
+      }
+    } catch (error: any) {
+      console.error('OAuth init error:', error);
+      toast({
+        title: 'Connection Failed',
+        description: error.message || 'Failed to start OAuth flow',
+        variant: 'destructive'
+      });
+      setConnecting(null);
+    }
+  };
+
+  const handleDisconnect = async (provider: string) => {
+    if (!user?.id) return;
+
+    try {
+      const { error } = await supabase
+        .from('provider_connections')
+        .update({ 
+          is_connected: false,
+          access_token: null,
+          refresh_token: null,
+          token_expires_at: null 
+        })
+        .eq('user_id', user.id)
+        .eq('provider', provider);
+
+      if (error) throw error;
+
+      toast({
+        title: 'Disconnected',
+        description: `Your ${provider === 'google' ? 'Google' : 'Microsoft Outlook'} account has been disconnected.`
+      });
+
+      fetchConnections();
+    } catch (error: any) {
+      toast({
+        title: 'Error',
+        description: error.message || 'Failed to disconnect',
+        variant: 'destructive'
+      });
+    }
   };
 
   const outlookConnection = getConnection('outlook');
+  const googleConnection = getConnection('google');
 
   const integrations = [
     {
@@ -81,8 +169,8 @@ export default function Integrations() {
           <path d="M43.611 20.083H42V20H24V28H35.303C34.511 30.237 33.072 32.166 31.216 33.571L31.219 33.57L37.409 38.808C36.971 39.205 44 34 44 24C44 22.659 43.862 21.35 43.611 20.083Z" fill="#1976D2"/>
         </svg>
       ),
-      connection: null,
-      available: false
+      connection: googleConnection,
+      available: true
     }
   ];
 
@@ -133,16 +221,25 @@ export default function Integrations() {
 
               <div>
                 {integration.connection?.is_connected ? (
-                  <Button variant="outline" size="sm">
+                  <Button 
+                    variant="outline" 
+                    size="sm"
+                    onClick={() => handleDisconnect(integration.id)}
+                  >
                     Disconnect
                   </Button>
                 ) : (
                   <Button
                     size="sm"
-                    disabled={!integration.available}
+                    disabled={!integration.available || connecting === integration.id}
                     onClick={() => handleConnect(integration.id)}
                   >
-                    {integration.available ? (
+                    {connecting === integration.id ? (
+                      <>
+                        <Loader2 className="mr-2 w-3 h-3 animate-spin" />
+                        Connecting...
+                      </>
+                    ) : integration.available ? (
                       <>
                         Connect
                         <ExternalLink className="ml-2 w-3 h-3" />
