@@ -1,7 +1,7 @@
 project_id = "jbzctydskdpzrejvpwpn"
 
 [functions.oauth-init]
-verify_jwt = true
+verify_jwt = false
 
 [functions.oauth-callback]
 verify_jwt = false
