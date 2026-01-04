@@ -201,8 +201,62 @@ async function getValidAccessToken(
   return newTokens.access_token;
 }
 
-// Create Gmail label
-async function createGmailLabel(accessToken: string, labelName: string): Promise<boolean> {
+// Convert hex color to Gmail color palette (Gmail only supports specific colors)
+function hexToGmailColor(hex: string): { backgroundColor: string; textColor: string } {
+  // Gmail only allows specific color values from their palette
+  // Map common colors to Gmail's supported palette
+  const colorMap: Record<string, { backgroundColor: string; textColor: string }> = {
+    // Reds
+    '#EF4444': { backgroundColor: '#cc3a21', textColor: '#ffffff' },
+    '#DC2626': { backgroundColor: '#cc3a21', textColor: '#ffffff' },
+    '#B91C1C': { backgroundColor: '#ac2b16', textColor: '#ffffff' },
+    // Oranges
+    '#F97316': { backgroundColor: '#f2a600', textColor: '#000000' },
+    '#EA580C': { backgroundColor: '#cf8933', textColor: '#000000' },
+    // Yellows
+    '#EAB308': { backgroundColor: '#f2c960', textColor: '#000000' },
+    '#FACC15': { backgroundColor: '#f2c960', textColor: '#000000' },
+    // Greens
+    '#22C55E': { backgroundColor: '#149e60', textColor: '#ffffff' },
+    '#16A34A': { backgroundColor: '#0d804f', textColor: '#ffffff' },
+    // Teals
+    '#14B8A6': { backgroundColor: '#2da2bb', textColor: '#ffffff' },
+    '#06B6D4': { backgroundColor: '#2da2bb', textColor: '#ffffff' },
+    // Blues
+    '#3B82F6': { backgroundColor: '#285bac', textColor: '#ffffff' },
+    '#2563EB': { backgroundColor: '#1a73e8', textColor: '#ffffff' },
+    // Purples
+    '#8B5CF6': { backgroundColor: '#653e9b', textColor: '#ffffff' },
+    '#7C3AED': { backgroundColor: '#653e9b', textColor: '#ffffff' },
+    // Pinks
+    '#EC4899': { backgroundColor: '#c9649b', textColor: '#ffffff' },
+    '#DB2777': { backgroundColor: '#c9649b', textColor: '#ffffff' },
+    // Grays
+    '#6B7280': { backgroundColor: '#666666', textColor: '#ffffff' },
+    '#9CA3AF': { backgroundColor: '#999999', textColor: '#000000' },
+  };
+
+  const upperHex = hex.toUpperCase();
+  if (colorMap[upperHex]) return colorMap[upperHex];
+
+  // Default fallback - parse hex and find closest match
+  const r = parseInt(hex.slice(1, 3), 16);
+  const g = parseInt(hex.slice(3, 5), 16);
+  const b = parseInt(hex.slice(5, 7), 16);
+
+  // Simple heuristic: map to closest category
+  if (r > 180 && g < 100 && b < 100) return { backgroundColor: '#cc3a21', textColor: '#ffffff' }; // Red
+  if (r > 180 && g > 100 && g < 180) return { backgroundColor: '#f2a600', textColor: '#000000' }; // Orange
+  if (r > 180 && g > 180) return { backgroundColor: '#f2c960', textColor: '#000000' }; // Yellow
+  if (g > r && g > b) return { backgroundColor: '#149e60', textColor: '#ffffff' }; // Green
+  if (b > r && b > 150) return { backgroundColor: '#285bac', textColor: '#ffffff' }; // Blue
+  if (r > 100 && b > 100 && g < 100) return { backgroundColor: '#653e9b', textColor: '#ffffff' }; // Purple
+  
+  return { backgroundColor: '#666666', textColor: '#ffffff' }; // Default gray
+}
+
+// Create Gmail label with color
+async function createGmailLabel(accessToken: string, labelName: string, hexColor: string): Promise<boolean> {
   try {
     // Check if label already exists
     const listRes = await fetch('https://gmail.googleapis.com/gmail/v1/users/me/labels', {
@@ -215,14 +269,32 @@ async function createGmailLabel(accessToken: string, labelName: string): Promise
     }
     
     const { labels } = await listRes.json();
-    const exists = labels?.some((l: { name: string }) => l.name === labelName);
+    const existingLabel = labels?.find((l: { name: string }) => l.name === labelName);
+    const gmailColor = hexToGmailColor(hexColor);
     
-    if (exists) {
-      console.log(`Gmail label "${labelName}" already exists`);
+    if (existingLabel) {
+      console.log(`Gmail label "${labelName}" already exists, updating color...`);
+      // Update existing label's color
+      const updateRes = await fetch(`https://gmail.googleapis.com/gmail/v1/users/me/labels/${existingLabel.id}`, {
+        method: 'PATCH',
+        headers: {
+          Authorization: `Bearer ${accessToken}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          color: gmailColor
+        })
+      });
+      
+      if (!updateRes.ok) {
+        console.error(`Failed to update Gmail label color:`, await updateRes.text());
+      } else {
+        console.log(`Updated color for Gmail label: ${labelName}`);
+      }
       return true;
     }
     
-    // Create the label
+    // Create the label with color
     const createRes = await fetch('https://gmail.googleapis.com/gmail/v1/users/me/labels', {
       method: 'POST',
       headers: {
@@ -232,7 +304,8 @@ async function createGmailLabel(accessToken: string, labelName: string): Promise
       body: JSON.stringify({
         name: labelName,
         labelListVisibility: 'labelShow',
-        messageListVisibility: 'show'
+        messageListVisibility: 'show',
+        color: gmailColor
       })
     });
     
@@ -241,7 +314,7 @@ async function createGmailLabel(accessToken: string, labelName: string): Promise
       return false;
     }
     
-    console.log(`Created Gmail label: ${labelName}`);
+    console.log(`Created Gmail label with color: ${labelName}`);
     return true;
   } catch (error) {
     console.error(`Error creating Gmail label "${labelName}":`, error);
@@ -338,10 +411,10 @@ serve(async (req) => {
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
     );
 
-    // Get categories for the organization with sort_order for numbering
+    // Get categories for the organization with sort_order for numbering (include color for Gmail labels)
     const { data: categories, error: catError } = await supabaseAdmin
       .from('categories')
-      .select('id, name, is_enabled, sort_order')
+      .select('id, name, color, is_enabled, sort_order')
       .eq('organization_id', profile.organization_id)
       .eq('is_enabled', true)
       .order('sort_order');
@@ -390,14 +463,13 @@ serve(async (req) => {
         let created = 0;
         let failed = 0;
 
-        for (let i = 0; i < categories.length; i++) {
-          const category = categories[i];
-          // Create label/folder name with number prefix based on sort_order position
-          const labelName = `${i + 1}: ${category.name}`;
+        for (const category of categories) {
+          // Create label/folder name with number prefix based on actual sort_order (1-indexed)
+          const labelName = `${category.sort_order + 1}: ${category.name}`;
           let success = false;
           
           if (tokenRecord.provider === 'google') {
-            success = await createGmailLabel(accessToken, labelName);
+            success = await createGmailLabel(accessToken, labelName, category.color);
           } else if (tokenRecord.provider === 'microsoft') {
             success = await createOutlookFolder(accessToken, labelName);
           }

@@ -140,7 +140,7 @@ function SortableRow({ category, index, updateCategory }: SortableRowProps) {
         </div>
       </TableCell>
       <TableCell className="w-12 font-medium text-muted-foreground">
-        {index + 1}:
+        {category.sort_order + 1}:
       </TableCell>
       <TableCell>
         <input
