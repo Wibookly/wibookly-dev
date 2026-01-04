@@ -118,23 +118,32 @@ export function OnboardingChecklist({ onStepClick }: OnboardingChecklistProps) {
   const progress = (completedCount / steps.length) * 100;
   const allComplete = completedCount === steps.length;
 
-  // Trigger confetti when a step completes
+  // Trigger confetti only when a step NEWLY completes (not on page load/refresh)
+  // We track which steps were already complete on initial load
+  const initialCompletedRef = useRef<Set<string> | null>(null);
+
   useEffect(() => {
     if (loading) return;
     
+    // On first load after data fetches, capture which steps are already complete
+    if (initialCompletedRef.current === null) {
+      initialCompletedRef.current = new Set(steps.filter(s => s.isComplete).map(s => s.id));
+      setPrevCompletedCount(completedCount);
+      return;
+    }
+    
+    // Only trigger confetti for steps that were NOT complete on initial load
     steps.forEach(step => {
-      if (step.isComplete && !hasAnimated.current.has(step.id)) {
+      if (step.isComplete && 
+          !hasAnimated.current.has(step.id) && 
+          !initialCompletedRef.current?.has(step.id)) {
         hasAnimated.current.add(step.id);
-        
-        // Only trigger confetti if this is a new completion (not initial load)
-        if (prevCompletedCount > 0 || step.id !== 'account') {
-          triggerConfetti();
-        }
+        triggerConfetti();
       }
     });
 
-    // Big celebration when all complete
-    if (allComplete && prevCompletedCount < steps.length && prevCompletedCount > 0) {
+    // Big celebration when all complete (and wasn't already all complete on load)
+    if (allComplete && prevCompletedCount < steps.length && initialCompletedRef.current.size < steps.length) {
       triggerBigConfetti();
     }
 

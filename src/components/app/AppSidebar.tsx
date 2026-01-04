@@ -9,7 +9,7 @@ const navItems = [
   { title: 'Dashboard', href: '/dashboard', icon: LayoutDashboard },
   { title: 'Integrations', href: '/integrations', icon: Plug },
   { title: 'Categories', href: '/categories', icon: FolderOpen },
-  { title: 'AI Drafts', href: '/email-draft', icon: Sparkles },
+  { title: 'Draft Settings', href: '/email-draft', icon: Sparkles },
   { title: 'Sync', href: '/sync', icon: RefreshCw },
   { title: 'Settings', href: '/settings', icon: Settings },
 ];

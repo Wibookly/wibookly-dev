@@ -153,8 +153,8 @@ export default function EmailDraft() {
   };
 
   const handleSaveDraft = async () => {
-    if (!selectedCategory || !generatedDraft) {
-      toast.error("Generate a draft first");
+    if (!selectedCategory) {
+      toast.error("Please select a category");
       return;
     }
 
@@ -199,19 +199,27 @@ export default function EmailDraft() {
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-bold">AI Email Drafting</h1>
-        <p className="text-muted-foreground">
-          Configure auto-reply templates for each category
-        </p>
+      {/* Page header with gradient accent */}
+      <div className="relative overflow-hidden rounded-xl bg-gradient-to-r from-primary/10 via-accent/10 to-primary/5 p-6 border border-border">
+        <div className="absolute inset-0 bg-gradient-to-br from-primary/5 to-transparent" />
+        <div className="relative">
+          <h1 className="text-2xl font-bold bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent">
+            Draft Settings
+          </h1>
+          <p className="text-muted-foreground mt-1">
+            Configure auto-reply templates and AI writing style for each category
+          </p>
+        </div>
       </div>
 
       <div className="grid gap-6 lg:grid-cols-2">
         {/* Input Section */}
-        <Card>
-          <CardHeader>
+        <Card className="border-primary/20 shadow-sm">
+          <CardHeader className="bg-gradient-to-r from-primary/5 to-transparent rounded-t-lg">
             <CardTitle className="flex items-center gap-2">
-              <Sparkles className="h-5 w-5" />
+              <div className="p-2 rounded-lg bg-primary/10">
+                <Sparkles className="h-5 w-5 text-primary" />
+              </div>
               Draft Settings
             </CardTitle>
             <CardDescription>
@@ -296,8 +304,27 @@ export default function EmailDraft() {
             </div>
 
             <Button 
+              onClick={handleSaveDraft} 
+              disabled={isSaving || !selectedCategory}
+              className="w-full"
+            >
+              {isSaving ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Saving...
+                </>
+              ) : (
+                <>
+                  <Save className="mr-2 h-4 w-4" />
+                  Save Settings
+                </>
+              )}
+            </Button>
+
+            <Button 
               onClick={handleGenerate} 
               disabled={isGenerating || !selectedCategory}
+              variant="outline"
               className="w-full"
             >
               {isGenerating ? (
@@ -308,7 +335,7 @@ export default function EmailDraft() {
               ) : (
                 <>
                   <Sparkles className="mr-2 h-4 w-4" />
-                  Generate Preview Draft
+                  Preview Draft
                 </>
               )}
             </Button>
@@ -316,12 +343,14 @@ export default function EmailDraft() {
         </Card>
 
         {/* Output Section */}
-        <Card>
-          <CardHeader>
+        <Card className="border-accent/20 shadow-sm">
+          <CardHeader className="bg-gradient-to-r from-accent/5 to-transparent rounded-t-lg">
             <CardTitle className="flex items-center justify-between">
               <span className="flex items-center gap-2">
-                <Sparkles className="h-5 w-5" />
-                Generated Draft
+                <div className="p-2 rounded-lg bg-accent/10">
+                  <Sparkles className="h-5 w-5 text-accent" />
+                </div>
+                Preview
               </span>
               {generatedDraft && (
                 <div className="flex gap-2">
@@ -340,34 +369,16 @@ export default function EmailDraft() {
           </CardHeader>
           <CardContent>
             {generatedDraft ? (
-              <div className="space-y-4">
-                <div className="rounded-lg border bg-muted/50 p-4 min-h-[300px] whitespace-pre-wrap">
-                  {generatedDraft}
-                </div>
-                <Button 
-                  onClick={handleSaveDraft} 
-                  disabled={isSaving}
-                  className="w-full"
-                  variant="secondary"
-                >
-                  {isSaving ? (
-                    <>
-                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                      Saving...
-                    </>
-                  ) : (
-                    <>
-                      <Save className="mr-2 h-4 w-4" />
-                      Save for Auto-Reply
-                    </>
-                  )}
-                </Button>
+              <div className="rounded-lg border border-accent/20 bg-gradient-to-br from-accent/5 to-transparent p-4 min-h-[300px] whitespace-pre-wrap">
+                {generatedDraft}
               </div>
             ) : (
-              <div className="rounded-lg border border-dashed bg-muted/30 p-8 min-h-[300px] flex items-center justify-center text-muted-foreground">
+              <div className="rounded-lg border border-dashed border-accent/30 bg-gradient-to-br from-accent/5 to-transparent p-8 min-h-[300px] flex items-center justify-center text-muted-foreground">
                 <div className="text-center">
-                  <Sparkles className="h-8 w-8 mx-auto mb-2 opacity-50" />
-                  <p>Configure settings and generate a preview draft</p>
+                  <div className="p-3 rounded-full bg-accent/10 inline-block mb-3">
+                    <Sparkles className="h-8 w-8 text-accent/50" />
+                  </div>
+                  <p>Click "Preview Draft" to see a sample reply</p>
                 </div>
               </div>
             )}
