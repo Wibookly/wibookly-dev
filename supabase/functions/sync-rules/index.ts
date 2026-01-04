@@ -200,22 +200,26 @@ async function getValidAccessToken(
   return newTokens.access_token;
 }
 
-// Apply Gmail filter for a rule
+// Apply Gmail filter for a rule AND apply to existing emails
 // deno-lint-ignore no-explicit-any
 async function applyGmailFilter(accessToken: string, rule: any, labelId: string): Promise<boolean> {
   try {
     // deno-lint-ignore no-explicit-any
     let criteria: any = {};
+    let searchQuery = '';
     
     if (rule.rule_type === 'sender') {
       criteria.from = rule.rule_value;
+      searchQuery = `from:${rule.rule_value}`;
     } else if (rule.rule_type === 'domain') {
       criteria.from = `@${rule.rule_value}`;
+      searchQuery = `from:@${rule.rule_value}`;
     } else if (rule.rule_type === 'keyword') {
       criteria.query = rule.rule_value;
+      searchQuery = rule.rule_value;
     }
 
-    // Create filter
+    // Create filter for new emails
     const filterRes = await fetch('https://gmail.googleapis.com/gmail/v1/users/me/settings/filters', {
       method: 'POST',
       headers: {
@@ -236,13 +240,54 @@ async function applyGmailFilter(accessToken: string, rule: any, labelId: string)
       // Check if filter already exists (409 conflict)
       if (filterRes.status === 409) {
         console.log(`Gmail filter for "${rule.rule_value}" already exists`);
-        return true;
+      } else {
+        console.error(`Failed to create Gmail filter:`, errorText);
       }
-      console.error(`Failed to create Gmail filter:`, errorText);
-      return false;
+    } else {
+      console.log(`Created Gmail filter for: ${rule.rule_value}`);
     }
 
-    console.log(`Created Gmail filter for: ${rule.rule_value}`);
+    // Apply label to existing emails matching the criteria
+    console.log(`Searching for existing emails with query: ${searchQuery}`);
+    const searchRes = await fetch(
+      `https://gmail.googleapis.com/gmail/v1/users/me/messages?q=${encodeURIComponent(searchQuery)}&maxResults=500`,
+      { headers: { Authorization: `Bearer ${accessToken}` } }
+    );
+
+    if (searchRes.ok) {
+      const { messages } = await searchRes.json();
+      if (messages && messages.length > 0) {
+        console.log(`Found ${messages.length} existing emails to label`);
+        
+        // Batch modify messages (up to 1000 at a time)
+        const messageIds = messages.map((m: { id: string }) => m.id);
+        
+        const batchRes = await fetch(
+          'https://gmail.googleapis.com/gmail/v1/users/me/messages/batchModify',
+          {
+            method: 'POST',
+            headers: {
+              Authorization: `Bearer ${accessToken}`,
+              'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+              ids: messageIds,
+              addLabelIds: [labelId],
+              removeLabelIds: []
+            })
+          }
+        );
+
+        if (batchRes.ok) {
+          console.log(`Applied label to ${messageIds.length} existing emails`);
+        } else {
+          console.error(`Failed to apply label to existing emails:`, await batchRes.text());
+        }
+      } else {
+        console.log(`No existing emails found matching: ${searchQuery}`);
+      }
+    }
+
     return true;
   } catch (error) {
     console.error(`Error creating Gmail filter:`, error);
@@ -456,7 +501,7 @@ serve(async (req) => {
       );
     }
 
-    // Get ENABLED categories for numbering (must match sync-categories logic)
+    // Get ENABLED categories for numbering - use sort_order for label names
     const { data: enabledCategories } = await supabaseAdmin
       .from('categories')
       .select('id, name, sort_order')
@@ -464,8 +509,8 @@ serve(async (req) => {
       .eq('is_enabled', true)
       .order('sort_order');
 
-    // Map category ID to its position among enabled categories (1-indexed label names)
-    const categoryMap = new Map(enabledCategories?.map((c, i) => [c.id, { name: c.name, index: i }]));
+    // Map category ID to its sort_order (used for label naming)
+    const categoryMap = new Map(enabledCategories?.map((c) => [c.id, { name: c.name, sortOrder: c.sort_order }]));
 
     const results: { provider: string; synced: number; failed: number }[] = [];
 
@@ -492,7 +537,8 @@ serve(async (req) => {
           const catInfo = categoryMap.get(rule.category_id);
           if (!catInfo) continue;
 
-          const labelName = `${catInfo.index + 1}: ${catInfo.name}`;
+          // Use actual sort_order for label name (1-indexed)
+          const labelName = `${catInfo.sortOrder + 1}: ${catInfo.name}`;
           let success = false;
           
           if (tokenRecord.provider === 'google') {
