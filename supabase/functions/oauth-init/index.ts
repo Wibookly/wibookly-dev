@@ -1,4 +1,5 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -12,14 +13,63 @@ serve(async (req) => {
   }
 
   try {
+    // Get authenticated user from JWT
+    const authHeader = req.headers.get('Authorization');
+    if (!authHeader) {
+      console.error('Missing authorization header');
+      return new Response(
+        JSON.stringify({ error: 'Missing authorization header' }),
+        { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    const supabaseClient = createClient(
+      Deno.env.get('SUPABASE_URL')!,
+      Deno.env.get('SUPABASE_ANON_KEY')!,
+      { global: { headers: { Authorization: authHeader } } }
+    );
+
+    const { data: { user }, error: authError } = await supabaseClient.auth.getUser();
+    if (authError || !user) {
+      console.error('Auth error:', authError?.message);
+      return new Response(
+        JSON.stringify({ error: 'Unauthorized' }),
+        { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
     const { provider, userId, organizationId, redirectUrl } = await req.json();
     
-    console.log(`OAuth init request for provider: ${provider}, userId: ${userId}`);
+    console.log(`OAuth init request for provider: ${provider}, authenticated user: ${user.id}`);
 
     if (!provider || !userId || !organizationId) {
       return new Response(
         JSON.stringify({ error: 'Missing required parameters: provider, userId, organizationId' }),
         { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    // CRITICAL: Validate userId matches authenticated user
+    if (userId !== user.id) {
+      console.error(`User mismatch: JWT user ${user.id} tried to init OAuth for ${userId}`);
+      return new Response(
+        JSON.stringify({ error: 'Unauthorized: User ID mismatch' }),
+        { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    // Validate organizationId belongs to user
+    const { data: profile } = await supabaseClient
+      .from('user_profiles')
+      .select('organization_id')
+      .eq('user_id', user.id)
+      .single();
+
+    if (!profile || profile.organization_id !== organizationId) {
+      console.error(`Org mismatch: User ${user.id} tried to use org ${organizationId}`);
+      return new Response(
+        JSON.stringify({ error: 'Unauthorized: Organization mismatch' }),
+        { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
 
