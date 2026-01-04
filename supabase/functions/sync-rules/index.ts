@@ -307,38 +307,77 @@ async function applyGmailFilter(accessToken: string, rule: any, labelId: string)
       { headers: { Authorization: `Bearer ${accessToken}` } }
     );
 
-    if (searchRes.ok) {
-      const { messages } = await searchRes.json();
-      if (messages && messages.length > 0) {
-        console.log(`Found ${messages.length} existing emails to label`);
-        
-        // Batch modify messages (up to 1000 at a time)
-        const messageIds = messages.map((m: { id: string }) => m.id);
-        
-        const batchRes = await fetch(
-          'https://gmail.googleapis.com/gmail/v1/users/me/messages/batchModify',
-          {
-            method: 'POST',
-            headers: {
-              Authorization: `Bearer ${accessToken}`,
-              'Content-Type': 'application/json'
-            },
-            body: JSON.stringify({
-              ids: messageIds,
-              addLabelIds: [labelId],
-              removeLabelIds: []
-            })
-          }
-        );
+    // Get all emails currently with this label (to find non-matching ones)
+    const labeledRes = await fetch(
+      `https://gmail.googleapis.com/gmail/v1/users/me/messages?labelIds=${labelId}&maxResults=500`,
+      { headers: { Authorization: `Bearer ${accessToken}` } }
+    );
 
-        if (batchRes.ok) {
-          console.log(`Applied label to ${messageIds.length} existing emails`);
-        } else {
-          console.error(`Failed to apply label to existing emails:`, await batchRes.text());
+    const matchingMessages = searchRes.ok ? (await searchRes.json()).messages || [] : [];
+    const labeledMessages = labeledRes.ok ? (await labeledRes.json()).messages || [] : [];
+
+    const matchingIds = new Set(matchingMessages.map((m: { id: string }) => m.id));
+    const labeledIds = labeledMessages.map((m: { id: string }) => m.id);
+
+    // Find emails that have the label but don't match the rule anymore
+    const nonMatchingIds = labeledIds.filter((id: string) => !matchingIds.has(id));
+
+    // Remove label from non-matching emails (move them back to inbox visibility)
+    if (nonMatchingIds.length > 0) {
+      console.log(`Found ${nonMatchingIds.length} emails that no longer match the rule - removing label`);
+      
+      const removeRes = await fetch(
+        'https://gmail.googleapis.com/gmail/v1/users/me/messages/batchModify',
+        {
+          method: 'POST',
+          headers: {
+            Authorization: `Bearer ${accessToken}`,
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({
+            ids: nonMatchingIds,
+            addLabelIds: [],
+            removeLabelIds: [labelId]
+          })
         }
+      );
+
+      if (removeRes.ok) {
+        console.log(`Removed label from ${nonMatchingIds.length} non-matching emails`);
       } else {
-        console.log(`No existing emails found matching: ${searchQuery}`);
+        console.error(`Failed to remove label from non-matching emails:`, await removeRes.text());
       }
+    }
+
+    // Apply label to matching emails
+    if (matchingMessages.length > 0) {
+      console.log(`Found ${matchingMessages.length} existing emails to label`);
+      
+      const messageIds = matchingMessages.map((m: { id: string }) => m.id);
+      
+      const batchRes = await fetch(
+        'https://gmail.googleapis.com/gmail/v1/users/me/messages/batchModify',
+        {
+          method: 'POST',
+          headers: {
+            Authorization: `Bearer ${accessToken}`,
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({
+            ids: messageIds,
+            addLabelIds: [labelId],
+            removeLabelIds: []
+          })
+        }
+      );
+
+      if (batchRes.ok) {
+        console.log(`Applied label to ${messageIds.length} existing emails`);
+      } else {
+        console.error(`Failed to apply label to existing emails:`, await batchRes.text());
+      }
+    } else {
+      console.log(`No existing emails found matching: ${searchQuery}`);
     }
 
     return true;
@@ -346,6 +385,39 @@ async function applyGmailFilter(accessToken: string, rule: any, labelId: string)
     console.error(`Error creating Gmail filter:`, error);
     return false;
   }
+}
+
+// Build Outlook search filter query
+// deno-lint-ignore no-explicit-any
+function buildOutlookSearchFilter(rule: any): string {
+  const filters: string[] = [];
+  
+  if (rule.rule_type === 'sender') {
+    filters.push(`contains(from/emailAddress/address, '${rule.rule_value}')`);
+  } else if (rule.rule_type === 'domain') {
+    filters.push(`contains(from/emailAddress/address, '@${rule.rule_value}')`);
+  } else if (rule.rule_type === 'keyword') {
+    filters.push(`(contains(subject, '${rule.rule_value}') or contains(body/content, '${rule.rule_value}'))`);
+  }
+  
+  if (rule.is_advanced) {
+    const conditionLogic = rule.condition_logic || 'and';
+    const advancedFilters: string[] = [];
+    
+    if (rule.subject_contains) {
+      advancedFilters.push(`contains(subject, '${rule.subject_contains}')`);
+    }
+    if (rule.body_contains) {
+      advancedFilters.push(`contains(body/content, '${rule.body_contains}')`);
+    }
+    
+    if (advancedFilters.length > 0) {
+      const connector = conditionLogic === 'or' ? ' or ' : ' and ';
+      filters.push(`(${advancedFilters.join(connector)})`);
+    }
+  }
+  
+  return filters.join(' and ');
 }
 
 // Apply Outlook rule
@@ -367,83 +439,151 @@ async function applyOutlookRule(accessToken: string, rule: any, folderId: string
 
     if (exists) {
       console.log(`Outlook rule "${ruleName}" already exists`);
+    } else {
+      // Build conditions based on rule type
+      // deno-lint-ignore no-explicit-any
+      let conditions: any = {};
+      
+      if (rule.rule_type === 'sender') {
+        conditions.senderContains = [rule.rule_value];
+      } else if (rule.rule_type === 'domain') {
+        conditions.senderContains = [`@${rule.rule_value}`];
+      } else if (rule.rule_type === 'keyword') {
+        conditions.subjectOrBodyContains = [rule.rule_value];
+      }
+
+      // Recipient filter
+      if (rule.recipient_filter) {
+        if (rule.recipient_filter === 'to_me') {
+          conditions.sentToMe = true;
+        } else if (rule.recipient_filter === 'cc_me') {
+          conditions.sentCcMe = true;
+        } else if (rule.recipient_filter === 'to_or_cc_me') {
+          conditions.sentToMe = true;
+        }
+      }
+
+      // Advanced conditions
+      if (rule.is_advanced) {
+        const conditionLogic = rule.condition_logic || 'and';
+
+        if (conditionLogic === 'or') {
+          const orTerms: string[] = [];
+          if (rule.subject_contains) orTerms.push(rule.subject_contains);
+          if (rule.body_contains) orTerms.push(rule.body_contains);
+          if (orTerms.length > 0) {
+            conditions.subjectOrBodyContains = conditions.subjectOrBodyContains 
+              ? [...conditions.subjectOrBodyContains, ...orTerms]
+              : orTerms;
+          }
+        } else {
+          if (rule.subject_contains) {
+            conditions.subjectContains = [rule.subject_contains];
+          }
+          if (rule.body_contains) {
+            conditions.bodyContains = [rule.body_contains];
+          }
+        }
+      }
+
+      // Create rule
+      const createRes = await fetch('https://graph.microsoft.com/v1.0/me/mailFolders/inbox/messageRules', {
+        method: 'POST',
+        headers: {
+          Authorization: `Bearer ${accessToken}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          displayName: ruleName,
+          sequence: 1,
+          isEnabled: true,
+          conditions,
+          actions: {
+            moveToFolder: folderId
+          }
+        })
+      });
+
+      if (!createRes.ok) {
+        console.error(`Failed to create Outlook rule "${ruleName}":`, await createRes.text());
+        return false;
+      }
+
+      console.log(`Created Outlook rule: ${ruleName}`);
+    }
+
+    // Get inbox folder ID
+    const inboxRes = await fetch('https://graph.microsoft.com/v1.0/me/mailFolders/inbox', {
+      headers: { Authorization: `Bearer ${accessToken}` }
+    });
+    
+    if (!inboxRes.ok) {
+      console.error('Failed to get inbox folder');
+      return true; // Rule created, but couldn't clean up
+    }
+    
+    const inboxFolder = await inboxRes.json();
+    const inboxId = inboxFolder.id;
+
+    // Get emails currently in the folder
+    const folderEmailsRes = await fetch(
+      `https://graph.microsoft.com/v1.0/me/mailFolders/${folderId}/messages?$top=500&$select=id,from,subject,body`,
+      { headers: { Authorization: `Bearer ${accessToken}` } }
+    );
+
+    if (!folderEmailsRes.ok) {
+      console.log('Could not fetch folder emails for cleanup');
       return true;
     }
 
-    // Build conditions based on rule type
-    // deno-lint-ignore no-explicit-any
-    let conditions: any = {};
+    const { value: folderEmails } = await folderEmailsRes.json();
     
-    if (rule.rule_type === 'sender') {
-      conditions.senderContains = [rule.rule_value];
-    } else if (rule.rule_type === 'domain') {
-      conditions.senderContains = [`@${rule.rule_value}`];
-    } else if (rule.rule_type === 'keyword') {
-      conditions.subjectOrBodyContains = [rule.rule_value];
+    if (!folderEmails || folderEmails.length === 0) {
+      console.log('No emails in folder to check');
+      return true;
     }
 
-    // Recipient filter
-    if (rule.recipient_filter) {
-      if (rule.recipient_filter === 'to_me') {
-        conditions.sentToMe = true;
-      } else if (rule.recipient_filter === 'cc_me') {
-        conditions.sentCcMe = true;
-      } else if (rule.recipient_filter === 'to_or_cc_me') {
-        // Outlook doesn't have a direct "to or cc me" condition
-        // We'll use sentToMe as the primary (most common case)
-        conditions.sentToMe = true;
+    // Build search filter and find matching emails in inbox
+    const searchFilter = buildOutlookSearchFilter(rule);
+    const matchingRes = await fetch(
+      `https://graph.microsoft.com/v1.0/me/messages?$filter=${encodeURIComponent(searchFilter)}&$top=500&$select=id`,
+      { headers: { Authorization: `Bearer ${accessToken}` } }
+    );
+
+    const matchingEmails = matchingRes.ok ? (await matchingRes.json()).value || [] : [];
+    const matchingIds = new Set(matchingEmails.map((m: { id: string }) => m.id));
+
+    // Find emails in folder that don't match the rule anymore
+    // deno-lint-ignore no-explicit-any
+    const nonMatchingEmails = folderEmails.filter((email: any) => !matchingIds.has(email.id));
+
+    // Move non-matching emails back to inbox
+    for (const email of nonMatchingEmails) {
+      try {
+        const moveRes = await fetch(
+          `https://graph.microsoft.com/v1.0/me/messages/${email.id}/move`,
+          {
+            method: 'POST',
+            headers: {
+              Authorization: `Bearer ${accessToken}`,
+              'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({ destinationId: inboxId })
+          }
+        );
+        
+        if (moveRes.ok) {
+          console.log(`Moved non-matching email back to inbox: ${email.subject}`);
+        }
+      } catch (err) {
+        console.error('Error moving email to inbox:', err);
       }
     }
 
-    // Advanced conditions - support AND/OR logic
-    if (rule.is_advanced) {
-      const conditionLogic = rule.condition_logic || 'and';
-
-      if (conditionLogic === 'or') {
-        // For OR logic, combine subject and body into subjectOrBodyContains
-        const orTerms: string[] = [];
-        if (rule.subject_contains) orTerms.push(rule.subject_contains);
-        if (rule.body_contains) orTerms.push(rule.body_contains);
-        if (orTerms.length > 0) {
-          conditions.subjectOrBodyContains = conditions.subjectOrBodyContains 
-            ? [...conditions.subjectOrBodyContains, ...orTerms]
-            : orTerms;
-        }
-      } else {
-        // AND logic - use separate conditions
-        if (rule.subject_contains) {
-          conditions.subjectContains = [rule.subject_contains];
-        }
-        if (rule.body_contains) {
-          conditions.bodyContains = [rule.body_contains];
-        }
-      }
+    if (nonMatchingEmails.length > 0) {
+      console.log(`Moved ${nonMatchingEmails.length} non-matching emails back to inbox`);
     }
 
-    // Create rule
-    const createRes = await fetch('https://graph.microsoft.com/v1.0/me/mailFolders/inbox/messageRules', {
-      method: 'POST',
-      headers: {
-        Authorization: `Bearer ${accessToken}`,
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify({
-        displayName: ruleName,
-        sequence: 1,
-        isEnabled: true,
-        conditions,
-        actions: {
-          moveToFolder: folderId
-        }
-      })
-    });
-
-    if (!createRes.ok) {
-      console.error(`Failed to create Outlook rule "${ruleName}":`, await createRes.text());
-      return false;
-    }
-
-    console.log(`Created Outlook rule: ${ruleName}`);
     return true;
   } catch (error) {
     console.error(`Error creating Outlook rule "${ruleName}":`, error);
