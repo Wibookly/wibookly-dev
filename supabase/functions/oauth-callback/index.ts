@@ -59,19 +59,22 @@ serve(async (req) => {
       return redirectWithError('Invalid state parameter');
     }
 
-    const { userId, organizationId, provider, redirectUrl } = stateData;
+    const { userId, organizationId, provider, redirectUrl, appOrigin } = stateData;
     console.log(`Processing OAuth callback for provider: ${provider}, userId: ${userId}`);
+
+    const resolvedAppUrl = resolveAppUrl(appOrigin);
+    console.log('Redirect target (sanitized):', { appOrigin, resolvedAppUrl, redirectUrl });
 
     // Get Supabase client with service role for database operations
     const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
     const serviceRoleKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
     const encryptionKey = Deno.env.get('TOKEN_ENCRYPTION_KEY')!;
-    
+
     if (!encryptionKey) {
       console.error('TOKEN_ENCRYPTION_KEY not configured');
-      return redirectWithError('Server configuration error');
+      return redirectWithError('Server configuration error', resolvedAppUrl);
     }
-    
+
     const supabase = createClient(supabaseUrl, serviceRoleKey);
 
     let tokens;
@@ -81,72 +84,77 @@ serve(async (req) => {
     } else if (provider === 'outlook') {
       tokens = await exchangeMicrosoftCode(code, supabaseUrl);
     } else {
-      return redirectWithError(`Unsupported provider: ${provider}`);
+      return redirectWithError(`Unsupported provider: ${provider}`, resolvedAppUrl);
     }
 
     if (!tokens) {
-      return redirectWithError('Failed to exchange authorization code');
+      return redirectWithError('Failed to exchange authorization code', resolvedAppUrl);
     }
 
     console.log(`Successfully obtained tokens for ${provider}`);
 
     // Encrypt tokens before storing
     const encryptedAccessToken = await encryptToken(tokens.access_token, encryptionKey);
-    const encryptedRefreshToken = tokens.refresh_token 
-      ? await encryptToken(tokens.refresh_token, encryptionKey) 
+    const encryptedRefreshToken = tokens.refresh_token
+      ? await encryptToken(tokens.refresh_token, encryptionKey)
       : null;
 
-    const expiresAt = tokens.expires_in 
+    const expiresAt = tokens.expires_in
       ? new Date(Date.now() + tokens.expires_in * 1000).toISOString()
       : null;
 
     // Store encrypted tokens in the vault (not readable by clients)
     const { error: vaultError } = await supabase
       .from('oauth_token_vault')
-      .upsert({
-        user_id: userId,
-        provider: provider,
-        encrypted_access_token: encryptedAccessToken,
-        encrypted_refresh_token: encryptedRefreshToken,
-        expires_at: expiresAt,
-        updated_at: new Date().toISOString()
-      }, {
-        onConflict: 'user_id,provider'
-      });
+      .upsert(
+        {
+          user_id: userId,
+          provider: provider,
+          encrypted_access_token: encryptedAccessToken,
+          encrypted_refresh_token: encryptedRefreshToken,
+          expires_at: expiresAt,
+          updated_at: new Date().toISOString(),
+        },
+        {
+          onConflict: 'user_id,provider',
+        }
+      );
 
     if (vaultError) {
       console.error('Token vault error:', vaultError);
-      return redirectWithError('Failed to save tokens securely');
+      return redirectWithError('Failed to save tokens securely', resolvedAppUrl);
     }
 
     // Update provider_connections with status only (NO TOKENS)
     const { error: dbError } = await supabase
       .from('provider_connections')
-      .upsert({
-        user_id: userId,
-        organization_id: organizationId,
-        provider: provider,
-        is_connected: true,
-        connected_at: new Date().toISOString(),
-        updated_at: new Date().toISOString()
-      }, {
-        onConflict: 'user_id,provider'
-      });
+      .upsert(
+        {
+          user_id: userId,
+          organization_id: organizationId,
+          provider: provider,
+          is_connected: true,
+          connected_at: new Date().toISOString(),
+          updated_at: new Date().toISOString(),
+        },
+        {
+          onConflict: 'user_id,provider',
+        }
+      );
 
     if (dbError) {
       console.error('Database error:', dbError);
-      return redirectWithError('Failed to save connection');
+      return redirectWithError('Failed to save connection', resolvedAppUrl);
     }
 
     console.log(`Connection saved for ${provider} (tokens encrypted in vault)`);
 
     // Redirect back to the app
-    const appUrl = getAppUrl();
     return new Response(null, {
       status: 302,
       headers: {
-        'Location': `${appUrl}${redirectUrl || '/integrations'}?connected=${provider}`
-      }
+        Location: `${resolvedAppUrl}${redirectUrl || '/integrations'}?connected=${provider}`,
+      },
     });
 
   } catch (error: unknown) {
@@ -213,16 +221,38 @@ async function exchangeMicrosoftCode(code: string, supabaseUrl: string) {
 }
 
 function getAppUrl(): string {
-  // Return the Lovable app URL
+  // Default app URL (fallback only)
   return 'https://jbzctydskdpzrejvpwpn.lovable.app';
 }
 
-function redirectWithError(message: string): Response {
-  const appUrl = getAppUrl();
+function resolveAppUrl(appOrigin?: unknown): string {
+  const fallback = getAppUrl();
+  if (typeof appOrigin !== 'string' || !appOrigin) return fallback;
+
+  try {
+    const url = new URL(appOrigin);
+
+    // Prevent open redirects: allow only Lovable preview domains.
+    const host = url.hostname.toLowerCase();
+    const isLovableDomain = host.endsWith('.lovable.app') || host.endsWith('.lovableproject.com');
+    const isLocalhost = host === 'localhost' || host === '127.0.0.1';
+
+    if (!isLovableDomain && !isLocalhost) return fallback;
+    if (url.protocol !== 'https:' && !isLocalhost) return fallback;
+
+    // Ensure we only keep the origin (no path/query)
+    return url.origin;
+  } catch {
+    return fallback;
+  }
+}
+
+function redirectWithError(message: string, appUrl?: string): Response {
+  const resolved = appUrl || getAppUrl();
   return new Response(null, {
     status: 302,
     headers: {
-      'Location': `${appUrl}/integrations?error=${encodeURIComponent(message)}`
-    }
+      Location: `${resolved}/integrations?error=${encodeURIComponent(message)}`,
+    },
   });
 }

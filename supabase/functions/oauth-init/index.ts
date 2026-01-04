@@ -89,6 +89,9 @@ serve(async (req) => {
       userId,
       organizationId,
       provider,
+      // Remember which web origin started the flow so the callback can return there.
+      // This avoids redirecting to an unpublished/stale domain.
+      appOrigin: req.headers.get('origin') || undefined,
       redirectUrl: redirectUrl || '/integrations'
     }));
 
