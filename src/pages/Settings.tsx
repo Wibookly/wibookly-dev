@@ -175,32 +175,6 @@ export default function Settings() {
           </div>
         </section>
 
-        {/* AI Settings */}
-        <section className="space-y-4">
-          <h2 className="text-lg font-semibold">AI Preferences</h2>
-          <div className="space-y-4 p-6 bg-card rounded-lg border border-border">
-            <div className="space-y-2">
-              <Label htmlFor="writingStyle">Default Writing Style</Label>
-              <Select
-                value={aiSettings.writing_style}
-                onValueChange={(val) => setAiSettings({ ...aiSettings, writing_style: val })}
-              >
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="professional">Professional</SelectItem>
-                  <SelectItem value="concise">Concise</SelectItem>
-                  <SelectItem value="friendly">Friendly</SelectItem>
-                  <SelectItem value="detailed">Detailed</SelectItem>
-                </SelectContent>
-              </Select>
-              <p className="text-xs text-muted-foreground">
-                Default style for AI drafts. You can also set per-category styles in Categories.
-              </p>
-            </div>
-          </div>
-        </section>
 
         <div className="flex justify-end">
           <Button onClick={saveSettings} disabled={saving}>
