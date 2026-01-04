@@ -36,9 +36,13 @@ export function MobileSidebar({ open, onClose }: MobileSidebarProps) {
           <div className="flex items-center justify-between">
             <img src={wibooklyLogo} alt="Wibookly" className="h-10 w-auto" />
           </div>
-          {/* Connected Emails */}
-          {connectedEmails.length > 0 && (
-            <div className="mt-2 space-y-1">
+        </SheetHeader>
+
+        {/* Connected Emails Section */}
+        <div className="p-3 border-b border-border">
+          <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-2">Emails</h3>
+          {connectedEmails.length > 0 ? (
+            <div className="space-y-1.5">
               {connectedEmails.map((email) => (
                 <div
                   key={email}
@@ -49,8 +53,10 @@ export function MobileSidebar({ open, onClose }: MobileSidebarProps) {
                 </div>
               ))}
             </div>
+          ) : (
+            <p className="text-xs text-muted-foreground">No emails connected</p>
           )}
-        </SheetHeader>
+        </div>
 
         {/* Onboarding Progress */}
         <div className="p-3">
