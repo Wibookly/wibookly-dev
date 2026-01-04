@@ -553,9 +553,13 @@ export default function Categories() {
 
   // Check if a rule needs syncing
   const ruleNeedsSync = (ruleId: string) => {
-    // Temp rules always need sync, saved rules check tracking state or if never synced
-    if (ruleId.startsWith('temp-')) return false; // Can't sync temp rules
-    return rulesNeedingSync.has(ruleId);
+    // Temp rules can't be synced yet
+    if (ruleId.startsWith('temp-')) return false;
+    // Check if rule was modified since last sync or never synced
+    const rule = rules.find(r => r.id === ruleId);
+    if (!rule) return false;
+    // If never synced or explicitly marked as needing sync
+    return !rule.last_synced_at || rulesNeedingSync.has(ruleId);
   };
 
   // Sync a single rule manually
