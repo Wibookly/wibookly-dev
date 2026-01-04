@@ -109,6 +109,19 @@ serve(async (req) => {
 
     console.log(`Successfully obtained tokens for ${provider}`);
 
+    // Fetch the user's email from the provider
+    let connectedEmail: string | null = null;
+    try {
+      if (provider === 'google') {
+        connectedEmail = await fetchGoogleEmail(tokens.access_token);
+      } else if (provider === 'outlook') {
+        connectedEmail = await fetchMicrosoftEmail(tokens.access_token);
+      }
+      console.log(`Fetched connected email: ${connectedEmail}`);
+    } catch (emailErr) {
+      console.warn('Failed to fetch user email:', emailErr);
+    }
+
     // Encrypt tokens before storing
     const encryptedAccessToken = await encryptToken(tokens.access_token, encryptionKey);
     const encryptedRefreshToken = tokens.refresh_token
@@ -142,7 +155,7 @@ serve(async (req) => {
       return redirectWithError('Failed to save tokens securely', resolvedAppUrl, provider);
     }
 
-    // Update provider_connections with status only (NO TOKENS)
+    // Update provider_connections with status and email (NO TOKENS)
     const { error: dbError } = await supabase
       .from('provider_connections')
       .upsert(
@@ -153,6 +166,7 @@ serve(async (req) => {
           is_connected: true,
           connected_at: new Date().toISOString(),
           updated_at: new Date().toISOString(),
+          connected_email: connectedEmail,
         },
         {
           onConflict: 'user_id,provider',
@@ -237,6 +251,36 @@ async function exchangeMicrosoftCode(code: string, supabaseUrl: string) {
   }
 
   return await response.json();
+}
+
+// Fetch email from Google userinfo endpoint
+async function fetchGoogleEmail(accessToken: string): Promise<string | null> {
+  const response = await fetch('https://www.googleapis.com/oauth2/v2/userinfo', {
+    headers: { Authorization: `Bearer ${accessToken}` }
+  });
+  
+  if (!response.ok) {
+    console.error('Failed to fetch Google user info:', await response.text());
+    return null;
+  }
+  
+  const data = await response.json();
+  return data.email || null;
+}
+
+// Fetch email from Microsoft Graph endpoint
+async function fetchMicrosoftEmail(accessToken: string): Promise<string | null> {
+  const response = await fetch('https://graph.microsoft.com/v1.0/me', {
+    headers: { Authorization: `Bearer ${accessToken}` }
+  });
+  
+  if (!response.ok) {
+    console.error('Failed to fetch Microsoft user info:', await response.text());
+    return null;
+  }
+  
+  const data = await response.json();
+  return data.mail || data.userPrincipalName || null;
 }
 
 function getAppUrl(): string {
