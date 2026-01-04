@@ -801,11 +801,11 @@ export default function Categories() {
                           title={ruleNeedsSync(rule.id) ? "Click to sync changes" : "Sync this rule"}
                           className={`
                             ${ruleNeedsSync(rule.id) 
-                              ? 'text-orange-500 hover:text-orange-600 hover:bg-orange-50 animate-pulse' 
+                              ? 'text-red-500 hover:text-red-600 hover:bg-red-50 animate-[pulse_0.5s_ease-in-out_infinite] font-bold' 
                               : 'text-green-600 hover:text-green-700 hover:bg-green-50'}
                           `}
                         >
-                          <Play className="w-4 h-4" />
+                          <Play className={`w-4 h-4 ${ruleNeedsSync(rule.id) ? 'fill-red-500' : ''}`} />
                         </Button>
 
                         {/* Sync status */}
@@ -858,13 +858,20 @@ export default function Categories() {
                       {/* Advanced fields */}
                       {rule.is_advanced && (
                         <div className="pl-1 pt-2 border-t border-border/50 space-y-2">
-                          {/* AND/OR between sender and recipient */}
-                          <div className="flex items-center justify-center py-1">
-                            <div className="flex items-center gap-2 px-3 py-1 bg-muted rounded-full">
-                              <span className="text-xs text-muted-foreground uppercase font-medium">
-                                {rule.condition_logic === 'and' ? 'AND' : 'OR'}
-                              </span>
-                            </div>
+                          {/* AND/OR between sender and recipient - on the left */}
+                          <div className="flex items-center gap-3">
+                            <Select
+                              value={rule.condition_logic}
+                              onValueChange={(val) => updateRule(rule.id, 'condition_logic', val as 'and' | 'or')}
+                            >
+                              <SelectTrigger className="w-20 h-7 text-xs bg-muted border-0">
+                                <SelectValue />
+                              </SelectTrigger>
+                              <SelectContent>
+                                <SelectItem value="and">AND</SelectItem>
+                                <SelectItem value="or">OR</SelectItem>
+                              </SelectContent>
+                            </Select>
                           </div>
 
                           {/* Recipient filter */}
@@ -886,8 +893,8 @@ export default function Categories() {
                             </Select>
                           </div>
 
-                          {/* AND/OR toggle between recipient and subject */}
-                          <div className="flex items-center justify-center py-1">
+                          {/* AND/OR between recipient and subject - on the left */}
+                          <div className="flex items-center gap-3">
                             <Select
                               value={rule.condition_logic}
                               onValueChange={(val) => updateRule(rule.id, 'condition_logic', val as 'and' | 'or')}
@@ -913,13 +920,20 @@ export default function Categories() {
                             />
                           </div>
 
-                          {/* AND/OR between subject and body */}
-                          <div className="flex items-center justify-center py-1">
-                            <div className="flex items-center gap-2 px-3 py-1 bg-muted rounded-full">
-                              <span className="text-xs text-muted-foreground uppercase font-medium">
-                                {rule.condition_logic === 'and' ? 'AND' : 'OR'}
-                              </span>
-                            </div>
+                          {/* AND/OR between subject and body - on the left */}
+                          <div className="flex items-center gap-3">
+                            <Select
+                              value={rule.condition_logic}
+                              onValueChange={(val) => updateRule(rule.id, 'condition_logic', val as 'and' | 'or')}
+                            >
+                              <SelectTrigger className="w-20 h-7 text-xs bg-muted border-0">
+                                <SelectValue />
+                              </SelectTrigger>
+                              <SelectContent>
+                                <SelectItem value="and">AND</SelectItem>
+                                <SelectItem value="or">OR</SelectItem>
+                              </SelectContent>
+                            </Select>
                           </div>
 
                           {/* Body contains */}
