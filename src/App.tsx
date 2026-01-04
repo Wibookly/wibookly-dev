@@ -10,7 +10,6 @@ import { AppLayout } from "./components/app/AppLayout";
 import Dashboard from "./pages/Dashboard";
 import Integrations from "./pages/Integrations";
 import Categories from "./pages/Categories";
-import Rules from "./pages/Rules";
 import Sync from "./pages/Sync";
 import Settings from "./pages/Settings";
 import NotFound from "./pages/NotFound";
@@ -31,7 +30,6 @@ const App = () => (
               <Route path="/dashboard" element={<Dashboard />} />
               <Route path="/integrations" element={<Integrations />} />
               <Route path="/categories" element={<Categories />} />
-              <Route path="/rules" element={<Rules />} />
               <Route path="/sync" element={<Sync />} />
               <Route path="/settings" element={<Settings />} />
             </Route>

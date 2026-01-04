@@ -1,5 +1,5 @@
 import { NavLink, useLocation } from 'react-router-dom';
-import { LayoutDashboard, Plug, FolderOpen, ListFilter, RefreshCw, Settings, LogOut, X } from 'lucide-react';
+import { LayoutDashboard, Plug, FolderOpen, RefreshCw, Settings, LogOut } from 'lucide-react';
 import { useAuth } from '@/lib/auth';
 import { cn } from '@/lib/utils';
 import wibooklyLogo from '@/assets/wibookly-logo.png';
@@ -10,7 +10,6 @@ const navItems = [
   { title: 'Dashboard', href: '/dashboard', icon: LayoutDashboard },
   { title: 'Integrations', href: '/integrations', icon: Plug },
   { title: 'Categories', href: '/categories', icon: FolderOpen },
-  { title: 'Rules', href: '/rules', icon: ListFilter },
   { title: 'Sync', href: '/sync', icon: RefreshCw },
   { title: 'Settings', href: '/settings', icon: Settings },
 ];

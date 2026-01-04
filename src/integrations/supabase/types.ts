@@ -19,7 +19,6 @@ export type Database = {
           created_at: string
           id: string
           organization_id: string
-          signature: string | null
           updated_at: string
           writing_style: string
         }
@@ -27,7 +26,6 @@ export type Database = {
           created_at?: string
           id?: string
           organization_id: string
-          signature?: string | null
           updated_at?: string
           writing_style?: string
         }
@@ -35,7 +33,6 @@ export type Database = {
           created_at?: string
           id?: string
           organization_id?: string
-          signature?: string | null
           updated_at?: string
           writing_style?: string
         }
@@ -52,6 +49,7 @@ export type Database = {
       categories: {
         Row: {
           ai_draft_enabled: boolean
+          auto_reply_enabled: boolean
           color: string
           created_at: string
           id: string
@@ -60,9 +58,11 @@ export type Database = {
           organization_id: string
           sort_order: number
           updated_at: string
+          writing_style: string
         }
         Insert: {
           ai_draft_enabled?: boolean
+          auto_reply_enabled?: boolean
           color?: string
           created_at?: string
           id?: string
@@ -71,9 +71,11 @@ export type Database = {
           organization_id: string
           sort_order?: number
           updated_at?: string
+          writing_style?: string
         }
         Update: {
           ai_draft_enabled?: boolean
+          auto_reply_enabled?: boolean
           color?: string
           created_at?: string
           id?: string
@@ -82,6 +84,7 @@ export type Database = {
           organization_id?: string
           sort_order?: number
           updated_at?: string
+          writing_style?: string
         }
         Relationships: [
           {

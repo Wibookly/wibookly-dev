@@ -4,7 +4,6 @@ import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Textarea } from '@/components/ui/textarea';
 import {
   Select,
   SelectContent,
@@ -14,11 +13,10 @@ import {
 } from '@/components/ui/select';
 import { useToast } from '@/hooks/use-toast';
 import { Loader2, Save } from 'lucide-react';
-import { organizationNameSchema, fullNameSchema, signatureSchema, validateField } from '@/lib/validation';
+import { organizationNameSchema, fullNameSchema, validateField } from '@/lib/validation';
 
 interface AISettings {
   writing_style: string;
-  signature: string | null;
 }
 
 export default function Settings() {
@@ -27,8 +25,7 @@ export default function Settings() {
   const [orgName, setOrgName] = useState('');
   const [fullName, setFullName] = useState('');
   const [aiSettings, setAiSettings] = useState<AISettings>({
-    writing_style: 'professional',
-    signature: ''
+    writing_style: 'professional'
   });
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -53,8 +50,7 @@ export default function Settings() {
 
     if (data) {
       setAiSettings({
-        writing_style: data.writing_style,
-        signature: data.signature || ''
+        writing_style: data.writing_style
       });
     }
     setLoading(false);
@@ -84,16 +80,6 @@ export default function Settings() {
       return;
     }
 
-    const signatureValidation = validateField(signatureSchema, aiSettings.signature || '');
-    if (!signatureValidation.success) {
-      toast({
-        title: 'Validation Error',
-        description: signatureValidation.error,
-        variant: 'destructive'
-      });
-      return;
-    }
-
     setSaving(true);
 
     try {
@@ -114,8 +100,7 @@ export default function Settings() {
         .from('ai_settings')
         .upsert({
           organization_id: organization.id,
-          writing_style: aiSettings.writing_style,
-          signature: signatureValidation.data || null
+          writing_style: aiSettings.writing_style
         });
 
       toast({
@@ -195,7 +180,7 @@ export default function Settings() {
           <h2 className="text-lg font-semibold">AI Preferences</h2>
           <div className="space-y-4 p-6 bg-card rounded-lg border border-border">
             <div className="space-y-2">
-              <Label htmlFor="writingStyle">Writing Style</Label>
+              <Label htmlFor="writingStyle">Default Writing Style</Label>
               <Select
                 value={aiSettings.writing_style}
                 onValueChange={(val) => setAiSettings({ ...aiSettings, writing_style: val })}
@@ -207,23 +192,11 @@ export default function Settings() {
                   <SelectItem value="professional">Professional</SelectItem>
                   <SelectItem value="concise">Concise</SelectItem>
                   <SelectItem value="friendly">Friendly</SelectItem>
+                  <SelectItem value="detailed">Detailed</SelectItem>
                 </SelectContent>
               </Select>
               <p className="text-xs text-muted-foreground">
-                This affects how AI drafts your email responses
-              </p>
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="signature">Email Signature</Label>
-              <Textarea
-                id="signature"
-                value={aiSettings.signature || ''}
-                onChange={(e) => setAiSettings({ ...aiSettings, signature: e.target.value })}
-                placeholder="Best regards,&#10;Your Name"
-                rows={4}
-              />
-              <p className="text-xs text-muted-foreground">
-                Added to the end of AI-drafted emails
+                Default style for AI drafts. You can also set per-category styles in Categories.
               </p>
             </div>
           </div>
