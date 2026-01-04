@@ -23,9 +23,13 @@ export function AppSidebar() {
     <aside className="hidden lg:flex w-64 h-screen bg-card border-r border-border flex-col">
       <div className="p-4 border-b border-border flex flex-col items-center">
         <img src={wibooklyLogo} alt="Wibookly" className="h-40 w-auto" />
-        {/* Connected Emails */}
-        {connectedEmails.length > 0 && (
-          <div className="mt-3 w-full space-y-1">
+      </div>
+
+      {/* Connected Emails Section */}
+      <div className="p-3 border-b border-border">
+        <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-2">Emails</h3>
+        {connectedEmails.length > 0 ? (
+          <div className="space-y-1.5">
             {connectedEmails.map((email) => (
               <div
                 key={email}
@@ -36,6 +40,8 @@ export function AppSidebar() {
               </div>
             ))}
           </div>
+        ) : (
+          <p className="text-xs text-muted-foreground">No emails connected</p>
         )}
       </div>
 
