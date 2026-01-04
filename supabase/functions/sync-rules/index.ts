@@ -32,9 +32,179 @@ async function decryptToken(encryptedData: string, keyString: string): Promise<s
   return new TextDecoder().decode(decrypted);
 }
 
+// AES-GCM encryption for tokens
+async function encryptToken(token: string, keyString: string): Promise<string> {
+  const encoder = new TextEncoder();
+  const keyData = encoder.encode(keyString.padEnd(32, '0').slice(0, 32));
+  
+  const key = await crypto.subtle.importKey(
+    'raw',
+    keyData,
+    { name: 'AES-GCM' },
+    false,
+    ['encrypt']
+  );
+  
+  const iv = crypto.getRandomValues(new Uint8Array(12));
+  const encrypted = await crypto.subtle.encrypt(
+    { name: 'AES-GCM', iv },
+    key,
+    encoder.encode(token)
+  );
+  
+  const combined = new Uint8Array(iv.length + new Uint8Array(encrypted).length);
+  combined.set(iv, 0);
+  combined.set(new Uint8Array(encrypted), iv.length);
+  
+  return btoa(String.fromCharCode(...combined));
+}
+
+// Refresh Google access token using refresh token
+async function refreshGoogleToken(refreshToken: string): Promise<{ access_token: string; expires_in: number } | null> {
+  const clientId = Deno.env.get('GOOGLE_CLIENT_ID');
+  const clientSecret = Deno.env.get('GOOGLE_CLIENT_SECRET');
+  
+  console.log('Refreshing Google access token...');
+  
+  const response = await fetch('https://oauth2.googleapis.com/token', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+    body: new URLSearchParams({
+      refresh_token: refreshToken,
+      client_id: clientId!,
+      client_secret: clientSecret!,
+      grant_type: 'refresh_token'
+    })
+  });
+  
+  if (!response.ok) {
+    console.error('Failed to refresh Google token:', await response.text());
+    return null;
+  }
+  
+  const tokens = await response.json();
+  console.log('Successfully refreshed Google token');
+  return tokens;
+}
+
+// Refresh Microsoft access token using refresh token
+async function refreshMicrosoftToken(refreshToken: string): Promise<{ access_token: string; refresh_token?: string; expires_in: number } | null> {
+  const clientId = Deno.env.get('MICROSOFT_CLIENT_ID');
+  const clientSecret = Deno.env.get('MICROSOFT_CLIENT_SECRET');
+  
+  console.log('Refreshing Microsoft access token...');
+  
+  const response = await fetch('https://login.microsoftonline.com/common/oauth2/v2.0/token', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+    body: new URLSearchParams({
+      refresh_token: refreshToken,
+      client_id: clientId!,
+      client_secret: clientSecret!,
+      grant_type: 'refresh_token'
+    })
+  });
+  
+  if (!response.ok) {
+    console.error('Failed to refresh Microsoft token:', await response.text());
+    return null;
+  }
+  
+  const tokens = await response.json();
+  console.log('Successfully refreshed Microsoft token');
+  return tokens;
+}
+
+interface TokenData {
+  provider: string;
+  encrypted_access_token: string;
+  encrypted_refresh_token: string | null;
+  expires_at: string | null;
+}
+
+// Get valid access token, refreshing if expired
+// deno-lint-ignore no-explicit-any
+async function getValidAccessToken(
+  tokenData: TokenData,
+  encryptionKey: string,
+  userId: string
+): Promise<string | null> {
+  const isExpired = tokenData.expires_at && new Date(tokenData.expires_at) < new Date();
+  
+  // If not expired, return decrypted access token
+  if (!isExpired) {
+    return await decryptToken(tokenData.encrypted_access_token, encryptionKey);
+  }
+  
+  console.log(`Token for ${tokenData.provider} is expired, attempting refresh...`);
+  
+  // Need to refresh - check if we have a refresh token
+  if (!tokenData.encrypted_refresh_token) {
+    console.error(`No refresh token available for ${tokenData.provider}`);
+    return null;
+  }
+  
+  const refreshToken = await decryptToken(tokenData.encrypted_refresh_token, encryptionKey);
+  let newTokens;
+  
+  if (tokenData.provider === 'google') {
+    newTokens = await refreshGoogleToken(refreshToken);
+  } else if (tokenData.provider === 'microsoft') {
+    newTokens = await refreshMicrosoftToken(refreshToken);
+  }
+  
+  if (!newTokens) {
+    console.error(`Failed to refresh token for ${tokenData.provider}`);
+    return null;
+  }
+  
+  // Encrypt and save new tokens
+  const encryptedAccessToken = await encryptToken(newTokens.access_token, encryptionKey);
+  const expiresAt = new Date(Date.now() + newTokens.expires_in * 1000).toISOString();
+  
+  // Update token in vault using direct fetch to avoid type issues
+  const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
+  const serviceRoleKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
+  
+  const updatePayload: Record<string, string> = {
+    encrypted_access_token: encryptedAccessToken,
+    expires_at: expiresAt,
+    updated_at: new Date().toISOString()
+  };
+  
+  // Microsoft may return a new refresh token
+  if (tokenData.provider === 'microsoft' && 'refresh_token' in newTokens && newTokens.refresh_token) {
+    updatePayload.encrypted_refresh_token = await encryptToken(String(newTokens.refresh_token), encryptionKey);
+  }
+  
+  const updateResponse = await fetch(
+    `${supabaseUrl}/rest/v1/oauth_token_vault?user_id=eq.${userId}&provider=eq.${tokenData.provider}`,
+    {
+      method: 'PATCH',
+      headers: {
+        'Content-Type': 'application/json',
+        'apikey': serviceRoleKey,
+        'Authorization': `Bearer ${serviceRoleKey}`,
+        'Prefer': 'return=minimal'
+      },
+      body: JSON.stringify(updatePayload)
+    }
+  );
+  
+  if (!updateResponse.ok) {
+    console.error(`Failed to save refreshed token for ${tokenData.provider}:`, await updateResponse.text());
+  } else {
+    console.log(`Saved refreshed token for ${tokenData.provider}`);
+  }
+  
+  return newTokens.access_token;
+}
+
 // Apply Gmail filter for a rule
+// deno-lint-ignore no-explicit-any
 async function applyGmailFilter(accessToken: string, rule: any, labelId: string): Promise<boolean> {
   try {
+    // deno-lint-ignore no-explicit-any
     let criteria: any = {};
     
     if (rule.rule_type === 'sender') {
@@ -81,6 +251,7 @@ async function applyGmailFilter(accessToken: string, rule: any, labelId: string)
 }
 
 // Apply Outlook rule
+// deno-lint-ignore no-explicit-any
 async function applyOutlookRule(accessToken: string, rule: any, folderId: string, ruleName: string): Promise<boolean> {
   try {
     // Check if rule already exists
@@ -102,6 +273,7 @@ async function applyOutlookRule(accessToken: string, rule: any, folderId: string
     }
 
     // Build conditions based on rule type
+    // deno-lint-ignore no-explicit-any
     let conditions: any = {};
     
     if (rule.rule_type === 'sender') {
@@ -259,6 +431,7 @@ serve(async (req) => {
     }
 
     // Filter rules where category is enabled
+    // deno-lint-ignore no-explicit-any
     const enabledRules = rules?.filter(r => (r.categories as any)?.is_enabled) || [];
 
     if (enabledRules.length === 0) {
@@ -270,13 +443,13 @@ serve(async (req) => {
 
     const encryptionKey = Deno.env.get('TOKEN_ENCRYPTION_KEY')!;
 
-    // Get tokens from vault
-    const { data: tokenData, error: tokenError } = await supabaseAdmin
+    // Get tokens from vault (including refresh token and expiry for refresh logic)
+    const { data: tokenDataList, error: tokenError } = await supabaseAdmin
       .from('oauth_token_vault')
-      .select('provider, encrypted_access_token')
+      .select('provider, encrypted_access_token, encrypted_refresh_token, expires_at')
       .eq('user_id', user.id);
 
-    if (tokenError || !tokenData?.length) {
+    if (tokenError || !tokenDataList?.length) {
       return new Response(
         JSON.stringify({ error: 'No connected email providers found' }),
         { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
@@ -295,9 +468,21 @@ serve(async (req) => {
     const results: { provider: string; synced: number; failed: number }[] = [];
 
     // Process each connected provider
-    for (const token of tokenData) {
+    for (const tokenRecord of tokenDataList) {
       try {
-        const accessToken = await decryptToken(token.encrypted_access_token, encryptionKey);
+        // Get valid access token (will refresh if expired)
+        const accessToken = await getValidAccessToken(
+          tokenRecord as TokenData,
+          encryptionKey,
+          user.id
+        );
+        
+        if (!accessToken) {
+          console.error(`Could not get valid access token for ${tokenRecord.provider}`);
+          results.push({ provider: tokenRecord.provider, synced: 0, failed: enabledRules.length });
+          continue;
+        }
+
         let synced = 0;
         let failed = 0;
 
@@ -308,14 +493,14 @@ serve(async (req) => {
           const labelName = `${catInfo.index + 1}: ${catInfo.name}`;
           let success = false;
           
-          if (token.provider === 'google') {
+          if (tokenRecord.provider === 'google') {
             const labelId = await getGmailLabelId(accessToken, labelName);
             if (labelId) {
               success = await applyGmailFilter(accessToken, rule, labelId);
             } else {
               console.log(`Gmail label "${labelName}" not found - please sync categories first`);
             }
-          } else if (token.provider === 'microsoft') {
+          } else if (tokenRecord.provider === 'microsoft') {
             const folderId = await getOutlookFolderId(accessToken, labelName);
             if (folderId) {
               const ruleName = `Wibookly: ${rule.rule_type} - ${rule.rule_value}`;
@@ -329,10 +514,10 @@ serve(async (req) => {
           else failed++;
         }
 
-        results.push({ provider: token.provider, synced, failed });
+        results.push({ provider: tokenRecord.provider, synced, failed });
       } catch (error) {
-        console.error(`Failed to process ${token.provider}:`, error);
-        results.push({ provider: token.provider, synced: 0, failed: enabledRules.length });
+        console.error(`Failed to process ${tokenRecord.provider}:`, error);
+        results.push({ provider: tokenRecord.provider, synced: 0, failed: enabledRules.length });
       }
     }
 
