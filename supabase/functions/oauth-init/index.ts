@@ -58,15 +58,22 @@ serve(async (req) => {
       );
     }
 
-    // Validate organizationId belongs to user
-    const { data: profile } = await supabaseClient
+    // Validate organizationId belongs to user using service role to bypass RLS
+    const adminClient = createClient(
+      Deno.env.get('SUPABASE_URL')!,
+      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
+    );
+
+    const { data: profile, error: profileError } = await adminClient
       .from('user_profiles')
       .select('organization_id')
       .eq('user_id', user.id)
       .single();
 
-    if (!profile || profile.organization_id !== organizationId) {
-      console.error(`Org mismatch: User ${user.id} tried to use org ${organizationId}`);
+    console.log('Profile lookup result:', { profile, error: profileError?.message, userId: user.id });
+
+    if (profileError || !profile || profile.organization_id !== organizationId) {
+      console.error(`Org mismatch: User ${user.id} tried to use org ${organizationId}, profile org: ${profile?.organization_id || 'not found'}`);
       return new Response(
         JSON.stringify({ error: 'Unauthorized: Organization mismatch' }),
         { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
