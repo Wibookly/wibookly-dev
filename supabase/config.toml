@@ -14,3 +14,6 @@ verify_jwt = true
 
 [functions.draft-email]
 verify_jwt = true
+
+[functions.sync-rules]
+verify_jwt = true
