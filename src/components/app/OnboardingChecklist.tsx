@@ -1,6 +1,6 @@
 import { useEffect, useState, useRef } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { Check, Mail, FolderOpen, Sparkles, User, X, ChevronDown, ChevronUp } from 'lucide-react';
+import { Check, Mail, FolderOpen, User, X, ChevronDown, ChevronUp } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/lib/auth';
@@ -52,14 +52,6 @@ export function OnboardingChecklist({ onStepClick }: OnboardingChecklistProps) {
       icon: FolderOpen,
       href: '/categories',
       isComplete: false
-    },
-    {
-      id: 'ai',
-      title: 'Enable AI Drafts',
-      description: 'Auto-generate replies',
-      icon: Sparkles,
-      href: '/settings',
-      isComplete: false
     }
   ]);
   const [loading, setLoading] = useState(true);
@@ -90,18 +82,10 @@ export function OnboardingChecklist({ onStepClick }: OnboardingChecklistProps) {
           .eq('organization_id', organization.id)
           .eq('is_enabled', true);
 
-        const { data: aiCategories } = await supabase
-          .from('categories')
-          .select('id')
-          .eq('organization_id', organization.id)
-          .eq('ai_draft_enabled', true)
-          .limit(1);
-
         setSteps(prev => prev.map(step => {
           let isComplete = step.isComplete;
           if (step.id === 'email') isComplete = hasEmailConnected;
           if (step.id === 'categories') isComplete = (categoriesCount || 0) > 0;
-          if (step.id === 'ai') isComplete = (aiCategories?.length || 0) > 0;
           return { ...step, isComplete };
         }));
       } catch (error) {
@@ -202,8 +186,7 @@ export function OnboardingChecklist({ onStepClick }: OnboardingChecklistProps) {
     const pathMap: Record<string, number> = {
       '/dashboard': 0,
       '/integrations': 1,
-      '/categories': 2,
-      '/settings': 3
+      '/categories': 2
     };
     return pathMap[location.pathname] ?? -1;
   };
@@ -217,7 +200,7 @@ export function OnboardingChecklist({ onStepClick }: OnboardingChecklistProps) {
       <div className="bg-card rounded-lg border border-border p-4">
         <div className="h-4 w-32 bg-muted animate-pulse rounded mb-4" />
         <div className="space-y-3">
-          {[1, 2, 3, 4].map(i => (
+          {[1, 2, 3].map(i => (
             <div key={i} className="h-12 bg-muted animate-pulse rounded" />
           ))}
         </div>
