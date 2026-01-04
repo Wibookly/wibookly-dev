@@ -1,17 +1,17 @@
 import { NavLink, useLocation } from 'react-router-dom';
-import { LayoutDashboard, Plug, FolderOpen, RefreshCw, Settings, LogOut, Sparkles } from 'lucide-react';
+import { LayoutDashboard, Plug, FolderOpen, Settings, LogOut, Sparkles, Mail } from 'lucide-react';
 import { useAuth } from '@/lib/auth';
 import { cn } from '@/lib/utils';
 import wibooklyLogo from '@/assets/wibookly-logo.png';
 import { OnboardingChecklist } from './OnboardingChecklist';
 import { Sheet, SheetContent, SheetHeader } from '@/components/ui/sheet';
+import { useConnectedEmails } from '@/hooks/useConnectedEmails';
 
 const navItems = [
   { title: 'Dashboard', href: '/dashboard', icon: LayoutDashboard },
   { title: 'Integrations', href: '/integrations', icon: Plug },
   { title: 'Categories', href: '/categories', icon: FolderOpen },
   { title: 'AI Drafts', href: '/email-draft', icon: Sparkles },
-  { title: 'Sync', href: '/sync', icon: RefreshCw },
   { title: 'Settings', href: '/settings', icon: Settings },
 ];
 
@@ -21,8 +21,9 @@ interface MobileSidebarProps {
 }
 
 export function MobileSidebar({ open, onClose }: MobileSidebarProps) {
-  const { signOut, organization } = useAuth();
+  const { signOut } = useAuth();
   const location = useLocation();
+  const { connectedEmails } = useConnectedEmails();
 
   const handleNavClick = () => {
     onClose();
@@ -35,8 +36,19 @@ export function MobileSidebar({ open, onClose }: MobileSidebarProps) {
           <div className="flex items-center justify-between">
             <img src={wibooklyLogo} alt="Wibookly" className="h-10 w-auto" />
           </div>
-          {organization && (
-            <p className="text-xs text-muted-foreground truncate text-left">{organization.name}</p>
+          {/* Connected Emails */}
+          {connectedEmails.length > 0 && (
+            <div className="mt-2 space-y-1">
+              {connectedEmails.map((email) => (
+                <div
+                  key={email}
+                  className="flex items-center gap-2 px-2 py-1.5 bg-primary/10 rounded-md"
+                >
+                  <Mail className="w-3.5 h-3.5 text-primary flex-shrink-0" />
+                  <span className="text-xs font-medium text-primary truncate">{email}</span>
+                </div>
+              ))}
+            </div>
           )}
         </SheetHeader>
 

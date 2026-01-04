@@ -455,6 +455,7 @@ export type Database = {
         Args: never
         Returns: {
           connected_at: string
+          connected_email: string
           id: string
           is_connected: boolean
           organization_id: string

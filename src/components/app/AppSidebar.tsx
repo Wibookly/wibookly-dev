@@ -1,9 +1,10 @@
 import { NavLink, useLocation } from 'react-router-dom';
-import { LayoutDashboard, Plug, FolderOpen, Settings, LogOut, Sparkles } from 'lucide-react';
+import { LayoutDashboard, Plug, FolderOpen, Settings, LogOut, Sparkles, Mail } from 'lucide-react';
 import { useAuth } from '@/lib/auth';
 import { cn } from '@/lib/utils';
 import wibooklyLogo from '@/assets/wibookly-logo.png';
 import { OnboardingChecklist } from './OnboardingChecklist';
+import { useConnectedEmails } from '@/hooks/useConnectedEmails';
 
 const navItems = [
   { title: 'Dashboard', href: '/dashboard', icon: LayoutDashboard },
@@ -14,15 +15,27 @@ const navItems = [
 ];
 
 export function AppSidebar() {
-  const { signOut, organization } = useAuth();
+  const { signOut } = useAuth();
   const location = useLocation();
+  const { connectedEmails } = useConnectedEmails();
 
   return (
     <aside className="hidden lg:flex w-64 h-screen bg-card border-r border-border flex-col">
       <div className="p-4 border-b border-border flex flex-col items-center">
         <img src={wibooklyLogo} alt="Wibookly" className="h-40 w-auto" />
-        {organization && (
-          <p className="mt-3 text-lg font-bold text-foreground text-center truncate max-w-full">{organization.name}</p>
+        {/* Connected Emails */}
+        {connectedEmails.length > 0 && (
+          <div className="mt-3 w-full space-y-1">
+            {connectedEmails.map((email) => (
+              <div
+                key={email}
+                className="flex items-center gap-2 px-2 py-1.5 bg-primary/10 rounded-md"
+              >
+                <Mail className="w-3.5 h-3.5 text-primary flex-shrink-0" />
+                <span className="text-xs font-medium text-primary truncate">{email}</span>
+              </div>
+            ))}
+          </div>
         )}
       </div>
 
