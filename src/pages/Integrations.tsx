@@ -25,7 +25,7 @@ interface Connection {
 type ProviderId = 'google' | 'outlook';
 
 export default function Integrations() {
-  const { organization, loading: authLoading } = useAuth();
+  const { organization, profile, loading: authLoading } = useAuth();
   const { toast } = useToast();
   const [connections, setConnections] = useState<Connection[]>([]);
   const [loading, setLoading] = useState(true);
@@ -253,10 +253,27 @@ export default function Integrations() {
     [googleConnection, outlookConnection]
   );
 
+  // Extract first name from profile or email
+  const getFirstName = () => {
+    if (profile?.full_name) {
+      return profile.full_name.split(' ')[0];
+    }
+    if (profile?.email) {
+      // Extract name from email (e.g., john.doe@example.com -> John)
+      const emailName = profile.email.split('@')[0].split('.')[0];
+      return emailName.charAt(0).toUpperCase() + emailName.slice(1).toLowerCase();
+    }
+    return '';
+  };
+
+  const firstName = getFirstName();
+
   return (
     <section className="max-w-3xl animate-fade-in" aria-busy={loading ? 'true' : 'false'}>
       <header className="mb-8">
-        <h1 className="text-2xl font-semibold tracking-tight">Integrations</h1>
+        <h1 className="text-2xl font-semibold tracking-tight">
+          Welcome back{firstName ? `, ${firstName}` : ''}
+        </h1>
         <p className="mt-1 text-muted-foreground">Connect your email providers to start organizing</p>
       </header>
 
