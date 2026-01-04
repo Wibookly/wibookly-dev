@@ -193,9 +193,19 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   const signOut = async () => {
-    await supabase.auth.signOut();
-    setProfile(null);
-    setOrganization(null);
+    try {
+      await supabase.auth.signOut();
+      setProfile(null);
+      setOrganization(null);
+      setUser(null);
+      setSession(null);
+      // Force redirect to auth page
+      window.location.href = '/auth';
+    } catch (error) {
+      console.error('Sign out error:', error);
+      // Force redirect even on error
+      window.location.href = '/auth';
+    }
   };
 
   return (
