@@ -8,7 +8,14 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "sonner";
-import { Loader2, Mail, Sparkles, Copy, RefreshCw } from "lucide-react";
+import { Loader2, Mail, Sparkles, Copy, RefreshCw, Plus, Trash2, MessageSquare } from "lucide-react";
+
+interface ThreadEmail {
+  id: string;
+  from: string;
+  date: string;
+  body: string;
+}
 
 interface Category {
   id: string;
@@ -47,6 +54,7 @@ export default function EmailDraft() {
   const [generatedDraft, setGeneratedDraft] = useState("");
   const [isGenerating, setIsGenerating] = useState(false);
   const [loadingCategories, setLoadingCategories] = useState(true);
+  const [conversationHistory, setConversationHistory] = useState<ThreadEmail[]>([]);
 
 
   useEffect(() => {
@@ -107,6 +115,7 @@ export default function EmailDraft() {
           writingStyle,
           action,
           additionalContext,
+          conversationHistory: conversationHistory.length > 0 ? conversationHistory : undefined,
         },
       });
 
@@ -261,6 +270,88 @@ export default function EmailDraft() {
                   rows={5}
                 />
               </div>
+
+              {/* Conversation History */}
+              {action === "reply" && (
+                <div className="space-y-3">
+                  <div className="flex items-center justify-between">
+                    <Label className="flex items-center gap-2">
+                      <MessageSquare className="h-4 w-4" />
+                      Thread History (Optional)
+                    </Label>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setConversationHistory([
+                        ...conversationHistory,
+                        { id: crypto.randomUUID(), from: "", date: "", body: "" }
+                      ])}
+                    >
+                      <Plus className="h-4 w-4 mr-1" />
+                      Add Email
+                    </Button>
+                  </div>
+                  {conversationHistory.length > 0 && (
+                    <div className="space-y-3">
+                      {conversationHistory.map((email, index) => (
+                        <div key={email.id} className="p-3 border rounded-lg bg-muted/30 space-y-2">
+                          <div className="flex items-center justify-between">
+                            <span className="text-xs font-medium text-muted-foreground">
+                              Email {index + 1} in thread
+                            </span>
+                            <Button
+                              type="button"
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => setConversationHistory(
+                                conversationHistory.filter(e => e.id !== email.id)
+                              )}
+                            >
+                              <Trash2 className="h-4 w-4 text-destructive" />
+                            </Button>
+                          </div>
+                          <div className="grid gap-2 sm:grid-cols-2">
+                            <Input
+                              placeholder="From (e.g., John <john@example.com>)"
+                              value={email.from}
+                              onChange={(e) => setConversationHistory(
+                                conversationHistory.map(em => 
+                                  em.id === email.id ? { ...em, from: e.target.value } : em
+                                )
+                              )}
+                            />
+                            <Input
+                              placeholder="Date (e.g., Jan 3, 2025)"
+                              value={email.date}
+                              onChange={(e) => setConversationHistory(
+                                conversationHistory.map(em => 
+                                  em.id === email.id ? { ...em, date: e.target.value } : em
+                                )
+                              )}
+                            />
+                          </div>
+                          <Textarea
+                            placeholder="Email content..."
+                            value={email.body}
+                            onChange={(e) => setConversationHistory(
+                              conversationHistory.map(em => 
+                                em.id === email.id ? { ...em, body: e.target.value } : em
+                              )
+                            )}
+                            rows={3}
+                          />
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                  {conversationHistory.length === 0 && (
+                    <p className="text-xs text-muted-foreground">
+                      Add previous emails from this thread to help AI understand the conversation context.
+                    </p>
+                  )}
+                </div>
+              )}
 
               {/* Additional Context */}
               <div className="space-y-2">
