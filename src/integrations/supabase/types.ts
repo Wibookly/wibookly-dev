@@ -313,12 +313,14 @@ export type Database = {
         Row: {
           body_contains: string | null
           category_id: string
+          condition_logic: string
           created_at: string
           id: string
           is_advanced: boolean
           is_enabled: boolean
           last_synced_at: string | null
           organization_id: string
+          recipient_filter: string | null
           rule_type: string
           rule_value: string
           subject_contains: string | null
@@ -327,12 +329,14 @@ export type Database = {
         Insert: {
           body_contains?: string | null
           category_id: string
+          condition_logic?: string
           created_at?: string
           id?: string
           is_advanced?: boolean
           is_enabled?: boolean
           last_synced_at?: string | null
           organization_id: string
+          recipient_filter?: string | null
           rule_type: string
           rule_value: string
           subject_contains?: string | null
@@ -341,12 +345,14 @@ export type Database = {
         Update: {
           body_contains?: string | null
           category_id?: string
+          condition_logic?: string
           created_at?: string
           id?: string
           is_advanced?: boolean
           is_enabled?: boolean
           last_synced_at?: string | null
           organization_id?: string
+          recipient_filter?: string | null
           rule_type?: string
           rule_value?: string
           subject_contains?: string | null

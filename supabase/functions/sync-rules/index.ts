@@ -220,20 +220,44 @@ async function applyGmailFilter(accessToken: string, rule: any, labelId: string)
       queryParts.push(rule.rule_value);
     }
 
-    // Advanced conditions (AND logic) - for search query
-    // Gmail filters have limited criteria support, so we add to query for existing emails
+    // Recipient filter (to:me, cc:me)
+    if (rule.recipient_filter) {
+      if (rule.recipient_filter === 'to_me') {
+        queryParts.push('to:me');
+        criteria.to = 'me';
+      } else if (rule.recipient_filter === 'cc_me') {
+        queryParts.push('cc:me');
+        // Gmail doesn't have cc in filter criteria, but we can search for it
+      } else if (rule.recipient_filter === 'to_or_cc_me') {
+        queryParts.push('(to:me OR cc:me)');
+      }
+    }
+
+    // Advanced conditions - support AND/OR logic
     if (rule.is_advanced) {
+      const conditionLogic = rule.condition_logic || 'and';
+      const advancedParts: string[] = [];
+
       if (rule.subject_contains) {
-        queryParts.push(`subject:${rule.subject_contains}`);
+        advancedParts.push(`subject:${rule.subject_contains}`);
         // Add to criteria if no primary query
         if (!criteria.query) {
           criteria.subject = rule.subject_contains;
         }
       }
       if (rule.body_contains) {
-        queryParts.push(rule.body_contains);
+        advancedParts.push(rule.body_contains);
         // Gmail filter criteria doesn't support body search directly
-        // So we rely on the search query for existing emails
+      }
+
+      // Combine advanced conditions with AND or OR
+      if (advancedParts.length > 0) {
+        if (conditionLogic === 'or') {
+          queryParts.push(`(${advancedParts.join(' OR ')})`);
+        } else {
+          // AND is the default - just add them
+          queryParts.push(...advancedParts);
+        }
       }
     }
 
@@ -349,13 +373,41 @@ async function applyOutlookRule(accessToken: string, rule: any, folderId: string
       conditions.subjectOrBodyContains = [rule.rule_value];
     }
 
-    // Advanced conditions (AND logic)
-    if (rule.is_advanced) {
-      if (rule.subject_contains) {
-        conditions.subjectContains = [rule.subject_contains];
+    // Recipient filter
+    if (rule.recipient_filter) {
+      if (rule.recipient_filter === 'to_me') {
+        conditions.sentToMe = true;
+      } else if (rule.recipient_filter === 'cc_me') {
+        conditions.sentCcMe = true;
+      } else if (rule.recipient_filter === 'to_or_cc_me') {
+        // Outlook doesn't have a direct "to or cc me" condition
+        // We'll use sentToMe as the primary (most common case)
+        conditions.sentToMe = true;
       }
-      if (rule.body_contains) {
-        conditions.bodyContains = [rule.body_contains];
+    }
+
+    // Advanced conditions - support AND/OR logic
+    if (rule.is_advanced) {
+      const conditionLogic = rule.condition_logic || 'and';
+
+      if (conditionLogic === 'or') {
+        // For OR logic, combine subject and body into subjectOrBodyContains
+        const orTerms: string[] = [];
+        if (rule.subject_contains) orTerms.push(rule.subject_contains);
+        if (rule.body_contains) orTerms.push(rule.body_contains);
+        if (orTerms.length > 0) {
+          conditions.subjectOrBodyContains = conditions.subjectOrBodyContains 
+            ? [...conditions.subjectOrBodyContains, ...orTerms]
+            : orTerms;
+        }
+      } else {
+        // AND logic - use separate conditions
+        if (rule.subject_contains) {
+          conditions.subjectContains = [rule.subject_contains];
+        }
+        if (rule.body_contains) {
+          conditions.bodyContains = [rule.body_contains];
+        }
       }
     }
 
@@ -489,6 +541,8 @@ serve(async (req) => {
         is_advanced,
         subject_contains,
         body_contains,
+        condition_logic,
+        recipient_filter,
         category_id,
         categories!inner(name, is_enabled, sort_order)
       `)

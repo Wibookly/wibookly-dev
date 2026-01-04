@@ -71,6 +71,8 @@ interface Rule {
   is_advanced: boolean;
   subject_contains: string | null;
   body_contains: string | null;
+  condition_logic: 'and' | 'or';
+  recipient_filter: string | null;
   last_synced_at: string | null;
 }
 
@@ -267,6 +269,8 @@ export default function Categories() {
       is_advanced: r.is_advanced ?? false,
       subject_contains: r.subject_contains ?? null,
       body_contains: r.body_contains ?? null,
+      condition_logic: (r.condition_logic as 'and' | 'or') ?? 'and',
+      recipient_filter: r.recipient_filter ?? null,
       last_synced_at: r.last_synced_at ?? null
     })));
     setLoading(false);
@@ -311,6 +315,8 @@ export default function Categories() {
       is_advanced: false,
       subject_contains: null,
       body_contains: null,
+      condition_logic: 'and',
+      recipient_filter: null,
       last_synced_at: null
     };
     
@@ -449,7 +455,9 @@ export default function Categories() {
             is_enabled: rule.is_enabled,
             is_advanced: rule.is_advanced,
             subject_contains: rule.subject_contains?.trim() || null,
-            body_contains: rule.body_contains?.trim() || null
+            body_contains: rule.body_contains?.trim() || null,
+            condition_logic: rule.condition_logic,
+            recipient_filter: rule.recipient_filter
           }).select().single();
           
           // Update local state with real ID
@@ -463,7 +471,9 @@ export default function Categories() {
             is_enabled: rule.is_enabled,
             is_advanced: rule.is_advanced,
             subject_contains: rule.subject_contains?.trim() || null,
-            body_contains: rule.body_contains?.trim() || null
+            body_contains: rule.body_contains?.trim() || null,
+            condition_logic: rule.condition_logic,
+            recipient_filter: rule.recipient_filter
           }).eq('id', rule.id);
         }
       }
@@ -523,6 +533,8 @@ export default function Categories() {
           is_advanced: r.is_advanced ?? false,
           subject_contains: r.subject_contains ?? null,
           body_contains: r.body_contains ?? null,
+          condition_logic: (r.condition_logic as 'and' | 'or') ?? 'and',
+          recipient_filter: r.recipient_filter ?? null,
           last_synced_at: r.last_synced_at ?? null
         })));
       }
@@ -551,6 +563,8 @@ export default function Categories() {
           is_advanced: r.is_advanced ?? false,
           subject_contains: r.subject_contains ?? null,
           body_contains: r.body_contains ?? null,
+          condition_logic: (r.condition_logic as 'and' | 'or') ?? 'and',
+          recipient_filter: r.recipient_filter ?? null,
           last_synced_at: r.last_synced_at ?? null
         })));
       }
@@ -809,9 +823,26 @@ export default function Categories() {
                       {/* Advanced fields */}
                       {rule.is_advanced && (
                         <div className="pl-1 pt-2 border-t border-border/50 space-y-3">
-                          <p className="text-xs text-muted-foreground mb-2">
-                            All conditions must match (AND logic)
-                          </p>
+                          {/* Recipient filter */}
+                          <div className="flex items-center gap-3">
+                            <span className="text-sm text-muted-foreground w-28">Recipient</span>
+                            <Select
+                              value={rule.recipient_filter || 'any'}
+                              onValueChange={(val) => updateRule(rule.id, 'recipient_filter', val === 'any' ? null : val)}
+                            >
+                              <SelectTrigger className="w-40">
+                                <SelectValue />
+                              </SelectTrigger>
+                              <SelectContent>
+                                <SelectItem value="any">Any</SelectItem>
+                                <SelectItem value="to_me">To Me</SelectItem>
+                                <SelectItem value="cc_me">CC Me</SelectItem>
+                                <SelectItem value="to_or_cc_me">To or CC Me</SelectItem>
+                              </SelectContent>
+                            </Select>
+                          </div>
+
+                          {/* Subject contains */}
                           <div className="flex items-center gap-3">
                             <span className="text-sm text-muted-foreground w-28">Subject contains</span>
                             <Input
@@ -821,6 +852,27 @@ export default function Categories() {
                               className="flex-1"
                             />
                           </div>
+
+                          {/* AND/OR logic selector */}
+                          <div className="flex items-center gap-2 pl-28">
+                            <Select
+                              value={rule.condition_logic}
+                              onValueChange={(val) => updateRule(rule.id, 'condition_logic', val as 'and' | 'or')}
+                            >
+                              <SelectTrigger className="w-20 h-7 text-xs">
+                                <SelectValue />
+                              </SelectTrigger>
+                              <SelectContent>
+                                <SelectItem value="and">AND</SelectItem>
+                                <SelectItem value="or">OR</SelectItem>
+                              </SelectContent>
+                            </Select>
+                            <span className="text-xs text-muted-foreground">
+                              {rule.condition_logic === 'and' ? 'Both subject and body must match' : 'Either subject or body must match'}
+                            </span>
+                          </div>
+
+                          {/* Body contains */}
                           <div className="flex items-center gap-3">
                             <span className="text-sm text-muted-foreground w-28">Body contains</span>
                             <Input
