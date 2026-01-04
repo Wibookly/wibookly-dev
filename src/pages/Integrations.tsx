@@ -99,7 +99,7 @@ export default function Integrations() {
       return;
     }
 
-    // Don’t rely on context state alone; fetch a fresh session to avoid race/stale state.
+    // Don't rely on context state alone; fetch a fresh session to avoid race/stale state.
     const { data: sessionData, error: sessionError } = await supabase.auth.getSession();
     const liveUserId = sessionData.session?.user?.id;
 
@@ -114,13 +114,10 @@ export default function Integrations() {
 
     let orgId = organization?.id;
 
-    // If organization isn’t ready in context yet, fetch it from the user profile.
+    // If organization isn't ready in context yet, fetch it via secure RPC.
     if (!orgId) {
-      const { data: profileData } = await supabase
-        .from('user_profiles')
-        .select('organization_id')
-        .eq('user_id', liveUserId)
-        .maybeSingle();
+      const { data: profileRows } = await supabase.rpc('get_my_profile');
+      const profileData = profileRows?.[0];
 
       orgId = profileData?.organization_id;
     }
@@ -268,7 +265,7 @@ export default function Integrations() {
           <AlertDialogHeader>
             <AlertDialogTitle>Connect {confirmProvider ? providerLabel[confirmProvider] : 'account'}</AlertDialogTitle>
             <AlertDialogDescription>
-              You’ll be redirected to {confirmProvider ? providerLabel[confirmProvider] : 'your provider'} to sign in and
+              You'll be redirected to {confirmProvider ? providerLabel[confirmProvider] : 'your provider'} to sign in and
               approve access.
             </AlertDialogDescription>
           </AlertDialogHeader>

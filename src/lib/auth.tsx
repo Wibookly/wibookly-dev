@@ -67,11 +67,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const fetchUserData = async (userId: string) => {
     try {
-      const { data: profileData } = await supabase
-        .from('user_profiles')
-        .select('*')
-        .eq('user_id', userId)
-        .maybeSingle();
+      // Use secure RPC function instead of direct table access
+      const { data: profileRows } = await supabase.rpc('get_my_profile');
+      const profileData = profileRows?.[0];
 
       if (profileData) {
         setProfile(profileData as UserProfile);

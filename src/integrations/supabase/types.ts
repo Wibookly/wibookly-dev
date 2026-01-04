@@ -398,6 +398,18 @@ export type Database = {
           provider: string
         }[]
       }
+      get_my_profile: {
+        Args: never
+        Returns: {
+          created_at: string
+          email: string
+          full_name: string
+          id: string
+          organization_id: string
+          updated_at: string
+          user_id: string
+        }[]
+      }
       get_user_organization_id: { Args: { _user_id: string }; Returns: string }
       has_role: {
         Args: {
