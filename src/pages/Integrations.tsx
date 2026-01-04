@@ -47,10 +47,8 @@ export default function Integrations() {
   const fetchConnections = async () => {
     if (!organization?.id) return;
 
-    const { data } = await supabase
-      .from('provider_connections')
-      .select('provider, is_connected, connected_at')
-      .eq('organization_id', organization.id);
+    // Use secure RPC function that doesn't expose tokens
+    const { data } = await supabase.rpc('get_my_connections');
 
     setConnections(data || []);
     setLoading(false);
@@ -111,16 +109,10 @@ export default function Integrations() {
     if (!user?.id) return;
 
     try {
-      const { error } = await supabase
-        .from('provider_connections')
-        .update({ 
-          is_connected: false,
-          access_token: null,
-          refresh_token: null,
-          token_expires_at: null 
-        })
-        .eq('user_id', user.id)
-        .eq('provider', provider);
+      // Use secure RPC function to disconnect - clears tokens server-side
+      const { data, error } = await supabase.rpc('disconnect_provider', {
+        _provider: provider
+      });
 
       if (error) throw error;
 

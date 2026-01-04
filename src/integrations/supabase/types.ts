@@ -331,6 +331,17 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      disconnect_provider: { Args: { _provider: string }; Returns: boolean }
+      get_my_connections: {
+        Args: never
+        Returns: {
+          connected_at: string
+          id: string
+          is_connected: boolean
+          organization_id: string
+          provider: string
+        }[]
+      }
       get_user_organization_id: { Args: { _user_id: string }; Returns: string }
       has_role: {
         Args: {
