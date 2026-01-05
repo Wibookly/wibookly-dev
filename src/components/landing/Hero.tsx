@@ -1,5 +1,4 @@
 import { useState, useEffect } from 'react';
-import { Link } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { ArrowRight } from 'lucide-react';
 import mockupInbox from '@/assets/mockup-inbox.png';
@@ -44,11 +43,15 @@ export function Hero() {
             Connect Outlook. Create smart categories. Let AI draft replies — always under your control.
           </p>
           <div className="mt-10 flex flex-col sm:flex-row items-center justify-center gap-4 animate-fade-in" style={{ animationDelay: '200ms' }}>
-            <Button size="lg" asChild className="group bg-card text-foreground hover:bg-card/90 shadow-lg px-8">
-              <Link to="/auth?mode=signup">
-                Get Started
-                <ArrowRight className="ml-2 h-4 w-4 transition-transform group-hover:translate-x-1" />
-              </Link>
+            <Button 
+              size="lg" 
+              className="group bg-card text-foreground hover:bg-card/90 shadow-lg px-8"
+              onClick={() => {
+                document.getElementById('signin-section')?.scrollIntoView({ behavior: 'smooth' });
+              }}
+            >
+              Get Started
+              <ArrowRight className="ml-2 h-4 w-4 transition-transform group-hover:translate-x-1" />
             </Button>
           </div>
         </div>

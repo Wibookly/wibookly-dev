@@ -3,6 +3,7 @@ import { Hero } from '@/components/landing/Hero';
 import { HowItWorks } from '@/components/landing/HowItWorks';
 import { Features } from '@/components/landing/Features';
 import { Security } from '@/components/landing/Security';
+import { SignInSection } from '@/components/landing/SignInSection';
 import { Footer } from '@/components/landing/Footer';
 
 export default function Landing() {
@@ -20,6 +21,7 @@ export default function Landing() {
         <HowItWorks />
         <Features />
         <Security />
+        <SignInSection />
         <Footer />
       </div>
     </div>
