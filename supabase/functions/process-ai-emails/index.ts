@@ -1387,32 +1387,33 @@ async function processConnectionEmails(
             results.draftsCreated++;
             console.log(`Created draft for email ${msg.id}`);
             
-            // Apply AI Draft label to original email
+            // Apply AI Draft label to original email (numbered as 00:)
+            const aiDraftLabelName = '00: AI Draft';
             if (tokenRecord.provider === 'google') {
-              if (!gmailLabelCache['AI Draft']) {
-                const labelId = await getOrCreateGmailLabel(accessToken, 'AI Draft', aiDraftLabelColor);
-                if (labelId) gmailLabelCache['AI Draft'] = labelId;
+              if (!gmailLabelCache[aiDraftLabelName]) {
+                const labelId = await getOrCreateGmailLabel(accessToken, aiDraftLabelName, aiDraftLabelColor);
+                if (labelId) gmailLabelCache[aiDraftLabelName] = labelId;
               }
-              if (gmailLabelCache['AI Draft']) {
+              if (gmailLabelCache[aiDraftLabelName]) {
                 // Apply to original email
-                await applyGmailLabel(accessToken, msg.id, gmailLabelCache['AI Draft']);
+                await applyGmailLabel(accessToken, msg.id, gmailLabelCache[aiDraftLabelName]);
                 // Also apply to the draft message so it shows in drafts folder with the label
                 if (draftMessageId) {
-                  await applyGmailLabel(accessToken, draftMessageId, gmailLabelCache['AI Draft']);
-                  console.log(`Applied AI Draft label to draft message ${draftMessageId}`);
+                  await applyGmailLabel(accessToken, draftMessageId, gmailLabelCache[aiDraftLabelName]);
+                  console.log(`Applied ${aiDraftLabelName} label to draft message ${draftMessageId}`);
                 }
               }
             } else {
-              if (!outlookCategoryCache['AI Draft']) {
-                await getOrCreateOutlookCategory(accessToken, 'AI Draft', aiDraftLabelColor);
-                outlookCategoryCache['AI Draft'] = true;
+              if (!outlookCategoryCache[aiDraftLabelName]) {
+                await getOrCreateOutlookCategory(accessToken, aiDraftLabelName, aiDraftLabelColor);
+                outlookCategoryCache[aiDraftLabelName] = true;
               }
               // Apply to original email
-              await applyOutlookCategory(accessToken, msg.id, 'AI Draft');
+              await applyOutlookCategory(accessToken, msg.id, aiDraftLabelName);
               // Also apply to the draft message
               if (draftId) {
-                await applyOutlookCategory(accessToken, draftId, 'AI Draft');
-                console.log(`Applied AI Draft category to draft message ${draftId}`);
+                await applyOutlookCategory(accessToken, draftId, aiDraftLabelName);
+                console.log(`Applied ${aiDraftLabelName} category to draft message ${draftId}`);
               }
             }
             
@@ -1465,28 +1466,29 @@ async function processConnectionEmails(
             results.autoRepliesSent++;
             console.log(`Sent auto-reply for email ${msg.id}`);
             
-            // Apply AI Sent label to original email
+            // Apply AI Sent label to original email (numbered as 01:)
+            const aiSentLabelName = '01: AI Sent';
             if (tokenRecord.provider === 'google') {
-              if (!gmailLabelCache['AI Sent']) {
-                const labelId = await getOrCreateGmailLabel(accessToken, 'AI Sent', aiSentLabelColor);
-                if (labelId) gmailLabelCache['AI Sent'] = labelId;
+              if (!gmailLabelCache[aiSentLabelName]) {
+                const labelId = await getOrCreateGmailLabel(accessToken, aiSentLabelName, aiSentLabelColor);
+                if (labelId) gmailLabelCache[aiSentLabelName] = labelId;
               }
-              if (gmailLabelCache['AI Sent']) {
+              if (gmailLabelCache[aiSentLabelName]) {
                 // Apply to original email
-                await applyGmailLabel(accessToken, msg.id, gmailLabelCache['AI Sent']);
+                await applyGmailLabel(accessToken, msg.id, gmailLabelCache[aiSentLabelName]);
                 // Also apply to the sent message so it shows in sent folder with the label
                 if (sentMessageId) {
-                  await applyGmailLabel(accessToken, sentMessageId, gmailLabelCache['AI Sent']);
-                  console.log(`Applied AI Sent label to sent message ${sentMessageId}`);
+                  await applyGmailLabel(accessToken, sentMessageId, gmailLabelCache[aiSentLabelName]);
+                  console.log(`Applied ${aiSentLabelName} label to sent message ${sentMessageId}`);
                 }
               }
             } else {
-              if (!outlookCategoryCache['AI Sent']) {
-                await getOrCreateOutlookCategory(accessToken, 'AI Sent', aiSentLabelColor);
-                outlookCategoryCache['AI Sent'] = true;
+              if (!outlookCategoryCache[aiSentLabelName]) {
+                await getOrCreateOutlookCategory(accessToken, aiSentLabelName, aiSentLabelColor);
+                outlookCategoryCache[aiSentLabelName] = true;
               }
               // Apply to original email
-              await applyOutlookCategory(accessToken, msg.id, 'AI Sent');
+              await applyOutlookCategory(accessToken, msg.id, aiSentLabelName);
             }
             
             // Add to processed set
