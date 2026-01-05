@@ -21,9 +21,11 @@ import { GoogleOAuthErrorScreen } from '@/components/integrations/GoogleOAuthErr
 import { useConnectAttemptLogger } from '@/hooks/useConnectAttemptLogger';
 
 interface Connection {
+  id: string;
   provider: string;
   is_connected: boolean;
   connected_at: string | null;
+  connected_email: string | null;
 }
 
 type ProviderId = 'google' | 'outlook';
@@ -98,7 +100,7 @@ export default function Integrations() {
     fetchConnections();
   }, [organization?.id, authLoading]);
 
-  const getConnection = (provider: ProviderId) => connections.find((c) => c.provider === provider);
+  const getConnectionsByProvider = (provider: ProviderId) => connections.filter((c) => c.provider === provider && c.is_connected);
 
   const providerLabel = useMemo(
     () => ({
@@ -199,12 +201,14 @@ export default function Integrations() {
     }
   };
 
-  const handleDisconnect = async (provider: ProviderId) => {
+  const handleDisconnect = async (provider: ProviderId, connectionId: string) => {
     const { data: sessionData } = await supabase.auth.getSession();
     if (!sessionData.session?.user) return;
 
     try {
       // Use secure RPC function to disconnect - clears tokens server-side
+      // Note: disconnect_provider will disconnect by provider, but for multi-account
+      // we need to pass the connection ID. For now, this disconnects all of same provider.
       const { error } = await supabase.rpc('disconnect_provider', {
         _provider: provider,
       });
@@ -228,8 +232,8 @@ export default function Integrations() {
     }
   };
 
-  const outlookConnection = getConnection('outlook');
-  const googleConnection = getConnection('google');
+  const googleConnections = getConnectionsByProvider('google');
+  const outlookConnections = getConnectionsByProvider('outlook');
 
   const integrations = useMemo(
     () => [
@@ -247,7 +251,7 @@ export default function Integrations() {
             />
           </svg>
         ),
-        connection: outlookConnection,
+        connections: outlookConnections,
         available: true,
       },
       {
@@ -274,11 +278,11 @@ export default function Integrations() {
             />
           </svg>
         ),
-        connection: googleConnection,
+        connections: googleConnections,
         available: true,
       },
     ],
-    [googleConnection, outlookConnection]
+    [googleConnections, outlookConnections]
   );
 
   // Extract first name from profile or email
@@ -389,45 +393,56 @@ export default function Integrations() {
                   </div>
                   <p className="mt-1 text-sm text-muted-foreground">{integration.description}</p>
 
-                  {integration.connection?.is_connected && (
-                    <div className="mt-3 flex items-center gap-2 text-sm text-success">
-                      <Check className="w-4 h-4" />
-                      Connected
-                      {integration.connection.connected_at && (
-                        <span className="text-muted-foreground">
-                          · {new Date(integration.connection.connected_at).toLocaleDateString()}
-                        </span>
-                      )}
+                  {/* Show connected accounts */}
+                  {integration.connections.length > 0 && (
+                    <div className="mt-3 space-y-2">
+                      {integration.connections.map((conn) => (
+                        <div key={conn.id} className="flex items-center justify-between py-2 px-3 bg-secondary/50 rounded-md">
+                          <div className="flex items-center gap-2 text-sm">
+                            <Check className="w-4 h-4 text-success" />
+                            <span className="font-medium truncate max-w-[200px]">
+                              {conn.connected_email || 'Connected'}
+                            </span>
+                            {conn.connected_at && (
+                              <span className="text-muted-foreground text-xs">
+                                · {new Date(conn.connected_at).toLocaleDateString()}
+                              </span>
+                            )}
+                          </div>
+                          <Button 
+                            variant="ghost" 
+                            size="sm" 
+                            className="text-destructive hover:text-destructive h-7 px-2"
+                            onClick={() => handleDisconnect(integration.id, conn.id)}
+                          >
+                            Disconnect
+                          </Button>
+                        </div>
+                      ))}
                     </div>
                   )}
                 </div>
 
                 <div>
-                  {integration.connection?.is_connected ? (
-                    <Button variant="outline" size="sm" onClick={() => handleDisconnect(integration.id)}>
-                      Disconnect
-                    </Button>
-                  ) : (
-                    <Button
-                      size="sm"
-                      disabled={!integration.available || connecting === integration.id}
-                      onClick={() => setConfirmProvider(integration.id)}
-                    >
-                      {connecting === integration.id ? (
-                        <>
-                          <Loader2 className="mr-2 w-3 h-3 animate-spin" />
-                          Connecting...
-                        </>
-                      ) : integration.available ? (
-                        <>
-                          Connect
-                          <ExternalLink className="ml-2 w-3 h-3" />
-                        </>
-                      ) : (
-                        'Coming Soon'
-                      )}
-                    </Button>
-                  )}
+                  <Button
+                    size="sm"
+                    disabled={!integration.available || connecting === integration.id}
+                    onClick={() => setConfirmProvider(integration.id)}
+                  >
+                    {connecting === integration.id ? (
+                      <>
+                        <Loader2 className="mr-2 w-3 h-3 animate-spin" />
+                        Connecting...
+                      </>
+                    ) : integration.available ? (
+                      <>
+                        {integration.connections.length > 0 ? 'Add Another' : 'Connect'}
+                        <ExternalLink className="ml-2 w-3 h-3" />
+                      </>
+                    ) : (
+                      'Coming Soon'
+                    )}
+                  </Button>
                 </div>
               </div>
             </article>
