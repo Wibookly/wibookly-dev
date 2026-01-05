@@ -12,6 +12,8 @@ verify_jwt = false
 [functions.sync-categories]
 verify_jwt = false
 
+# draft-email now validates JWT manually via supabaseClient.auth.getUser()
+# verify_jwt = false is kept because function handles auth internally with proper error messages
 [functions.draft-email]
 verify_jwt = false
 
