@@ -222,22 +222,32 @@ export default function Settings() {
         <section className="space-y-4">
           <h2 className="text-lg font-semibold">Email Signature</h2>
           <p className="text-sm text-muted-foreground">
-            Add a custom signature that will be used in AI-generated emails. Leave blank to use your name and title.
+            Paste your full email signature including HTML formatting. You can copy your existing signature from Gmail or Outlook and paste it here.
           </p>
           <div className="space-y-4 p-6 bg-card rounded-lg border border-border">
             <div className="space-y-2">
-              <Label htmlFor="emailSignature">Custom Signature (Optional)</Label>
+              <Label htmlFor="emailSignature">Email Signature (HTML Supported)</Label>
               <textarea
                 id="emailSignature"
                 value={emailSignature}
                 onChange={(e) => setEmailSignature(e.target.value)}
-                placeholder={`Best regards,\n${fullName || 'Your Name'}${title ? `\n${title}` : ''}\nPhone: (555) 123-4567\nLinkedIn: linkedin.com/in/yourprofile`}
-                className="flex min-h-[120px] w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                placeholder={`Paste your HTML signature here, or use plain text like:\n\nBest regards,\n${fullName || 'Your Name'}${title ? `\n${title}` : ''}\nPhone: (555) 123-4567`}
+                className="flex min-h-[150px] w-full rounded-md border border-input bg-background px-3 py-2 text-sm font-mono ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
               />
               <p className="text-xs text-muted-foreground">
-                Include your full sign-off with name, title, phone, social links, etc.
+                Tip: Copy your signature from Gmail (Settings → See all settings → General → Signature) or Outlook and paste it directly here.
               </p>
             </div>
+            
+            {emailSignature && (
+              <div className="space-y-2 pt-4 border-t border-border">
+                <Label>Preview</Label>
+                <div 
+                  className="p-4 bg-background rounded-md border border-border min-h-[80px]"
+                  dangerouslySetInnerHTML={{ __html: emailSignature }}
+                />
+              </div>
+            )}
           </div>
         </section>
 
