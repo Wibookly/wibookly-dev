@@ -1010,6 +1010,372 @@ function buildOutlookFilter(rule: any): string {
   return filters.join(' and ');
 }
 
+// Process emails for a single user
+async function processUserEmails(
+  userId: string,
+  organizationId: string,
+  profile: { full_name: string | null; title: string | null },
+  categoryId: string | null = null
+): Promise<{ draftsCreated: number; autoRepliesSent: number; errors: number }> {
+  const results = { draftsCreated: 0, autoRepliesSent: 0, errors: 0 };
+  
+  const supabaseAdmin = createClient(
+    Deno.env.get('SUPABASE_URL')!,
+    Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
+  );
+  
+  const encryptionKey = Deno.env.get('TOKEN_ENCRYPTION_KEY')!;
+
+  // Get categories with AI draft or auto-reply enabled
+  let categoriesQuery = supabaseAdmin
+    .from('categories')
+    .select('id, name, writing_style, ai_draft_enabled, auto_reply_enabled, sort_order')
+    .eq('organization_id', organizationId)
+    .eq('is_enabled', true)
+    .or('ai_draft_enabled.eq.true,auto_reply_enabled.eq.true');
+
+  if (categoryId) {
+    categoriesQuery = categoriesQuery.eq('id', categoryId);
+  }
+
+  const { data: aiCategories, error: catError } = await categoriesQuery;
+
+  if (catError || !aiCategories?.length) {
+    console.log(`No AI-enabled categories for user ${userId}`);
+    return results;
+  }
+
+  console.log(`Found ${aiCategories.length} AI-enabled categories for user ${userId}`);
+
+  // Get rules for AI-enabled categories
+  const categoryIds = aiCategories.map(c => c.id);
+  const { data: rules } = await supabaseAdmin
+    .from('rules')
+    .select('*')
+    .eq('organization_id', organizationId)
+    .eq('is_enabled', true)
+    .in('category_id', categoryIds);
+
+  if (!rules?.length) {
+    console.log(`No rules found for AI categories for user ${userId}`);
+    return results;
+  }
+
+  // Get AI settings for label colors
+  const { data: aiSettingsData } = await supabaseAdmin
+    .from('ai_settings')
+    .select('*')
+    .eq('organization_id', organizationId)
+    .maybeSingle();
+  
+  const aiDraftLabelColor = (aiSettingsData as Record<string, unknown>)?.ai_draft_label_color as string || '#3B82F6';
+  const aiSentLabelColor = (aiSettingsData as Record<string, unknown>)?.ai_sent_label_color as string || '#F97316';
+
+  // Get tokens
+  const { data: tokenDataList } = await supabaseAdmin
+    .from('oauth_token_vault')
+    .select('provider, encrypted_access_token, encrypted_refresh_token, expires_at')
+    .eq('user_id', userId);
+
+  if (!tokenDataList?.length) {
+    console.log(`No connected email providers for user ${userId}`);
+    return results;
+  }
+
+  // Get already processed emails to skip
+  const { data: processedEmails } = await supabaseAdmin
+    .from('processed_emails')
+    .select('email_id, action_type, category_id')
+    .eq('user_id', userId);
+
+  const processedSet = new Set(
+    (processedEmails || []).map(p => `${p.email_id}:${p.category_id}:${p.action_type}`)
+  );
+
+  // Map category ID to category info
+  const categoryMap = new Map(aiCategories.map(c => [c.id, c]));
+  
+  // Cache for label IDs
+  const gmailLabelCache: Record<string, string> = {};
+  const outlookCategoryCache: Record<string, boolean> = {};
+
+  // Process each provider
+  for (const tokenRecord of tokenDataList) {
+    const accessToken = await getValidAccessToken(
+      tokenRecord as TokenData,
+      encryptionKey,
+      userId
+    );
+    
+    if (!accessToken) {
+      console.error(`Could not get token for ${tokenRecord.provider} for user ${userId}`);
+      continue;
+    }
+
+    // Process each rule
+    for (const rule of rules) {
+      const category = categoryMap.get(rule.category_id);
+      if (!category) continue;
+
+      console.log(`Processing rule for category: ${category.name}, rule: ${JSON.stringify({ type: rule.rule_type, value: rule.rule_value, subject: rule.subject_contains })}`);
+
+      let matchingMessages: { id: string }[] = [];
+      
+      // Get the category label name (format: "N: CategoryName")
+      const categoryLabelName = `${(category.sort_order || 0) + 1}: ${category.name}`;
+
+      if (tokenRecord.provider === 'google') {
+        // First, search for unread emails with the category label
+        const labelQuery = `label:"${categoryLabelName}" is:unread`;
+        console.log(`Gmail label search query: ${labelQuery}`);
+        const labelSearchRes = await fetch(
+          `https://gmail.googleapis.com/gmail/v1/users/me/messages?q=${encodeURIComponent(labelQuery)}&maxResults=50`,
+          { headers: { Authorization: `Bearer ${accessToken}` } }
+        );
+        if (labelSearchRes.ok) {
+          const data = await labelSearchRes.json();
+          if (data.messages?.length) {
+            matchingMessages = data.messages;
+            console.log(`Found ${matchingMessages.length} unread emails with category label`);
+          }
+        }
+        
+        // Also search by rule criteria for newly arrived emails
+        if (matchingMessages.length === 0) {
+          const query = buildGmailSearchQuery(rule) + ' is:unread newer_than:1d';
+          console.log(`Gmail rule search query: ${query}`);
+          const searchRes = await fetch(
+            `https://gmail.googleapis.com/gmail/v1/users/me/messages?q=${encodeURIComponent(query)}&maxResults=50`,
+            { headers: { Authorization: `Bearer ${accessToken}` } }
+          );
+          if (searchRes.ok) {
+            const data = await searchRes.json();
+            matchingMessages = data.messages || [];
+            console.log(`Gmail rule search found ${matchingMessages.length} emails`);
+          } else {
+            console.error(`Gmail search failed: ${await searchRes.text()}`);
+          }
+        }
+      } else if (tokenRecord.provider === 'microsoft') {
+        // Search for unread emails with the category
+        const categoryFilter = `categories/any(c:c eq '${categoryLabelName}') and isRead eq false`;
+        console.log(`Outlook category filter: ${categoryFilter}`);
+        const categorySearchRes = await fetch(
+          `https://graph.microsoft.com/v1.0/me/messages?$filter=${encodeURIComponent(categoryFilter)}&$top=50&$select=id`,
+          { headers: { Authorization: `Bearer ${accessToken}` } }
+        );
+        if (categorySearchRes.ok) {
+          const data = await categorySearchRes.json();
+          if (data.value?.length) {
+            matchingMessages = data.value;
+            console.log(`Found ${matchingMessages.length} unread emails with category`);
+          }
+        }
+        
+        // Also search by rule criteria
+        if (matchingMessages.length === 0) {
+          const yesterday = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
+          const filter = `${buildOutlookFilter(rule)} and receivedDateTime ge ${yesterday} and isRead eq false`;
+          console.log(`Outlook rule filter: ${filter}`);
+          const searchRes = await fetch(
+            `https://graph.microsoft.com/v1.0/me/messages?$filter=${encodeURIComponent(filter)}&$top=50&$select=id`,
+            { headers: { Authorization: `Bearer ${accessToken}` } }
+          );
+          if (searchRes.ok) {
+            const data = await searchRes.json();
+            matchingMessages = data.value || [];
+          }
+        }
+      }
+
+      console.log(`Found ${matchingMessages.length} matching unread emails for rule`);
+
+      // Process each matching email
+      for (const msg of matchingMessages) {
+        const needsDraft = category.ai_draft_enabled && 
+          !processedSet.has(`${msg.id}:${category.id}:draft`);
+        const needsAutoReply = category.auto_reply_enabled && 
+          !processedSet.has(`${msg.id}:${category.id}:auto_reply`);
+
+        if (!needsDraft && !needsAutoReply) {
+          continue;
+        }
+
+        console.log(`Processing email ${msg.id} for ${category.name}`);
+
+        let emailDetails;
+        if (tokenRecord.provider === 'google') {
+          emailDetails = await getGmailEmailDetails(accessToken, msg.id);
+        } else {
+          emailDetails = await getOutlookEmailDetails(accessToken, msg.id);
+        }
+
+        if (!emailDetails) {
+          results.errors++;
+          continue;
+        }
+
+        // Generate AI draft content
+        const draftContent = await generateAIDraft(
+          emailDetails.subject,
+          emailDetails.body,
+          emailDetails.from,
+          category.name,
+          category.writing_style,
+          'concise',
+          profile.full_name || null,
+          profile.title || null
+        );
+
+        if (!draftContent) {
+          console.error('Failed to generate AI draft');
+          results.errors++;
+          continue;
+        }
+
+        // Mark email as read since AI is handling it
+        if (tokenRecord.provider === 'google') {
+          await markGmailAsRead(accessToken, msg.id);
+        } else {
+          await markOutlookAsRead(accessToken, msg.id);
+        }
+
+        // Handle AI Draft
+        if (needsDraft) {
+          let draftId: string | null = null;
+
+          if (tokenRecord.provider === 'google') {
+            draftId = await createGmailDraft(
+              accessToken,
+              emailDetails.replyTo,
+              emailDetails.subject,
+              draftContent,
+              (emailDetails as { threadId: string }).threadId
+            );
+          } else {
+            draftId = await createOutlookDraft(
+              accessToken,
+              emailDetails.replyTo,
+              emailDetails.subject,
+              draftContent,
+              (emailDetails as { conversationId: string }).conversationId
+            );
+          }
+
+          if (draftId) {
+            await supabaseAdmin.from('processed_emails').insert({
+              organization_id: organizationId,
+              user_id: userId,
+              email_id: msg.id,
+              category_id: category.id,
+              provider: tokenRecord.provider,
+              action_type: 'draft',
+              draft_id: draftId
+            });
+
+            await supabaseAdmin.from('ai_activity_logs').insert({
+              organization_id: organizationId,
+              user_id: userId,
+              category_id: category.id,
+              category_name: category.name,
+              activity_type: 'draft',
+              email_subject: emailDetails.subject,
+              email_from: emailDetails.from
+            });
+
+            results.draftsCreated++;
+            console.log(`Created draft for email ${msg.id}`);
+            
+            // Apply AI Draft label
+            if (tokenRecord.provider === 'google') {
+              if (!gmailLabelCache['AI Draft']) {
+                const labelId = await getOrCreateGmailLabel(accessToken, 'AI Draft', aiDraftLabelColor);
+                if (labelId) gmailLabelCache['AI Draft'] = labelId;
+              }
+              if (gmailLabelCache['AI Draft']) {
+                await applyGmailLabel(accessToken, msg.id, gmailLabelCache['AI Draft']);
+              }
+            } else {
+              if (!outlookCategoryCache['AI Draft']) {
+                await getOrCreateOutlookCategory(accessToken, 'AI Draft', aiDraftLabelColor);
+                outlookCategoryCache['AI Draft'] = true;
+              }
+              await applyOutlookCategory(accessToken, msg.id, 'AI Draft');
+            }
+            
+            // Add to processed set to prevent duplicate processing
+            processedSet.add(`${msg.id}:${category.id}:draft`);
+          }
+        }
+
+        // Handle Auto-Reply
+        if (needsAutoReply) {
+          let sent = false;
+
+          if (tokenRecord.provider === 'google') {
+            sent = await sendGmailMessage(
+              accessToken,
+              emailDetails.replyTo,
+              emailDetails.subject,
+              draftContent,
+              (emailDetails as { threadId: string }).threadId
+            );
+          } else {
+            sent = await sendOutlookReply(accessToken, msg.id, draftContent);
+          }
+
+          if (sent) {
+            await supabaseAdmin.from('processed_emails').insert({
+              organization_id: organizationId,
+              user_id: userId,
+              email_id: msg.id,
+              category_id: category.id,
+              provider: tokenRecord.provider,
+              action_type: 'auto_reply',
+              sent_at: new Date().toISOString()
+            });
+
+            await supabaseAdmin.from('ai_activity_logs').insert({
+              organization_id: organizationId,
+              user_id: userId,
+              category_id: category.id,
+              category_name: category.name,
+              activity_type: 'auto_reply',
+              email_subject: emailDetails.subject,
+              email_from: emailDetails.from
+            });
+
+            results.autoRepliesSent++;
+            console.log(`Sent auto-reply for email ${msg.id}`);
+            
+            // Apply AI Sent label
+            if (tokenRecord.provider === 'google') {
+              if (!gmailLabelCache['AI Sent']) {
+                const labelId = await getOrCreateGmailLabel(accessToken, 'AI Sent', aiSentLabelColor);
+                if (labelId) gmailLabelCache['AI Sent'] = labelId;
+              }
+              if (gmailLabelCache['AI Sent']) {
+                await applyGmailLabel(accessToken, msg.id, gmailLabelCache['AI Sent']);
+              }
+            } else {
+              if (!outlookCategoryCache['AI Sent']) {
+                await getOrCreateOutlookCategory(accessToken, 'AI Sent', aiSentLabelColor);
+                outlookCategoryCache['AI Sent'] = true;
+              }
+              await applyOutlookCategory(accessToken, msg.id, 'AI Sent');
+            }
+            
+            // Add to processed set
+            processedSet.add(`${msg.id}:${category.id}:auto_reply`);
+          }
+        }
+      }
+    }
+  }
+
+  return results;
+}
+
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
@@ -1017,13 +1383,107 @@ serve(async (req) => {
 
   try {
     const authHeader = req.headers.get('Authorization');
-    if (!authHeader) {
+    const supabaseAdmin = createClient(
+      Deno.env.get('SUPABASE_URL')!,
+      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
+    );
+
+    // Parse request body
+    let categoryId: string | null = null;
+    let cronMode = false;
+    try {
+      const body = await req.json();
+      categoryId = body?.category_id || null;
+      cronMode = body?.cron === true;
+    } catch {
+      // No body or invalid JSON
+    }
+
+    // CRON MODE: Process ALL users with AI-enabled categories
+    if (!authHeader || cronMode) {
+      console.log('=== CRON MODE: Processing all users ===');
+      
+      // Get all organizations that have AI-enabled categories
+      const { data: orgsWithAI } = await supabaseAdmin
+        .from('categories')
+        .select('organization_id')
+        .eq('is_enabled', true)
+        .or('ai_draft_enabled.eq.true,auto_reply_enabled.eq.true');
+      
+      if (!orgsWithAI?.length) {
+        console.log('No organizations with AI-enabled categories');
+        return new Response(
+          JSON.stringify({ message: 'No AI-enabled categories', processed: 0 }),
+          { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
+      
+      // Get unique organization IDs
+      const orgIds = [...new Set(orgsWithAI.map(o => o.organization_id))];
+      console.log(`Found ${orgIds.length} organizations with AI-enabled categories`);
+      
+      const totalResults = { draftsCreated: 0, autoRepliesSent: 0, errors: 0, usersProcessed: 0 };
+      
+      // For each organization, get users with connected email providers via user_profiles
+      for (const orgId of orgIds) {
+        // Get users in this organization who have connected email providers (tokens)
+        const { data: usersInOrg } = await supabaseAdmin
+          .from('user_profiles')
+          .select('user_id, full_name, title')
+          .eq('organization_id', orgId);
+        
+        if (!usersInOrg?.length) {
+          console.log(`No users found in org ${orgId}`);
+          continue;
+        }
+        
+        console.log(`Found ${usersInOrg.length} users in org ${orgId}`);
+        
+        for (const userProfile of usersInOrg) {
+          // Check if this user has tokens (connected email provider)
+          const { data: userTokens } = await supabaseAdmin
+            .from('oauth_token_vault')
+            .select('id')
+            .eq('user_id', userProfile.user_id)
+            .limit(1);
+          
+          if (!userTokens?.length) {
+            console.log(`User ${userProfile.user_id} has no connected email providers`);
+            continue;
+          }
+          
+          const profile = { full_name: userProfile.full_name, title: userProfile.title };
+          
+          console.log(`Processing user ${userProfile.user_id} in org ${orgId}`);
+          
+          try {
+            const userResults = await processUserEmails(userProfile.user_id, orgId, profile, categoryId);
+            totalResults.draftsCreated += userResults.draftsCreated;
+            totalResults.autoRepliesSent += userResults.autoRepliesSent;
+            totalResults.errors += userResults.errors;
+            totalResults.usersProcessed++;
+          } catch (userError) {
+            console.error(`Error processing user ${userProfile.user_id}:`, userError);
+            totalResults.errors++;
+          }
+        }
+      }
+      
+      console.log(`=== CRON complete: ${totalResults.usersProcessed} users, ${totalResults.draftsCreated} drafts, ${totalResults.autoRepliesSent} auto-replies ===`);
+      
       return new Response(
-        JSON.stringify({ error: 'Missing authorization header' }),
-        { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        JSON.stringify({
+          success: true,
+          ...totalResults,
+          message: `Processed ${totalResults.usersProcessed} users: ${totalResults.draftsCreated} drafts, ${totalResults.autoRepliesSent} auto-replies`
+        }),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
 
+    // USER MODE: Process only the authenticated user's emails
+    console.log('=== USER MODE: Processing single user ===');
+    
     const supabaseUserClient = createClient(
       Deno.env.get('SUPABASE_URL')!,
       Deno.env.get('SUPABASE_ANON_KEY')!,
@@ -1038,351 +1498,21 @@ serve(async (req) => {
       );
     }
 
-    // Parse request for optional category_id filter
-    let categoryId: string | null = null;
-    try {
-      const body = await req.json();
-      categoryId = body?.category_id || null;
-    } catch {
-      // No body
-    }
-
     // Get user's organization
     const { data: profileData } = await supabaseUserClient.rpc('get_my_profile');
-    const profile = profileData?.[0];
+    const profileRow = profileData?.[0];
     
-    if (!profile?.organization_id) {
+    if (!profileRow?.organization_id) {
       return new Response(
         JSON.stringify({ error: 'User profile not found' }),
         { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
 
-    const supabaseAdmin = createClient(
-      Deno.env.get('SUPABASE_URL')!,
-      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
-    );
+    const profile = { full_name: profileRow.full_name, title: profileRow.title };
+    const results = await processUserEmails(user.id, profileRow.organization_id, profile, categoryId);
 
-    // Get categories with AI draft or auto-reply enabled
-    let categoriesQuery = supabaseAdmin
-      .from('categories')
-      .select('id, name, writing_style, ai_draft_enabled, auto_reply_enabled, sort_order')
-      .eq('organization_id', profile.organization_id)
-      .eq('is_enabled', true)
-      .or('ai_draft_enabled.eq.true,auto_reply_enabled.eq.true');
-
-    if (categoryId) {
-      categoriesQuery = categoriesQuery.eq('id', categoryId);
-    }
-
-    const { data: aiCategories, error: catError } = await categoriesQuery;
-
-    if (catError || !aiCategories?.length) {
-      console.log('No AI-enabled categories found');
-      return new Response(
-        JSON.stringify({ message: 'No AI-enabled categories', processed: 0 }),
-        { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
-    }
-
-    console.log(`Found ${aiCategories.length} AI-enabled categories`);
-
-    // Get rules for AI-enabled categories
-    const categoryIds = aiCategories.map(c => c.id);
-    const { data: rules } = await supabaseAdmin
-      .from('rules')
-      .select('*')
-      .eq('organization_id', profile.organization_id)
-      .eq('is_enabled', true)
-      .in('category_id', categoryIds);
-
-    if (!rules?.length) {
-      console.log('No rules found for AI categories');
-      return new Response(
-        JSON.stringify({ message: 'No rules for AI categories', processed: 0 }),
-        { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
-    }
-
-    // Get AI settings for label colors
-    const { data: aiSettingsData } = await supabaseAdmin
-      .from('ai_settings')
-      .select('*')
-      .eq('organization_id', profile.organization_id)
-      .maybeSingle();
-    
-    const aiDraftLabelColor = (aiSettingsData as Record<string, unknown>)?.ai_draft_label_color as string || '#3B82F6';
-    const aiSentLabelColor = (aiSettingsData as Record<string, unknown>)?.ai_sent_label_color as string || '#F97316';
-
-    const encryptionKey = Deno.env.get('TOKEN_ENCRYPTION_KEY')!;
-
-    // Get tokens
-    const { data: tokenDataList } = await supabaseAdmin
-      .from('oauth_token_vault')
-      .select('provider, encrypted_access_token, encrypted_refresh_token, expires_at')
-      .eq('user_id', user.id);
-
-    if (!tokenDataList?.length) {
-      return new Response(
-        JSON.stringify({ error: 'No connected email providers' }),
-        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
-    }
-
-    // Get already processed emails to skip
-    const { data: processedEmails } = await supabaseAdmin
-      .from('processed_emails')
-      .select('email_id, action_type, category_id')
-      .eq('user_id', user.id);
-
-    const processedSet = new Set(
-      (processedEmails || []).map(p => `${p.email_id}:${p.category_id}:${p.action_type}`)
-    );
-
-    // Map category ID to category info
-    const categoryMap = new Map(aiCategories.map(c => [c.id, c]));
-
-    const results = {
-      draftsCreated: 0,
-      autoRepliesSent: 0,
-      errors: 0
-    };
-    
-    // Cache for label IDs (to avoid recreating labels)
-    const gmailLabelCache: Record<string, string> = {};
-    const outlookCategoryCache: Record<string, boolean> = {};
-
-    // Process each provider
-    for (const tokenRecord of tokenDataList) {
-      const accessToken = await getValidAccessToken(
-        tokenRecord as TokenData,
-        encryptionKey,
-        user.id
-      );
-      
-      if (!accessToken) {
-        console.error(`Could not get token for ${tokenRecord.provider}`);
-        continue;
-      }
-
-      // Process each rule
-      for (const rule of rules) {
-        const category = categoryMap.get(rule.category_id);
-        if (!category) continue;
-
-        console.log(`Processing rule for category: ${category.name}`);
-
-        let matchingMessages: { id: string }[] = [];
-
-        if (tokenRecord.provider === 'google') {
-          // Search for matching emails in last 24 hours
-          const query = buildGmailSearchQuery(rule) + ' newer_than:1d';
-          const searchRes = await fetch(
-            `https://gmail.googleapis.com/gmail/v1/users/me/messages?q=${encodeURIComponent(query)}&maxResults=50`,
-            { headers: { Authorization: `Bearer ${accessToken}` } }
-          );
-          if (searchRes.ok) {
-            const data = await searchRes.json();
-            matchingMessages = data.messages || [];
-          }
-        } else if (tokenRecord.provider === 'microsoft') {
-          // Search for matching emails in last 24 hours
-          const yesterday = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
-          const filter = `${buildOutlookFilter(rule)} and receivedDateTime ge ${yesterday}`;
-          const searchRes = await fetch(
-            `https://graph.microsoft.com/v1.0/me/messages?$filter=${encodeURIComponent(filter)}&$top=50&$select=id`,
-            { headers: { Authorization: `Bearer ${accessToken}` } }
-          );
-          if (searchRes.ok) {
-            const data = await searchRes.json();
-            matchingMessages = data.value || [];
-          }
-        }
-
-        console.log(`Found ${matchingMessages.length} matching emails for rule`);
-
-        // Process each matching email
-        for (const msg of matchingMessages) {
-          const needsDraft = category.ai_draft_enabled && 
-            !processedSet.has(`${msg.id}:${category.id}:draft`);
-          const needsAutoReply = category.auto_reply_enabled && 
-            !processedSet.has(`${msg.id}:${category.id}:auto_reply`);
-
-          if (!needsDraft && !needsAutoReply) {
-            continue;
-          }
-
-          console.log(`Processing email ${msg.id} for ${category.name}`);
-
-          let emailDetails;
-          if (tokenRecord.provider === 'google') {
-            emailDetails = await getGmailEmailDetails(accessToken, msg.id);
-          } else {
-            emailDetails = await getOutlookEmailDetails(accessToken, msg.id);
-          }
-
-          if (!emailDetails) {
-            results.errors++;
-            continue;
-          }
-
-          // Generate AI draft content (uses category's writing style and format)
-          const draftContent = await generateAIDraft(
-            emailDetails.subject,
-            emailDetails.body,
-            emailDetails.from,
-            category.name,
-            category.writing_style,
-            'concise', // Default format - could be made configurable per category later
-            profile.full_name || null,
-            profile.title || null
-          );
-
-          if (!draftContent) {
-            console.error('Failed to generate AI draft');
-            results.errors++;
-            continue;
-          }
-
-          // Mark email as read since AI is handling it
-          if (tokenRecord.provider === 'google') {
-            await markGmailAsRead(accessToken, msg.id);
-          } else {
-            await markOutlookAsRead(accessToken, msg.id);
-          }
-
-          // Handle AI Draft (create draft in email provider)
-          if (needsDraft) {
-            let draftId: string | null = null;
-
-            if (tokenRecord.provider === 'google') {
-              draftId = await createGmailDraft(
-                accessToken,
-                emailDetails.replyTo,
-                emailDetails.subject,
-                draftContent,
-                (emailDetails as { threadId: string }).threadId
-              );
-            } else {
-              draftId = await createOutlookDraft(
-                accessToken,
-                emailDetails.replyTo,
-                emailDetails.subject,
-                draftContent,
-                (emailDetails as { conversationId: string }).conversationId
-              );
-            }
-
-            if (draftId) {
-              // Record processed email
-              await supabaseAdmin.from('processed_emails').insert({
-                organization_id: profile.organization_id,
-                user_id: user.id,
-                email_id: msg.id,
-                category_id: category.id,
-                provider: tokenRecord.provider,
-                action_type: 'draft',
-                draft_id: draftId
-              });
-
-              // Log activity
-              await supabaseAdmin.from('ai_activity_logs').insert({
-                organization_id: profile.organization_id,
-                user_id: user.id,
-                category_id: category.id,
-                category_name: category.name,
-                activity_type: 'draft',
-                email_subject: emailDetails.subject,
-                email_from: emailDetails.from
-              });
-
-              results.draftsCreated++;
-              console.log(`Created draft for email ${msg.id}`);
-              
-              // Apply AI Draft label to the original email
-              if (tokenRecord.provider === 'google') {
-                if (!gmailLabelCache['AI Draft']) {
-                  const labelId = await getOrCreateGmailLabel(accessToken, 'AI Draft', aiDraftLabelColor);
-                  if (labelId) gmailLabelCache['AI Draft'] = labelId;
-                }
-                if (gmailLabelCache['AI Draft']) {
-                  await applyGmailLabel(accessToken, msg.id, gmailLabelCache['AI Draft']);
-                }
-              } else {
-                if (!outlookCategoryCache['AI Draft']) {
-                  await getOrCreateOutlookCategory(accessToken, 'AI Draft', aiDraftLabelColor);
-                  outlookCategoryCache['AI Draft'] = true;
-                }
-                await applyOutlookCategory(accessToken, msg.id, 'AI Draft');
-              }
-            }
-          }
-
-          // Handle Auto-Reply (send email)
-          if (needsAutoReply) {
-            let sent = false;
-
-            if (tokenRecord.provider === 'google') {
-              sent = await sendGmailMessage(
-                accessToken,
-                emailDetails.replyTo,
-                emailDetails.subject,
-                draftContent,
-                (emailDetails as { threadId: string }).threadId
-              );
-            } else {
-              sent = await sendOutlookReply(accessToken, msg.id, draftContent);
-            }
-
-            if (sent) {
-              // Record processed email
-              await supabaseAdmin.from('processed_emails').insert({
-                organization_id: profile.organization_id,
-                user_id: user.id,
-                email_id: msg.id,
-                category_id: category.id,
-                provider: tokenRecord.provider,
-                action_type: 'auto_reply',
-                sent_at: new Date().toISOString()
-              });
-
-              // Log activity
-              await supabaseAdmin.from('ai_activity_logs').insert({
-                organization_id: profile.organization_id,
-                user_id: user.id,
-                category_id: category.id,
-                category_name: category.name,
-                activity_type: 'auto_reply',
-                email_subject: emailDetails.subject,
-                email_from: emailDetails.from
-              });
-
-              results.autoRepliesSent++;
-              console.log(`Sent auto-reply for email ${msg.id}`);
-              
-              // Apply AI Sent label to the original email
-              if (tokenRecord.provider === 'google') {
-                if (!gmailLabelCache['AI Sent']) {
-                  const labelId = await getOrCreateGmailLabel(accessToken, 'AI Sent', aiSentLabelColor);
-                  if (labelId) gmailLabelCache['AI Sent'] = labelId;
-                }
-                if (gmailLabelCache['AI Sent']) {
-                  await applyGmailLabel(accessToken, msg.id, gmailLabelCache['AI Sent']);
-                }
-              } else {
-                if (!outlookCategoryCache['AI Sent']) {
-                  await getOrCreateOutlookCategory(accessToken, 'AI Sent', aiSentLabelColor);
-                  outlookCategoryCache['AI Sent'] = true;
-                }
-                await applyOutlookCategory(accessToken, msg.id, 'AI Sent');
-              }
-            }
-          }
-        }
-      }
-    }
-
-    console.log(`AI Processing complete: ${results.draftsCreated} drafts, ${results.autoRepliesSent} auto-replies`);
+    console.log(`=== USER MODE complete: ${results.draftsCreated} drafts, ${results.autoRepliesSent} auto-replies ===`);
 
     return new Response(
       JSON.stringify({
