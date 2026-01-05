@@ -918,7 +918,7 @@ export default function Categories() {
                         <Button
                           variant="ghost"
                           size="sm"
-                          onClick={() => updateRule(rule.id, 'is_advanced', !rule.is_advanced)}
+                          onClick={() => updateRuleBasic(rule.id, 'is_advanced', !rule.is_advanced)}
                           className="h-7 px-2 text-xs text-muted-foreground hover:text-foreground"
                         >
                           {rule.is_advanced ? (
