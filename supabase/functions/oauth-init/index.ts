@@ -38,9 +38,9 @@ serve(async (req) => {
       );
     }
 
-    const { provider, userId, organizationId, redirectUrl } = await req.json();
+    const { provider, userId, organizationId, redirectUrl, calendarOnly } = await req.json();
     
-    console.log(`OAuth init request for provider: ${provider}, authenticated user: ${user.id}`);
+    console.log(`OAuth init request for provider: ${provider}, authenticated user: ${user.id}, calendarOnly: ${!!calendarOnly}`);
 
     if (!provider || !userId || !organizationId) {
       return new Response(
@@ -110,11 +110,16 @@ serve(async (req) => {
       const supabaseUrl = Deno.env.get('SUPABASE_URL');
       const callbackUrl = `${supabaseUrl}/functions/v1/oauth-callback`;
 
+      // Use calendar-only scopes if requested (for adding calendar to existing connection)
+      const scope = calendarOnly
+        ? 'openid email profile https://www.googleapis.com/auth/calendar https://www.googleapis.com/auth/calendar.events'
+        : 'openid email profile https://www.googleapis.com/auth/gmail.readonly https://www.googleapis.com/auth/gmail.modify https://www.googleapis.com/auth/gmail.settings.basic https://www.googleapis.com/auth/gmail.labels https://www.googleapis.com/auth/calendar https://www.googleapis.com/auth/calendar.events';
+
       const params = new URLSearchParams({
         client_id: clientId,
         redirect_uri: callbackUrl,
         response_type: 'code',
-        scope: 'openid email profile https://www.googleapis.com/auth/gmail.readonly https://www.googleapis.com/auth/gmail.modify https://www.googleapis.com/auth/gmail.settings.basic https://www.googleapis.com/auth/gmail.labels https://www.googleapis.com/auth/calendar https://www.googleapis.com/auth/calendar.events',
+        scope,
         access_type: 'offline',
         prompt: 'consent select_account',
         state: stateData,
@@ -122,7 +127,7 @@ serve(async (req) => {
       });
 
       authUrl = `https://accounts.google.com/o/oauth2/v2/auth?${params.toString()}`;
-      console.log('Generated Google OAuth URL with calendar scopes');
+      console.log(`Generated Google OAuth URL with ${calendarOnly ? 'calendar-only' : 'full'} scopes`);
 
     } else if (provider === 'outlook') {
       const clientId = Deno.env.get('MICROSOFT_CLIENT_ID');
@@ -137,17 +142,22 @@ serve(async (req) => {
       const supabaseUrl = Deno.env.get('SUPABASE_URL');
       const callbackUrl = `${supabaseUrl}/functions/v1/oauth-callback`;
 
+      // Use calendar-only scopes if requested
+      const scope = calendarOnly
+        ? 'openid email profile offline_access https://graph.microsoft.com/Calendars.ReadWrite'
+        : 'openid email profile offline_access https://graph.microsoft.com/Mail.Read https://graph.microsoft.com/Mail.ReadWrite https://graph.microsoft.com/Calendars.ReadWrite';
+
       const params = new URLSearchParams({
         client_id: clientId,
         redirect_uri: callbackUrl,
         response_type: 'code',
-        scope: 'openid email profile offline_access https://graph.microsoft.com/Mail.Read https://graph.microsoft.com/Mail.ReadWrite https://graph.microsoft.com/Calendars.ReadWrite',
+        scope,
         response_mode: 'query',
         state: stateData
       });
 
       authUrl = `https://login.microsoftonline.com/common/oauth2/v2.0/authorize?${params.toString()}`;
-      console.log('Generated Microsoft OAuth URL with calendar scopes');
+      console.log(`Generated Microsoft OAuth URL with ${calendarOnly ? 'calendar-only' : 'full'} scopes`);
 
     } else {
       return new Response(
