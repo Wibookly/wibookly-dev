@@ -292,6 +292,9 @@ export type Database = {
           mobile: string | null
           organization_id: string
           phone: string | null
+          profile_photo_url: string | null
+          show_company_logo: boolean | null
+          show_profile_photo: boolean | null
           signature_color: string | null
           signature_enabled: boolean
           signature_font: string | null
@@ -310,6 +313,9 @@ export type Database = {
           mobile?: string | null
           organization_id: string
           phone?: string | null
+          profile_photo_url?: string | null
+          show_company_logo?: boolean | null
+          show_profile_photo?: boolean | null
           signature_color?: string | null
           signature_enabled?: boolean
           signature_font?: string | null
@@ -328,6 +334,9 @@ export type Database = {
           mobile?: string | null
           organization_id?: string
           phone?: string | null
+          profile_photo_url?: string | null
+          show_company_logo?: boolean | null
+          show_profile_photo?: boolean | null
           signature_color?: string | null
           signature_enabled?: boolean
           signature_font?: string | null

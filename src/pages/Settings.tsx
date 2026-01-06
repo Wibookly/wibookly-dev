@@ -31,6 +31,9 @@ interface SignatureFields {
   mobile: string;
   website: string;
   signatureLogoUrl: string;
+  profilePhotoUrl: string;
+  showProfilePhoto: boolean;
+  showCompanyLogo: boolean;
   font: string;
   color: string;
 }
@@ -107,6 +110,7 @@ export default function Settings() {
   const { activeConnection, loading: emailLoading } = useActiveEmail();
   const { toast } = useToast();
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const profilePhotoInputRef = useRef<HTMLInputElement>(null);
   const [searchParams] = useSearchParams();
   const activeSection = (searchParams.get('section') as SettingsSection) || 'profile';
   const [orgName, setOrgName] = useState('');
@@ -119,10 +123,14 @@ export default function Settings() {
     mobile: '',
     website: '',
     signatureLogoUrl: '',
+    profilePhotoUrl: '',
+    showProfilePhoto: false,
+    showCompanyLogo: true,
     font: 'Arial, sans-serif',
     color: '#333333'
   });
   const [uploadingLogo, setUploadingLogo] = useState(false);
+  const [uploadingPhoto, setUploadingPhoto] = useState(false);
   const [aiSettings, setAiSettings] = useState<AISettings>({
     writing_style: 'professional',
     ai_draft_label_color: '#3B82F6',
@@ -197,6 +205,9 @@ export default function Settings() {
         mobile: data.mobile || '',
         website: data.website || '',
         signatureLogoUrl: data.signature_logo_url || '',
+        profilePhotoUrl: (data as Record<string, unknown>).profile_photo_url as string || '',
+        showProfilePhoto: (data as Record<string, unknown>).show_profile_photo as boolean || false,
+        showCompanyLogo: (data as Record<string, unknown>).show_company_logo !== false,
         font: data.signature_font || 'Arial, sans-serif',
         color: data.signature_color || '#333333'
       });
@@ -211,6 +222,9 @@ export default function Settings() {
         mobile: (profileData?.mobile as string) || '',
         website: (profileData?.website as string) || '',
         signatureLogoUrl: (profileData?.signature_logo_url as string) || '',
+        profilePhotoUrl: '',
+        showProfilePhoto: false,
+        showCompanyLogo: true,
         font: (profileData?.signature_font as string) || 'Arial, sans-serif',
         color: (profileData?.signature_color as string) || '#333333'
       });
@@ -283,6 +297,9 @@ export default function Settings() {
         mobile: signatureFields.mobile || null,
         website: signatureFields.website || null,
         signature_logo_url: signatureFields.signatureLogoUrl || null,
+        profile_photo_url: signatureFields.profilePhotoUrl || null,
+        show_profile_photo: signatureFields.showProfilePhoto,
+        show_company_logo: signatureFields.showCompanyLogo,
         signature_font: signatureFields.font || 'Arial, sans-serif',
         signature_color: signatureFields.color || '#333333',
         signature_enabled: signatureEnabled
@@ -407,10 +424,25 @@ export default function Settings() {
       contactLines.push(`<tr><td style="padding: 2px 0; vertical-align: middle;"><span style="font-size: 14px;">✉️</span></td><td style="padding: 2px 0 2px 8px; vertical-align: middle;"><a href="mailto:${email}" style="color: ${textColor}; text-decoration: none;">${email}</a></td></tr>`);
     }
 
+    // Check what images to show based on toggles
+    const showPhoto = fields.showProfilePhoto && fields.profilePhotoUrl;
+    const showLogo = fields.showCompanyLogo && fields.signatureLogoUrl;
+
     // Only show signature if there's at least some content
-    const hasContent = name || userTitle || contactLines.length > 0 || fields.signatureLogoUrl;
+    const hasContent = name || userTitle || contactLines.length > 0 || showPhoto || showLogo;
     if (!hasContent) {
       return '<div style="color: #999; font-style: italic;">Add your details above to see the signature preview</div>';
+    }
+
+    // Build images section (profile photo on top, logo below)
+    let imagesHtml = '';
+    if (showPhoto || showLogo) {
+      imagesHtml = `<td style="vertical-align: top; padding-right: 16px; border-right: 2px solid #e5e5e5;">
+        <div style="display: flex; flex-direction: column; align-items: center; gap: 8px;">
+          ${showPhoto ? `<img src="${fields.profilePhotoUrl}" alt="Profile Photo" style="width: 70px; height: 70px; border-radius: 50%; object-fit: cover;" />` : ''}
+          ${showLogo ? `<img src="${fields.signatureLogoUrl}" alt="Company Logo" style="max-height: 50px; max-width: 100px;" />` : ''}
+        </div>
+      </td>`;
     }
 
     return `
@@ -418,10 +450,8 @@ export default function Settings() {
         <p style="margin: 0 0 12px 0;">Best regards,</p>
         <table cellpadding="0" cellspacing="0" border="0" style="font-family: ${fontFamily}; font-size: 14px; color: ${textColor};">
           <tr>
-            ${fields.signatureLogoUrl ? `<td style="vertical-align: top; padding-right: 16px; border-right: 2px solid #e5e5e5;">
-              <img src="${fields.signatureLogoUrl}" alt="Logo" style="max-height: 80px; max-width: 120px;" />
-            </td>` : ''}
-            <td style="vertical-align: top; ${fields.signatureLogoUrl ? 'padding-left: 16px;' : ''}">
+            ${imagesHtml}
+            <td style="vertical-align: top; ${(showPhoto || showLogo) ? 'padding-left: 16px;' : ''}">
               ${name ? `<div style="font-size: 16px; font-weight: bold; color: ${textColor}; margin-bottom: 2px;">${name}</div>` : ''}
               ${userTitle ? `<div style="font-size: 14px; color: #2563eb; margin-bottom: 8px;">${userTitle}</div>` : ''}
               ${contactLines.length > 0 ? `<table cellpadding="0" cellspacing="0" border="0" style="font-size: 13px; color: ${textColor};">
@@ -661,15 +691,124 @@ export default function Settings() {
                   </div>
                 </div>
                 
-                {/* Logo Upload */}
+                {/* Profile Photo Upload */}
                 <div className="space-y-3 pt-4 border-t border-border">
-                  <Label>Signature Logo (Optional)</Label>
+                  <div className="flex items-center justify-between">
+                    <Label>Profile Photo (Optional)</Label>
+                    <div className="flex items-center gap-2">
+                      <Label htmlFor="showProfilePhoto" className="text-xs font-normal text-muted-foreground">
+                        Show in signature
+                      </Label>
+                      <Switch
+                        id="showProfilePhoto"
+                        checked={signatureFields.showProfilePhoto}
+                        onCheckedChange={(checked) => setSignatureFields(prev => ({ ...prev, showProfilePhoto: checked }))}
+                      />
+                    </div>
+                  </div>
+                  <div className="flex items-start gap-4">
+                    {signatureFields.profilePhotoUrl ? (
+                      <div className="relative">
+                        <img 
+                          src={signatureFields.profilePhotoUrl} 
+                          alt="Profile photo" 
+                          className="h-16 w-16 object-cover rounded-full border border-border"
+                        />
+                        <button
+                          type="button"
+                          onClick={() => setSignatureFields(prev => ({ ...prev, profilePhotoUrl: '' }))}
+                          className="absolute -top-2 -right-2 p-1 rounded-full bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                        >
+                          <X className="w-3 h-3" />
+                        </button>
+                      </div>
+                    ) : (
+                      <div className="flex items-center justify-center h-16 w-16 rounded-full border-2 border-dashed border-border bg-muted/50">
+                        <ImageIcon className="w-6 h-6 text-muted-foreground" />
+                      </div>
+                    )}
+                    <div className="flex flex-col gap-2">
+                      <input
+                        ref={profilePhotoInputRef}
+                        type="file"
+                        accept="image/*"
+                        className="hidden"
+                        onChange={async (e) => {
+                          const file = e.target.files?.[0];
+                          if (!file || !profile?.user_id) return;
+                          
+                          setUploadingPhoto(true);
+                          try {
+                            const fileExt = file.name.split('.').pop();
+                            const fileName = `${profile.user_id}/photo-${Date.now()}.${fileExt}`;
+                            
+                            const { error: uploadError } = await supabase.storage
+                              .from('signature-logos')
+                              .upload(fileName, file, { upsert: true });
+                            
+                            if (uploadError) throw uploadError;
+                            
+                            const { data: { publicUrl } } = supabase.storage
+                              .from('signature-logos')
+                              .getPublicUrl(fileName);
+                            
+                            setSignatureFields(prev => ({ ...prev, profilePhotoUrl: publicUrl }));
+                            toast({ title: 'Photo uploaded successfully' });
+                          } catch (error) {
+                            console.error('Upload error:', error);
+                            toast({ 
+                              title: 'Upload failed', 
+                              description: 'Could not upload photo',
+                              variant: 'destructive' 
+                            });
+                          } finally {
+                            setUploadingPhoto(false);
+                            if (profilePhotoInputRef.current) profilePhotoInputRef.current.value = '';
+                          }
+                        }}
+                      />
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        onClick={() => profilePhotoInputRef.current?.click()}
+                        disabled={uploadingPhoto}
+                      >
+                        {uploadingPhoto ? (
+                          <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                        ) : (
+                          <Upload className="w-4 h-4 mr-2" />
+                        )}
+                        Upload Photo
+                      </Button>
+                      <p className="text-xs text-muted-foreground">
+                        Square image recommended. Max 2MB.
+                      </p>
+                    </div>
+                  </div>
+                </div>
+                
+                {/* Company Logo Upload */}
+                <div className="space-y-3 pt-4 border-t border-border">
+                  <div className="flex items-center justify-between">
+                    <Label>Company Logo (Optional)</Label>
+                    <div className="flex items-center gap-2">
+                      <Label htmlFor="showCompanyLogo" className="text-xs font-normal text-muted-foreground">
+                        Show in signature
+                      </Label>
+                      <Switch
+                        id="showCompanyLogo"
+                        checked={signatureFields.showCompanyLogo}
+                        onCheckedChange={(checked) => setSignatureFields(prev => ({ ...prev, showCompanyLogo: checked }))}
+                      />
+                    </div>
+                  </div>
                   <div className="flex items-start gap-4">
                     {signatureFields.signatureLogoUrl ? (
                       <div className="relative">
                         <img 
                           src={signatureFields.signatureLogoUrl} 
-                          alt="Signature logo" 
+                          alt="Company logo" 
                           className="h-16 w-auto object-contain rounded border border-border bg-background p-1"
                         />
                         <button
