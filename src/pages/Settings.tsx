@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { useAuth } from '@/lib/auth';
 import { useActiveEmail } from '@/contexts/ActiveEmailContext';
+import { useSearchParams } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { UserAvatarDropdown } from '@/components/app/UserAvatarDropdown';
 import { Button } from '@/components/ui/button';
@@ -14,9 +15,15 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { useToast } from '@/hooks/use-toast';
-import { Loader2, Save, Sparkles, Upload, X, Image as ImageIcon, Mail, Calendar, Clock } from 'lucide-react';
+import { Loader2, Save, Upload, X, Image as ImageIcon, Mail, Clock, ChevronDown } from 'lucide-react';
 import { Switch } from '@/components/ui/switch';
 import { organizationNameSchema, fullNameSchema, validateField } from '@/lib/validation';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
 
 interface AISettings {
   writing_style: string;
@@ -94,11 +101,35 @@ const formatPhoneNumber = (value: string): string => {
   return `(${limitedDigits.slice(0, 3)}) ${limitedDigits.slice(3, 6)}-${limitedDigits.slice(6)}`;
 };
 
+type SettingsSection = 'profile' | 'signature' | 'availability';
+
+const SECTION_OPTIONS = [
+  { value: 'profile', label: 'Update Profile' },
+  { value: 'signature', label: 'Update Signature' },
+  { value: 'availability', label: 'Calendar Availability' },
+];
+
 export default function Settings() {
   const { organization, profile } = useAuth();
   const { activeConnection, loading: emailLoading } = useActiveEmail();
   const { toast } = useToast();
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const [searchParams, setSearchParams] = useSearchParams();
+  
+  // Get section from URL or default to profile
+  const sectionFromUrl = searchParams.get('section') as SettingsSection | null;
+  const [activeSection, setActiveSection] = useState<SettingsSection>(
+    sectionFromUrl && ['profile', 'signature', 'availability'].includes(sectionFromUrl) 
+      ? sectionFromUrl 
+      : 'profile'
+  );
+
+  // Sync URL with section changes
+  const handleSectionChange = (section: SettingsSection) => {
+    setActiveSection(section);
+    setSearchParams({ section });
+  };
+  
   const [orgName, setOrgName] = useState('');
   const [fullName, setFullName] = useState('');
   const [title, setTitle] = useState('');
@@ -462,15 +493,36 @@ export default function Settings() {
       </div>
       
       <div className="max-w-2xl animate-fade-in bg-card/80 backdrop-blur-sm rounded-xl border border-border shadow-lg p-6">
-        <div className="mb-8">
-          <h1 className="text-2xl font-semibold tracking-tight">Settings</h1>
+        <div className="mb-6">
+          <div className="flex items-center gap-3 mb-2">
+            <h1 className="text-2xl font-semibold tracking-tight">Settings:</h1>
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="outline" className="flex items-center gap-2">
+                  {SECTION_OPTIONS.find(s => s.value === activeSection)?.label}
+                  <ChevronDown className="w-4 h-4" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="start" className="bg-popover">
+                {SECTION_OPTIONS.map((option) => (
+                  <DropdownMenuItem
+                    key={option.value}
+                    onClick={() => handleSectionChange(option.value as SettingsSection)}
+                    className={activeSection === option.value ? 'bg-accent' : ''}
+                  >
+                    {option.label}
+                  </DropdownMenuItem>
+                ))}
+              </DropdownMenuContent>
+            </DropdownMenu>
+          </div>
           <p className="mt-1 text-muted-foreground">
             Manage your account and workspace preferences
           </p>
         </div>
 
       <div className="space-y-8">
-        {/* Workspace Settings */}
+        {/* Workspace Settings - Always visible */}
         <section className="space-y-4">
           <h2 className="text-lg font-semibold">Workspace</h2>
           <div className="space-y-4 p-6 bg-card rounded-lg border border-border">
@@ -487,6 +539,7 @@ export default function Settings() {
         </section>
 
         {/* Profile Settings */}
+        {activeSection === 'profile' && (
         <section className="space-y-4">
           <h2 className="text-lg font-semibold">Profile</h2>
           <div className="space-y-4 p-6 bg-card rounded-lg border border-border">
@@ -518,8 +571,10 @@ export default function Settings() {
             </div>
           </div>
         </section>
+        )}
 
         {/* Email Signature Builder */}
+        {activeSection === 'signature' && (
         <section className="space-y-4">
           <div className="flex items-center justify-between">
             <div>
@@ -770,106 +825,11 @@ CEO, Company Name
             </div>
           </div>
         </section>
+        )}
 
-        {/* AI Label Settings */}
-        <section className="space-y-4">
-          <div className="flex items-center gap-2">
-            <Sparkles className="w-5 h-5 text-blue-500" />
-            <h2 className="text-lg font-semibold">AI Email Labels</h2>
-          </div>
-          <p className="text-sm text-muted-foreground">
-            Choose colors for AI-processed email labels. These will appear in your inbox to help you identify AI-drafted and AI-sent emails.
-          </p>
-          <div className="space-y-4 p-6 bg-card rounded-lg border border-border">
-            <div className="flex items-center gap-4">
-              <div className="flex-1 space-y-2">
-                <Label htmlFor="aiDraftColor">AI Draft Label Color</Label>
-                <p className="text-xs text-muted-foreground">
-                  Applied to emails where AI created a draft for your review
-                </p>
-              </div>
-              <div className="flex items-center gap-3">
-                <div
-                  className="w-10 h-10 rounded-lg border-2 border-border shadow-sm cursor-pointer relative overflow-hidden"
-                  style={{ backgroundColor: aiSettings.ai_draft_label_color }}
-                >
-                  <input
-                    type="color"
-                    id="aiDraftColor"
-                    value={aiSettings.ai_draft_label_color}
-                    onChange={(e) => setAiSettings(prev => ({ ...prev, ai_draft_label_color: e.target.value }))}
-                    className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
-                  />
-                </div>
-                <span className="text-sm font-mono text-muted-foreground">{aiSettings.ai_draft_label_color}</span>
-              </div>
-            </div>
-            
-            <div className="border-t border-border pt-4"></div>
-            
-            <div className="flex items-center gap-4">
-              <div className="flex-1 space-y-2">
-                <Label htmlFor="aiSentColor">AI Auto-Reply Label Color</Label>
-                <p className="text-xs text-muted-foreground">
-                  Applied to emails that AI automatically replied to
-                </p>
-              </div>
-              <div className="flex items-center gap-3">
-                <div
-                  className="w-10 h-10 rounded-lg border-2 border-border shadow-sm cursor-pointer relative overflow-hidden"
-                  style={{ backgroundColor: aiSettings.ai_sent_label_color }}
-                >
-                  <input
-                    type="color"
-                    id="aiSentColor"
-                    value={aiSettings.ai_sent_label_color}
-                    onChange={(e) => setAiSettings(prev => ({ ...prev, ai_sent_label_color: e.target.value }))}
-                    className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
-                  />
-                </div>
-                <span className="text-sm font-mono text-muted-foreground">{aiSettings.ai_sent_label_color}</span>
-              </div>
-            </div>
-          </div>
-        </section>
-
-        {/* AI Calendar Settings */}
-        <section className="space-y-4">
-          <div className="flex items-center gap-2">
-            <Calendar className="w-5 h-5 text-purple-500" />
-            <h2 className="text-lg font-semibold">AI Calendar Events</h2>
-          </div>
-          <p className="text-sm text-muted-foreground">
-            When AI adds events or appointments to your calendar, they will be displayed with this color to distinguish them from your manually created events.
-          </p>
-          <div className="space-y-4 p-6 bg-card rounded-lg border border-border">
-            <div className="flex items-center gap-4">
-              <div className="flex-1 space-y-2">
-                <Label htmlFor="aiCalendarColor">AI Calendar Event Color</Label>
-                <p className="text-xs text-muted-foreground">
-                  Applied to events and appointments created by AI from meeting requests
-                </p>
-              </div>
-              <div className="flex items-center gap-3">
-                <div
-                  className="w-10 h-10 rounded-lg border-2 border-border shadow-sm cursor-pointer relative overflow-hidden"
-                  style={{ backgroundColor: aiSettings.ai_calendar_event_color }}
-                >
-                  <input
-                    type="color"
-                    id="aiCalendarColor"
-                    value={aiSettings.ai_calendar_event_color}
-                    onChange={(e) => setAiSettings(prev => ({ ...prev, ai_calendar_event_color: e.target.value }))}
-                    className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
-                  />
-                </div>
-                <span className="text-sm font-mono text-muted-foreground">{aiSettings.ai_calendar_event_color}</span>
-              </div>
-            </div>
-          </div>
-        </section>
 
         {/* Availability Hours */}
+        {activeSection === 'availability' && (
         <section className="space-y-4">
           <div className="flex items-center gap-2">
             <Clock className="w-5 h-5 text-emerald-500" />
@@ -941,6 +901,7 @@ CEO, Company Name
             ))}
           </div>
         </section>
+        )}
 
         <div className="flex justify-end">
           <Button onClick={saveSettings} disabled={saving}>
