@@ -42,6 +42,7 @@ export default function Integrations() {
   const [searchParams, setSearchParams] = useSearchParams();
 
   const [confirmProvider, setConfirmProvider] = useState<ProviderId | null>(null);
+  const [confirmCalendarOnly, setConfirmCalendarOnly] = useState(false);
   const confirmOpen = confirmProvider !== null;
 
   const [showDiagnostics, setShowDiagnostics] = useState(false);
@@ -112,7 +113,9 @@ export default function Integrations() {
     []
   );
 
-  const startConnect = async (provider: ProviderId) => {
+  const startConnect = async (provider: ProviderId, options?: { calendarOnly?: boolean }) => {
+    const { calendarOnly = false } = options || {};
+    
     // Wait for auth to finish loading
     if (authLoading) {
       toast({
@@ -122,7 +125,7 @@ export default function Integrations() {
       return;
     }
 
-    logAttempt({ provider, stage: 'init_started' });
+    logAttempt({ provider, stage: calendarOnly ? 'calendar_init_started' : 'init_started' });
 
     // Don't rely on context state alone; fetch a fresh session to avoid race/stale state.
     const { data: sessionData, error: sessionError } = await supabase.auth.getSession();
@@ -169,6 +172,7 @@ export default function Integrations() {
           userId: liveUserId,
           organizationId: orgId,
           redirectUrl: '/integrations',
+          calendarOnly,
         },
         headers: accessToken ? { Authorization: `Bearer ${accessToken}` } : undefined,
       });
@@ -178,7 +182,7 @@ export default function Integrations() {
       }
 
       if (data?.authUrl) {
-        logAttempt({ provider, stage: 'redirect_to_provider', meta: { authUrl: data.authUrl.substring(0, 100) } });
+        logAttempt({ provider, stage: 'redirect_to_provider', meta: { authUrl: data.authUrl.substring(0, 100), calendarOnly } });
         // Redirect to OAuth provider
         window.location.href = data.authUrl;
       } else {
@@ -344,13 +348,22 @@ export default function Integrations() {
         </div>
       )}
 
-      <AlertDialog open={confirmOpen} onOpenChange={(open) => (!open ? setConfirmProvider(null) : undefined)}>
+      <AlertDialog open={confirmOpen} onOpenChange={(open) => {
+        if (!open) {
+          setConfirmProvider(null);
+          setConfirmCalendarOnly(false);
+        }
+      }}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Connect {confirmProvider ? providerLabel[confirmProvider] : 'account'}</AlertDialogTitle>
+            <AlertDialogTitle>
+              {confirmCalendarOnly ? 'Connect Calendar' : `Connect ${confirmProvider ? providerLabel[confirmProvider] : 'account'}`}
+            </AlertDialogTitle>
             <AlertDialogDescription>
-              You'll be redirected to {confirmProvider ? providerLabel[confirmProvider] : 'your provider'} to sign in and
-              approve access.
+              {confirmCalendarOnly 
+                ? `You'll be redirected to ${confirmProvider ? providerLabel[confirmProvider] : 'your provider'} to grant calendar access only.`
+                : `You'll be redirected to ${confirmProvider ? providerLabel[confirmProvider] : 'your provider'} to sign in and approve access.`
+              }
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
@@ -359,8 +372,10 @@ export default function Integrations() {
               onClick={async () => {
                 if (!confirmProvider) return;
                 const provider = confirmProvider;
+                const calendarOnly = confirmCalendarOnly;
                 setConfirmProvider(null);
-                await startConnect(provider);
+                setConfirmCalendarOnly(false);
+                await startConnect(provider, { calendarOnly });
               }}
             >
               Continue
@@ -444,7 +459,10 @@ export default function Integrations() {
                                 variant="outline" 
                                 size="sm" 
                                 className="h-7 text-xs"
-                                onClick={() => setConfirmProvider(integration.id)}
+                                onClick={() => {
+                                  setConfirmProvider(integration.id);
+                                  setConfirmCalendarOnly(true);
+                                }}
                               >
                                 Connect Calendar
                               </Button>
