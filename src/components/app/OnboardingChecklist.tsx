@@ -77,7 +77,7 @@ export function OnboardingChecklist({ onStepClick }: OnboardingChecklistProps) {
       title: 'Setup AI Drafts',
       description: 'Configure AI draft settings',
       icon: Sparkles,
-      href: '/ai-activity',
+      href: '/email-draft',
       isComplete: false
     },
     {
@@ -245,7 +245,7 @@ export function OnboardingChecklist({ onStepClick }: OnboardingChecklistProps) {
       '/settings': 0,
       '/integrations': 1,
       '/categories': 2,
-      '/ai-activity': 5
+      '/email-draft': 5
     };
     return pathMap[location.pathname] ?? -1;
   };

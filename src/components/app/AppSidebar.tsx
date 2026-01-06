@@ -94,12 +94,12 @@ export function AppSidebar() {
         )}
       </div>
 
-      {/* Onboarding Progress */}
-      <div className="p-3">
+      {/* Onboarding Progress - hidden on very small screens when content might overflow */}
+      <div className="p-3 hidden sm:block lg:block">
         <OnboardingChecklist />
       </div>
 
-      <nav className="flex-1 p-3 space-y-1 overflow-auto">
+      <nav className="flex-1 p-3 space-y-1 overflow-y-auto min-h-0">
         {navItems.map((item) => {
           const isActive = location.pathname === item.href;
           return (
