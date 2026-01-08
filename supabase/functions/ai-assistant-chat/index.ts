@@ -164,8 +164,17 @@ async function getValidAccessToken(
   return newTokens.access_token;
 }
 
+interface EmailResultData {
+  id: string;
+  subject: string;
+  from: string;
+  preview: string;
+  date: string;
+  webLink?: string;
+}
+
 // Search Gmail emails
-async function searchGmailEmails(accessToken: string, query: string, maxResults: number = 20): Promise<string> {
+async function searchGmailEmails(accessToken: string, query: string, maxResults: number = 20): Promise<{ text: string; structured: EmailResultData[] }> {
   try {
     const searchQuery = encodeURIComponent(query);
     const listRes = await fetch(
@@ -173,12 +182,14 @@ async function searchGmailEmails(accessToken: string, query: string, maxResults:
       { headers: { Authorization: `Bearer ${accessToken}` } }
     );
     
-    if (!listRes.ok) return "Failed to search emails";
+    if (!listRes.ok) return { text: "Failed to search emails", structured: [] };
     
     const listData = await listRes.json();
-    if (!listData.messages?.length) return "No emails found matching your search.";
+    if (!listData.messages?.length) return { text: "No emails found matching your search.", structured: [] };
     
     const results: string[] = [];
+    const structured: EmailResultData[] = [];
+    
     for (const msg of listData.messages.slice(0, 10)) {
       const detailRes = await fetch(
         `https://gmail.googleapis.com/gmail/v1/users/me/messages/${msg.id}?format=full`,
@@ -215,6 +226,25 @@ async function searchGmailEmails(accessToken: string, query: string, maxResults:
           }
         }
         
+        // Format date nicely
+        const parsedDate = new Date(dateStr);
+        const formattedDate = parsedDate.toLocaleDateString('en-US', { 
+          month: 'short', 
+          day: 'numeric',
+          hour: '2-digit',
+          minute: '2-digit'
+        });
+        
+        // Add structured data
+        structured.push({
+          id: msg.id,
+          subject: subject,
+          from: from.replace(/<[^>]*>/g, '').trim(),
+          preview: body.replace(/<[^>]*>/g, '').slice(0, 200),
+          date: formattedDate,
+          webLink: `https://mail.google.com/mail/u/0/#inbox/${msg.id}`
+        });
+        
         results.push(`
 ---
 From: ${from}
@@ -226,46 +256,59 @@ Content: ${body.slice(0, 500)}${body.length > 500 ? '...' : ''}
       }
     }
     
-    return results.join('\n');
+    return { text: results.join('\n'), structured };
   } catch (error) {
     console.error('Error searching Gmail:', error);
-    return "Error searching emails";
+    return { text: "Error searching emails", structured: [] };
   }
 }
 
 // Search Outlook emails
-async function searchOutlookEmails(accessToken: string, query: string, maxResults: number = 20): Promise<string> {
+async function searchOutlookEmails(accessToken: string, query: string, maxResults: number = 20): Promise<{ text: string; structured: EmailResultData[] }> {
   try {
     const res = await fetch(
-      `https://graph.microsoft.com/v1.0/me/messages?$search="${encodeURIComponent(query)}"&$top=${maxResults}&$select=id,subject,from,bodyPreview,receivedDateTime,hasAttachments,body`,
+      `https://graph.microsoft.com/v1.0/me/messages?$search="${encodeURIComponent(query)}"&$top=${maxResults}&$select=id,subject,from,bodyPreview,receivedDateTime,hasAttachments,webLink`,
       { headers: { Authorization: `Bearer ${accessToken}` } }
     );
     
-    if (!res.ok) return "Failed to search emails";
+    if (!res.ok) return { text: "Failed to search emails", structured: [] };
     
     const data = await res.json();
-    if (!data.value?.length) return "No emails found matching your search.";
+    if (!data.value?.length) return { text: "No emails found matching your search.", structured: [] };
+    
+    const structured: EmailResultData[] = data.value.map((msg: {
+      id?: string;
+      subject?: string;
+      from?: { emailAddress?: { name?: string; address?: string } };
+      receivedDateTime?: string;
+      bodyPreview?: string;
+      webLink?: string;
+    }) => ({
+      id: msg.id || '',
+      subject: msg.subject || '',
+      from: msg.from?.emailAddress?.name || msg.from?.emailAddress?.address || '',
+      preview: msg.bodyPreview || '',
+      date: new Date(msg.receivedDateTime || '').toLocaleDateString('en-US', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' }),
+      webLink: msg.webLink
+    }));
     
     const results = data.value.map((msg: {
       subject?: string;
       from?: { emailAddress?: { name?: string; address?: string } };
       receivedDateTime?: string;
       bodyPreview?: string;
-      hasAttachments?: boolean;
-      body?: { content?: string };
     }) => `
 ---
 From: ${msg.from?.emailAddress?.name || ''} <${msg.from?.emailAddress?.address || ''}>
 Subject: ${msg.subject || ''}
 Date: ${msg.receivedDateTime || ''}
-${msg.hasAttachments ? 'Has Attachments: Yes' : ''}
 Content: ${msg.bodyPreview || ''}
 ---`);
     
-    return results.join('\n');
+    return { text: results.join('\n'), structured };
   } catch (error) {
     console.error('Error searching Outlook:', error);
-    return "Error searching emails";
+    return { text: "Error searching emails", structured: [] };
   }
 }
 

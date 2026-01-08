@@ -7,10 +7,18 @@ import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Skeleton } from '@/components/ui/skeleton';
+import { Badge } from '@/components/ui/badge';
+import { Card, CardContent } from '@/components/ui/card';
 import { cn } from '@/lib/utils';
-import { Send, Plus, Trash2, MessageSquare, Loader2 } from 'lucide-react';
+import { Send, Plus, Trash2, MessageSquare, Loader2, Mail, ExternalLink, Eye, Calendar } from 'lucide-react';
 import { toast } from 'sonner';
 import { format, isToday, isYesterday, isThisWeek, isThisMonth } from 'date-fns';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
 
 interface Message {
   id: string;
@@ -26,6 +34,15 @@ interface Conversation {
   updated_at: string;
 }
 
+interface EmailResult {
+  id: string;
+  subject: string;
+  from: string;
+  preview: string;
+  date: string;
+  webLink?: string;
+}
+
 export default function AIChat() {
   const { user, organization } = useAuth();
   const { activeConnection } = useActiveEmail();
@@ -36,6 +53,11 @@ export default function AIChat() {
   const [streamingContent, setStreamingContent] = useState('');
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
+  
+  // Email preview state
+  const [emailPreviewOpen, setEmailPreviewOpen] = useState(false);
+  const [selectedEmail, setSelectedEmail] = useState<EmailResult | null>(null);
+  const [emailResults, setEmailResults] = useState<EmailResult[]>([]);
 
   // Fetch conversations (last 30 days)
   const { data: conversations = [], isLoading: loadingConversations } = useQuery({
@@ -140,6 +162,35 @@ export default function AIChat() {
     queryClient.invalidateQueries({ queryKey: ['ai-conversations'] });
   };
 
+  // Parse email results from AI response
+  const parseEmailResults = (content: string): EmailResult[] => {
+    const emailRegex = /\[EMAIL_RESULT\](.*?)\[\/EMAIL_RESULT\]/gs;
+    const matches = content.matchAll(emailRegex);
+    const results: EmailResult[] = [];
+    
+    for (const match of matches) {
+      try {
+        const emailData = JSON.parse(match[1]);
+        results.push(emailData);
+      } catch {
+        // Skip malformed email data
+      }
+    }
+    
+    return results;
+  };
+
+  // Open email in provider
+  const openInProvider = (email: EmailResult) => {
+    if (email.webLink) {
+      window.open(email.webLink, '_blank');
+    } else if (activeConnection?.provider === 'google') {
+      window.open(`https://mail.google.com/mail/u/0/#search/${encodeURIComponent(email.subject)}`, '_blank');
+    } else if (activeConnection?.provider === 'outlook') {
+      window.open(`https://outlook.live.com/mail/0/search/${encodeURIComponent(email.subject)}`, '_blank');
+    }
+  };
+
   // Send message and stream response
   const sendMessage = async () => {
     if (!input.trim() || isStreaming) return;
@@ -148,6 +199,7 @@ export default function AIChat() {
     setInput('');
     setIsStreaming(true);
     setStreamingContent('');
+    setEmailResults([]);
 
     try {
       let conversationId = activeConversationId;
@@ -222,6 +274,12 @@ export default function AIChat() {
             if (content) {
               fullContent += content;
               setStreamingContent(fullContent);
+              
+              // Parse email results as they come in
+              const emails = parseEmailResults(fullContent);
+              if (emails.length > 0) {
+                setEmailResults(emails);
+              }
             }
           } catch {
             textBuffer = line + '\n' + textBuffer;
@@ -230,9 +288,10 @@ export default function AIChat() {
         }
       }
 
-      // Save assistant message
+      // Save assistant message (clean version without email tags)
       if (fullContent) {
-        await saveMessage(conversationId, 'assistant', fullContent);
+        const cleanContent = fullContent.replace(/\[EMAIL_RESULT\].*?\[\/EMAIL_RESULT\]/gs, '').trim();
+        await saveMessage(conversationId, 'assistant', cleanContent);
         queryClient.invalidateQueries({ queryKey: ['ai-messages', conversationId] });
       }
 
@@ -281,6 +340,14 @@ export default function AIChat() {
   const startNewChat = () => {
     setActiveConversationId(null);
     setInput('');
+    setEmailResults([]);
+  };
+
+  // Render message content with clickable email cards
+  const renderMessageContent = (content: string) => {
+    // Remove email result tags for display
+    const cleanContent = content.replace(/\[EMAIL_RESULT\].*?\[\/EMAIL_RESULT\]/gs, '').trim();
+    return <p className="whitespace-pre-wrap">{cleanContent}</p>;
   };
 
   return (
@@ -354,9 +421,29 @@ export default function AIChat() {
                   <MessageSquare className="w-8 h-8 text-primary" />
                 </div>
                 <h2 className="text-xl font-semibold mb-2">AI Assistant</h2>
-                <p className="text-muted-foreground text-center max-w-md">
-                  Ask me anything about your emails, calendar, or schedule. I can help you prioritize tasks, draft responses, and manage your inbox.
+                <p className="text-muted-foreground text-center max-w-md mb-6">
+                  I have full access to your emails and calendar. Ask me to find emails, search for information, check your schedule, or help you manage your inbox.
                 </p>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-3 max-w-lg">
+                  <Card 
+                    className="cursor-pointer hover:bg-secondary/50 transition-colors"
+                    onClick={() => setInput('Show me emails from this week')}
+                  >
+                    <CardContent className="p-3 flex items-center gap-2">
+                      <Mail className="w-4 h-4 text-primary" />
+                      <span className="text-sm">Show emails from this week</span>
+                    </CardContent>
+                  </Card>
+                  <Card 
+                    className="cursor-pointer hover:bg-secondary/50 transition-colors"
+                    onClick={() => setInput("What's on my calendar today?")}
+                  >
+                    <CardContent className="p-3 flex items-center gap-2">
+                      <Calendar className="w-4 h-4 text-primary" />
+                      <span className="text-sm">What's on my calendar?</span>
+                    </CardContent>
+                  </Card>
+                </div>
               </div>
             ) : (
               <>
@@ -382,7 +469,7 @@ export default function AIChat() {
                             : 'bg-secondary'
                         )}
                       >
-                        <p className="whitespace-pre-wrap">{message.content}</p>
+                        {renderMessageContent(message.content)}
                         <p className={cn(
                           'text-xs mt-1',
                           message.role === 'user' ? 'text-primary-foreground/70' : 'text-muted-foreground'
@@ -398,8 +485,61 @@ export default function AIChat() {
                 {isStreaming && streamingContent && (
                   <div className="flex justify-start">
                     <div className="max-w-[80%] rounded-lg px-4 py-3 bg-secondary">
-                      <p className="whitespace-pre-wrap">{streamingContent}</p>
+                      {renderMessageContent(streamingContent)}
                     </div>
+                  </div>
+                )}
+                
+                {/* Email Results Cards */}
+                {emailResults.length > 0 && (
+                  <div className="space-y-2 mt-4">
+                    <p className="text-sm font-medium text-muted-foreground">
+                      Found {emailResults.length} email{emailResults.length !== 1 ? 's' : ''}:
+                    </p>
+                    {emailResults.map((email, index) => (
+                      <Card key={index} className="overflow-hidden">
+                        <CardContent className="p-0">
+                          <div className="flex items-start gap-3 p-4">
+                            <Mail className="w-5 h-5 text-primary mt-0.5 flex-shrink-0" />
+                            <div className="flex-1 min-w-0">
+                              <div className="flex items-center gap-2 mb-1">
+                                <span className="font-medium truncate">{email.subject}</span>
+                              </div>
+                              <p className="text-sm text-muted-foreground">From: {email.from}</p>
+                              {email.preview && (
+                                <p className="text-sm text-muted-foreground mt-1 line-clamp-2">
+                                  {email.preview}
+                                </p>
+                              )}
+                              {email.date && (
+                                <Badge variant="secondary" className="mt-2 text-xs">
+                                  {email.date}
+                                </Badge>
+                              )}
+                            </div>
+                            <div className="flex gap-1 flex-shrink-0">
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => {
+                                  setSelectedEmail(email);
+                                  setEmailPreviewOpen(true);
+                                }}
+                              >
+                                <Eye className="w-4 h-4" />
+                              </Button>
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => openInProvider(email)}
+                              >
+                                <ExternalLink className="w-4 h-4" />
+                              </Button>
+                            </div>
+                          </div>
+                        </CardContent>
+                      </Card>
+                    ))}
                   </div>
                 )}
                 
@@ -425,7 +565,7 @@ export default function AIChat() {
               value={input}
               onChange={(e) => setInput(e.target.value)}
               onKeyDown={handleKeyDown}
-              placeholder="Ask me about your emails, calendar, or schedule..."
+              placeholder="Search emails, ask about your calendar, or get help managing your inbox..."
               className="min-h-[52px] max-h-32 resize-none"
               disabled={isStreaming}
             />
@@ -444,6 +584,35 @@ export default function AIChat() {
           </div>
         </div>
       </div>
+
+      {/* Email Preview Dialog */}
+      <Dialog open={emailPreviewOpen} onOpenChange={setEmailPreviewOpen}>
+        <DialogContent className="max-w-2xl">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Mail className="w-5 h-5" />
+              {selectedEmail?.subject}
+            </DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="font-medium">From: {selectedEmail?.from}</p>
+                {selectedEmail?.date && (
+                  <p className="text-sm text-muted-foreground">{selectedEmail.date}</p>
+                )}
+              </div>
+              <Button onClick={() => selectedEmail && openInProvider(selectedEmail)}>
+                <ExternalLink className="w-4 h-4 mr-2" />
+                Open in {activeConnection?.provider === 'google' ? 'Gmail' : 'Outlook'}
+              </Button>
+            </div>
+            <div className="border rounded-lg p-4 bg-secondary/30">
+              <p className="whitespace-pre-wrap">{selectedEmail?.preview}</p>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
