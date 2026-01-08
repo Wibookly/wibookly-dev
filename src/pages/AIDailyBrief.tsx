@@ -314,14 +314,20 @@ export default function AIDailyBrief() {
               <CardContent>
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
                   {brief.suggestions && brief.suggestions.length > 0 ? (
-                    brief.suggestions.map((suggestion, index) => (
-                      <div
-                        key={index}
-                        className="p-3 rounded-lg bg-amber-500/5 border border-amber-500/20 text-sm"
-                      >
-                        {suggestion}
-                      </div>
-                    ))
+                    brief.suggestions.map((suggestion, index) => {
+                      // Handle both string and object formats from AI
+                      const text = typeof suggestion === 'string' 
+                        ? suggestion 
+                        : (suggestion as { suggestion?: string })?.suggestion || JSON.stringify(suggestion);
+                      return (
+                        <div
+                          key={index}
+                          className="p-3 rounded-lg bg-amber-500/5 border border-amber-500/20 text-sm"
+                        >
+                          {text}
+                        </div>
+                      );
+                    })
                   ) : (
                     <p className="text-muted-foreground col-span-full text-center py-4">
                       No suggestions available
