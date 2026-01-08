@@ -6,7 +6,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { useToast } from '@/hooks/use-toast';
-import { Loader2, Mail, Lock, ArrowRight, User, Building2, Briefcase, ArrowLeft, Check, HelpCircle } from 'lucide-react';
+import { Loader2, Mail, Lock, ArrowRight, User, Building2, Briefcase, ArrowLeft, Check, HelpCircle, User2 } from 'lucide-react';
 import { z } from 'zod';
 import logo from '@/assets/wibookly-logo.png';
 import { supabase } from '@/integrations/supabase/client';
@@ -15,6 +15,13 @@ import {
   TooltipContent,
   TooltipTrigger,
 } from '@/components/ui/tooltip';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 
 const signInSchema = z.object({
   email: z.string().email('Please enter a valid email address'),
@@ -23,7 +30,8 @@ const signInSchema = z.object({
 
 const signUpSchema = signInSchema.extend({
   fullName: z.string().min(2, 'Full name must be at least 2 characters').max(100, 'Full name is too long'),
-  organizationName: z.string().min(2, 'Organization name must be at least 2 characters').max(100, 'Organization name is too long'),
+  workspaceName: z.string().min(2, 'Workspace name must be at least 2 characters').max(100, 'Workspace name is too long'),
+  workspaceType: z.enum(['personal', 'business']),
   title: z.string().max(100, 'Title is too long').optional()
 });
 
@@ -36,7 +44,8 @@ export function SignInDialog({ open, onOpenChange }: SignInDialogProps) {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [fullName, setFullName] = useState('');
-  const [organizationName, setOrganizationName] = useState('');
+  const [workspaceName, setWorkspaceName] = useState('');
+  const [workspaceType, setWorkspaceType] = useState<'personal' | 'business'>('personal');
   const [title, setTitle] = useState('');
   const [loading, setLoading] = useState(false);
   const [mode, setMode] = useState<'signin' | 'signup' | 'forgot-password'>('signin');
@@ -49,7 +58,7 @@ export function SignInDialog({ open, onOpenChange }: SignInDialogProps) {
   const validateForm = () => {
     try {
       if (mode === 'signup') {
-        signUpSchema.parse({ email, password, fullName, organizationName, title: title || undefined });
+        signUpSchema.parse({ email, password, fullName, workspaceName, workspaceType, title: title || undefined });
       } else if (mode === 'signin') {
         signInSchema.parse({ email, password });
       } else if (mode === 'forgot-password') {
@@ -114,7 +123,7 @@ export function SignInDialog({ open, onOpenChange }: SignInDialogProps) {
 
     try {
       if (mode === 'signup') {
-        const { error } = await signUp(email, password, organizationName, fullName, title || undefined);
+        const { error } = await signUp(email, password, workspaceName, fullName, title || undefined);
         if (error) {
           if (error.message.includes('already registered')) {
             toast({
@@ -280,56 +289,98 @@ export function SignInDialog({ open, onOpenChange }: SignInDialogProps) {
 
               <div className="space-y-2">
                 <div className="flex items-center gap-1.5">
-                  <Label htmlFor="dialog-organizationName">Organization / Company Name <span className="text-destructive">*</span></Label>
+                  <Label htmlFor="dialog-workspaceType">Workspace Type <span className="text-destructive">*</span></Label>
                   <Tooltip>
                     <TooltipTrigger asChild>
                       <HelpCircle className="w-3.5 h-3.5 text-muted-foreground cursor-help" />
                     </TooltipTrigger>
                     <TooltipContent side="right" className="max-w-xs bg-primary text-primary-foreground">
-                      <p className="text-sm">Your organization name is used in your email signature and helps the AI differentiate between personal and work-related email categorization.</p>
+                      <p className="text-sm">Select 'Personal' for individual use or 'Business' for organizational accounts. Business accounts include title in email signatures.</p>
+                    </TooltipContent>
+                  </Tooltip>
+                </div>
+                <Select
+                  value={workspaceType}
+                  onValueChange={(value: 'personal' | 'business') => setWorkspaceType(value)}
+                >
+                  <SelectTrigger className="w-full">
+                    <SelectValue placeholder="Select workspace type" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="personal">
+                      <div className="flex items-center gap-2">
+                        <User2 className="w-4 h-4" />
+                        <span>Personal</span>
+                      </div>
+                    </SelectItem>
+                    <SelectItem value="business">
+                      <div className="flex items-center gap-2">
+                        <Building2 className="w-4 h-4" />
+                        <span>Business</span>
+                      </div>
+                    </SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="space-y-2">
+                <div className="flex items-center gap-1.5">
+                  <Label htmlFor="dialog-workspaceName">Workspace Name <span className="text-destructive">*</span></Label>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <HelpCircle className="w-3.5 h-3.5 text-muted-foreground cursor-help" />
+                    </TooltipTrigger>
+                    <TooltipContent side="right" className="max-w-xs bg-primary text-primary-foreground">
+                      <p className="text-sm">
+                        {workspaceType === 'personal' 
+                          ? 'A name to identify your personal workspace (e.g., "My Inbox", your name, etc.).'
+                          : 'Your organization or company name. Used in email signatures and AI categorization.'}
+                      </p>
                     </TooltipContent>
                   </Tooltip>
                 </div>
                 <div className="relative">
                   <Building2 className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                   <Input
-                    id="dialog-organizationName"
+                    id="dialog-workspaceName"
                     type="text"
-                    placeholder="Acme Inc."
-                    value={organizationName}
-                    onChange={(e) => setOrganizationName(e.target.value)}
-                    className={`pl-10 ${errors.organizationName ? 'border-destructive' : ''}`}
+                    placeholder={workspaceType === 'personal' ? 'My Personal Inbox' : 'Acme Inc.'}
+                    value={workspaceName}
+                    onChange={(e) => setWorkspaceName(e.target.value)}
+                    className={`pl-10 ${errors.workspaceName ? 'border-destructive' : ''}`}
                     required
                   />
                 </div>
-                {errors.organizationName && <p className="text-xs text-destructive">{errors.organizationName}</p>}
+                {errors.workspaceName && <p className="text-xs text-destructive">{errors.workspaceName}</p>}
               </div>
 
-              <div className="space-y-2">
-                <div className="flex items-center gap-1.5">
-                  <Label htmlFor="dialog-title">Title <span className="text-muted-foreground text-xs">(Optional)</span></Label>
-                  <Tooltip>
-                    <TooltipTrigger asChild>
-                      <HelpCircle className="w-3.5 h-3.5 text-muted-foreground cursor-help" />
-                    </TooltipTrigger>
-                    <TooltipContent side="right" className="max-w-xs bg-primary text-primary-foreground">
-                      <p className="text-sm">Your title helps the AI understand your role and responsibilities to better tailor email responses. It's also included in your email signature.</p>
-                    </TooltipContent>
-                  </Tooltip>
+              {workspaceType === 'business' && (
+                <div className="space-y-2">
+                  <div className="flex items-center gap-1.5">
+                    <Label htmlFor="dialog-title">Title <span className="text-muted-foreground text-xs">(Recommended)</span></Label>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <HelpCircle className="w-3.5 h-3.5 text-muted-foreground cursor-help" />
+                      </TooltipTrigger>
+                      <TooltipContent side="right" className="max-w-xs bg-primary text-primary-foreground">
+                        <p className="text-sm">Your title helps the AI understand your role and responsibilities to better tailor email responses. It's also included in your email signature.</p>
+                      </TooltipContent>
+                    </Tooltip>
+                  </div>
+                  <div className="relative">
+                    <Briefcase className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                    <Input
+                      id="dialog-title"
+                      type="text"
+                      placeholder="e.g. Sales Manager, CEO"
+                      value={title}
+                      onChange={(e) => setTitle(e.target.value)}
+                      className={`pl-10 ${errors.title ? 'border-destructive' : ''}`}
+                    />
+                  </div>
+                  {errors.title && <p className="text-xs text-destructive">{errors.title}</p>}
                 </div>
-                <div className="relative">
-                  <Briefcase className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                  <Input
-                    id="dialog-title"
-                    type="text"
-                    placeholder="e.g. Sales Manager, CEO"
-                    value={title}
-                    onChange={(e) => setTitle(e.target.value)}
-                    className={`pl-10 ${errors.title ? 'border-destructive' : ''}`}
-                  />
-                </div>
-                {errors.title && <p className="text-xs text-destructive">{errors.title}</p>}
-              </div>
+              )}
             </>
           )}
 
