@@ -52,6 +52,13 @@ const signInSchema = z.object({
   password: z.string().min(6, 'Password must be at least 6 characters')
 });
 
+const signUpSchema = signInSchema.extend({
+  fullName: z.string().min(2, 'Full name must be at least 2 characters').max(100, 'Full name is too long'),
+  workspaceName: z.string().min(2, 'Workspace name must be at least 2 characters').max(100, 'Workspace name is too long'),
+  workspaceType: z.enum(['personal', 'business']),
+  title: z.string().max(100, 'Title is too long').optional()
+});
+
 interface UserOrganization {
   id: string;
   name: string;
@@ -59,7 +66,7 @@ interface UserOrganization {
 }
 
 type AuthMode = 'signin' | 'signup' | 'forgot-password' | 'select-org';
-type SignupStep = 'workspace-type' | 'connect-email';
+type SignupStep = 'workspace-type' | 'account-details' | 'connect-email';
 
 export default function Auth() {
   const [searchParams] = useSearchParams();
@@ -67,14 +74,16 @@ export default function Auth() {
   const [signupStep, setSignupStep] = useState<SignupStep>('workspace-type');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [fullName, setFullName] = useState('');
+  const [workspaceName, setWorkspaceName] = useState('');
   const [workspaceType, setWorkspaceType] = useState<'personal' | 'business' | null>(null);
+  const [title, setTitle] = useState('');
   const [loading, setLoading] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [userOrganizations, setUserOrganizations] = useState<UserOrganization[]>([]);
   const [resetEmailSent, setResetEmailSent] = useState(false);
-  const [connectingProvider, setConnectingProvider] = useState<'google' | 'outlook' | null>(null);
 
-  const { signIn, user, setSelectedOrganization } = useAuth();
+  const { signIn, signUp, user, setSelectedOrganization } = useAuth();
   const navigate = useNavigate();
   const { toast } = useToast();
 
@@ -84,32 +93,18 @@ export default function Auth() {
     }
   }, [user, navigate, mode]);
 
-  // Check for OAuth signup callback
-  useEffect(() => {
-    const oauthSignup = searchParams.get('oauth_signup');
-    const provider = searchParams.get('provider');
-    const error = searchParams.get('error');
-    
-    if (error) {
-      toast({
-        title: 'Connection failed',
-        description: error,
-        variant: 'destructive'
-      });
-    }
-    
-    if (oauthSignup === 'success' && provider) {
-      toast({
-        title: 'Account created!',
-        description: `Successfully connected with ${provider === 'google' ? 'Google' : 'Outlook'}.`
-      });
-      navigate('/integrations');
-    }
-  }, [searchParams, toast, navigate]);
-
   const validateForm = () => {
     try {
-      if (mode === 'signin') {
+      if (mode === 'signup' && signupStep === 'account-details') {
+        signUpSchema.parse({ 
+          email, 
+          password, 
+          fullName, 
+          workspaceName, 
+          workspaceType: workspaceType || 'personal', 
+          title: title || undefined 
+        });
+      } else if (mode === 'signin') {
         signInSchema.parse({ email, password });
       } else if (mode === 'forgot-password') {
         z.string().email('Please enter a valid email address').parse(email);
@@ -164,62 +159,89 @@ export default function Auth() {
     navigate('/integrations');
   };
 
-  const handleOAuthSignup = async (provider: 'google' | 'outlook') => {
-    if (!workspaceType) {
-      toast({
-        title: 'Select workspace type',
-        description: 'Please select Personal or Business to continue.',
-        variant: 'destructive'
-      });
-      return;
-    }
-
-    setConnectingProvider(provider);
-
+  const handleSignupSubmit = async () => {
+    if (!validateForm()) return;
+    
+    setLoading(true);
     try {
-      // Store workspace type in session storage for after OAuth callback
-      sessionStorage.setItem('wibookly_signup_workspace_type', workspaceType);
-      
-      // Get the OAuth URL from the edge function
-      const { data: session } = await supabase.auth.getSession();
-      
-      // For signup, we need to use Supabase's built-in OAuth
-      const redirectUrl = `${window.location.origin}/auth?oauth_signup=pending&workspace_type=${workspaceType}`;
-      
-      if (provider === 'google') {
-        const { error } = await supabase.auth.signInWithOAuth({
-          provider: 'google',
-          options: {
-            redirectTo: redirectUrl,
-            queryParams: {
-              access_type: 'offline',
-              prompt: 'consent select_account',
-            },
-            scopes: 'openid email profile https://www.googleapis.com/auth/gmail.readonly https://www.googleapis.com/auth/gmail.settings.basic https://www.googleapis.com/auth/gmail.labels'
-          }
-        });
-        
-        if (error) throw error;
+      const { error } = await signUp(email, password, workspaceName, fullName, title || undefined);
+      if (error) {
+        if (error.message.includes('already registered')) {
+          toast({
+            title: 'Account exists',
+            description: 'This email is already registered. Please sign in instead.',
+            variant: 'destructive'
+          });
+        } else {
+          throw error;
+        }
       } else {
-        // For Outlook, redirect to custom OAuth flow
-        const { error } = await supabase.auth.signInWithOAuth({
-          provider: 'azure',
-          options: {
-            redirectTo: redirectUrl,
-            scopes: 'openid email profile offline_access https://graph.microsoft.com/Mail.Read https://graph.microsoft.com/Mail.Send'
-          }
+        toast({
+          title: 'Account created!',
+          description: 'Now connect your email to get started.'
         });
-        
-        if (error) throw error;
+        // Move to connect email step
+        setSignupStep('connect-email');
       }
     } catch (error: any) {
-      console.error('OAuth signup error:', error);
+      toast({
+        title: 'Error',
+        description: error.message || 'Something went wrong. Please try again.',
+        variant: 'destructive'
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleConnectEmail = async (provider: 'google' | 'outlook') => {
+    setLoading(true);
+    
+    try {
+      const { data: session } = await supabase.auth.getSession();
+      if (!session?.session) {
+        throw new Error('Not authenticated');
+      }
+
+      // Get organization ID from user profile
+      const { data: profile } = await supabase
+        .from('user_profiles')
+        .select('organization_id')
+        .eq('user_id', session.session.user.id)
+        .single();
+
+      if (!profile?.organization_id) {
+        throw new Error('Organization not found');
+      }
+
+      // Call the oauth-init edge function
+      const response = await supabase.functions.invoke('oauth-init', {
+        body: {
+          provider,
+          userId: session.session.user.id,
+          organizationId: profile.organization_id,
+          redirectUrl: '/integrations'
+        }
+      });
+
+      if (response.error) {
+        throw new Error(response.error.message || 'Failed to initialize OAuth');
+      }
+
+      const { authUrl } = response.data;
+      if (authUrl) {
+        window.location.href = authUrl;
+      } else {
+        throw new Error('No auth URL returned');
+      }
+    } catch (error: any) {
+      console.error('Connect email error:', error);
       toast({
         title: 'Connection failed',
         description: error.message || 'Failed to connect. Please try again.',
         variant: 'destructive'
       });
-      setConnectingProvider(null);
+      setLoading(false);
     }
   };
 
@@ -374,7 +396,7 @@ export default function Auth() {
     );
   }
 
-  // Signup flow - Full screen OAuth-first experience
+  // Signup flow - Full screen multi-step experience
   if (mode === 'signup') {
     return (
       <div className="min-h-screen bg-gradient-to-br from-primary/25 via-background to-accent/20 flex flex-col">
@@ -382,6 +404,9 @@ export default function Auth() {
           <button 
             onClick={() => {
               if (signupStep === 'connect-email') {
+                // Skip to integrations if they want to connect later
+                navigate('/integrations');
+              } else if (signupStep === 'account-details') {
                 setSignupStep('workspace-type');
               } else {
                 setMode('signin');
@@ -390,26 +415,33 @@ export default function Auth() {
             className="inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors"
           >
             <ArrowLeft className="w-4 h-4" />
-            {signupStep === 'connect-email' ? 'Back' : 'Back to sign in'}
+            {signupStep === 'connect-email' ? 'Skip for now' : signupStep === 'account-details' ? 'Back' : 'Back to sign in'}
           </button>
         </header>
 
         <main className="flex-1 flex items-center justify-center p-6">
           <div className="w-full max-w-lg">
             {/* Progress indicator */}
-            <div className="flex items-center justify-center gap-3 mb-8">
+            <div className="flex items-center justify-center gap-2 mb-8">
               <div className={`flex items-center gap-2 ${signupStep === 'workspace-type' ? 'text-primary' : 'text-muted-foreground'}`}>
-                <div className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-medium ${signupStep === 'workspace-type' ? 'bg-primary text-primary-foreground' : 'bg-muted text-muted-foreground'}`}>
-                  1
+                <div className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-medium ${signupStep === 'workspace-type' ? 'bg-primary text-primary-foreground' : 'bg-primary/20 text-primary'}`}>
+                  {signupStep !== 'workspace-type' ? <Check className="w-4 h-4" /> : '1'}
                 </div>
-                <span className="text-sm font-medium hidden sm:inline">Workspace Type</span>
+                <span className="text-sm font-medium hidden sm:inline">Type</span>
               </div>
-              <div className="w-8 h-px bg-border" />
+              <div className="w-6 h-px bg-border" />
+              <div className={`flex items-center gap-2 ${signupStep === 'account-details' ? 'text-primary' : 'text-muted-foreground'}`}>
+                <div className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-medium ${signupStep === 'account-details' ? 'bg-primary text-primary-foreground' : signupStep === 'connect-email' ? 'bg-primary/20 text-primary' : 'bg-muted text-muted-foreground'}`}>
+                  {signupStep === 'connect-email' ? <Check className="w-4 h-4" /> : '2'}
+                </div>
+                <span className="text-sm font-medium hidden sm:inline">Account</span>
+              </div>
+              <div className="w-6 h-px bg-border" />
               <div className={`flex items-center gap-2 ${signupStep === 'connect-email' ? 'text-primary' : 'text-muted-foreground'}`}>
                 <div className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-medium ${signupStep === 'connect-email' ? 'bg-primary text-primary-foreground' : 'bg-muted text-muted-foreground'}`}>
-                  2
+                  3
                 </div>
-                <span className="text-sm font-medium hidden sm:inline">Connect Email</span>
+                <span className="text-sm font-medium hidden sm:inline">Connect</span>
               </div>
             </div>
 
@@ -418,7 +450,7 @@ export default function Auth() {
               {signupStep === 'workspace-type' && (
                 <>
                   <div className="text-center mb-8">
-                    <img src={wibooklyLogo} alt="Wibookly" className="h-32 w-auto mx-auto mb-6" />
+                    <img src={wibooklyLogo} alt="Wibookly" className="h-28 w-auto mx-auto mb-6" />
                     <h1 className="text-3xl font-bold tracking-tight text-primary">
                       Create your workspace
                     </h1>
@@ -444,7 +476,7 @@ export default function Auth() {
                       </div>
                       <h3 className="text-lg font-semibold text-foreground mb-1">Personal</h3>
                       <p className="text-sm text-muted-foreground">
-                        For individual use. Manage your personal emails and calendar.
+                        For individual use. Manage your personal emails.
                       </p>
                       {workspaceType === 'personal' && (
                         <div className="mt-3 flex items-center gap-1 text-primary text-sm font-medium">
@@ -470,7 +502,7 @@ export default function Auth() {
                       </div>
                       <h3 className="text-lg font-semibold text-foreground mb-1">Business</h3>
                       <p className="text-sm text-muted-foreground">
-                        For work. AI uses your title and company context for better responses.
+                        For work. AI uses your title for better responses.
                       </p>
                       {workspaceType === 'business' && (
                         <div className="mt-3 flex items-center gap-1 text-primary text-sm font-medium">
@@ -485,14 +517,134 @@ export default function Auth() {
                     className="w-full" 
                     size="lg"
                     disabled={!workspaceType}
-                    onClick={() => setSignupStep('connect-email')}
+                    onClick={() => setSignupStep('account-details')}
                   >
                     Continue
                   </Button>
                 </>
               )}
 
-              {/* Step 2: Connect Email */}
+              {/* Step 2: Account Details */}
+              {signupStep === 'account-details' && (
+                <>
+                  <div className="text-center mb-6">
+                    <h1 className="text-2xl font-bold tracking-tight text-foreground">
+                      Create your account
+                    </h1>
+                    <p className="mt-2 text-muted-foreground">
+                      Enter your details to get started
+                    </p>
+                  </div>
+
+                  <div className="space-y-4">
+                    <div className="space-y-2">
+                      <div className="flex items-center gap-1.5">
+                        <Label htmlFor="fullName">Full Name <span className="text-destructive">*</span></Label>
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <HelpCircle className="w-3.5 h-3.5 text-muted-foreground cursor-help" />
+                          </TooltipTrigger>
+                          <TooltipContent side="right" className="max-w-xs bg-primary text-primary-foreground">
+                            <p className="text-sm">Used in your AI-generated email signature.</p>
+                          </TooltipContent>
+                        </Tooltip>
+                      </div>
+                      <Input
+                        id="fullName"
+                        type="text"
+                        placeholder="John Doe"
+                        value={fullName}
+                        onChange={(e) => setFullName(e.target.value)}
+                        disabled={loading}
+                        className={errors.fullName ? 'border-destructive' : ''}
+                      />
+                      {errors.fullName && <p className="text-xs text-destructive">{errors.fullName}</p>}
+                    </div>
+
+                    <div className="space-y-2">
+                      <div className="flex items-center gap-1.5">
+                        <Label htmlFor="workspaceName">
+                          {workspaceType === 'business' ? 'Company Name' : 'Workspace Name'} <span className="text-destructive">*</span>
+                        </Label>
+                      </div>
+                      <Input
+                        id="workspaceName"
+                        type="text"
+                        placeholder={workspaceType === 'personal' ? 'My Personal Inbox' : 'Acme Inc.'}
+                        value={workspaceName}
+                        onChange={(e) => setWorkspaceName(e.target.value)}
+                        disabled={loading}
+                        className={errors.workspaceName ? 'border-destructive' : ''}
+                      />
+                      {errors.workspaceName && <p className="text-xs text-destructive">{errors.workspaceName}</p>}
+                    </div>
+
+                    {workspaceType === 'business' && (
+                      <div className="space-y-2">
+                        <div className="flex items-center gap-1.5">
+                          <Label htmlFor="title">Title</Label>
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <HelpCircle className="w-3.5 h-3.5 text-muted-foreground cursor-help" />
+                            </TooltipTrigger>
+                            <TooltipContent side="right" className="max-w-xs bg-primary text-primary-foreground">
+                              <p className="text-sm">Helps AI tailor responses to your role.</p>
+                            </TooltipContent>
+                          </Tooltip>
+                        </div>
+                        <Input
+                          id="title"
+                          type="text"
+                          placeholder="e.g. Sales Manager, CEO"
+                          value={title}
+                          onChange={(e) => setTitle(e.target.value)}
+                          disabled={loading}
+                        />
+                      </div>
+                    )}
+
+                    <div className="space-y-2">
+                      <Label htmlFor="email">Email <span className="text-destructive">*</span></Label>
+                      <Input
+                        id="email"
+                        type="email"
+                        placeholder="you@example.com"
+                        value={email}
+                        onChange={(e) => setEmail(e.target.value)}
+                        disabled={loading}
+                        className={errors.email ? 'border-destructive' : ''}
+                      />
+                      {errors.email && <p className="text-xs text-destructive">{errors.email}</p>}
+                    </div>
+
+                    <div className="space-y-2">
+                      <Label htmlFor="password">Password <span className="text-destructive">*</span></Label>
+                      <Input
+                        id="password"
+                        type="password"
+                        placeholder="••••••••"
+                        value={password}
+                        onChange={(e) => setPassword(e.target.value)}
+                        disabled={loading}
+                        className={errors.password ? 'border-destructive' : ''}
+                      />
+                      {errors.password && <p className="text-xs text-destructive">{errors.password}</p>}
+                    </div>
+
+                    <Button 
+                      className="w-full" 
+                      size="lg"
+                      disabled={loading}
+                      onClick={handleSignupSubmit}
+                    >
+                      {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                      Create Account
+                    </Button>
+                  </div>
+                </>
+              )}
+
+              {/* Step 3: Connect Email */}
               {signupStep === 'connect-email' && (
                 <>
                   <div className="text-center mb-8">
@@ -503,7 +655,7 @@ export default function Auth() {
                       Connect your email
                     </h1>
                     <p className="mt-2 text-muted-foreground">
-                      Sign up by connecting your {workspaceType === 'personal' ? 'personal' : 'work'} email account
+                      Connect your {workspaceType === 'personal' ? 'personal' : 'work'} email to get started
                     </p>
                   </div>
 
@@ -512,30 +664,30 @@ export default function Auth() {
                       variant="outline"
                       size="lg"
                       className="w-full justify-start gap-3 h-14 text-base"
-                      onClick={() => handleOAuthSignup('google')}
-                      disabled={connectingProvider !== null}
+                      onClick={() => handleConnectEmail('google')}
+                      disabled={loading}
                     >
-                      {connectingProvider === 'google' ? (
+                      {loading ? (
                         <Loader2 className="w-5 h-5 animate-spin" />
                       ) : (
                         <GoogleIcon />
                       )}
-                      <span className="flex-1 text-left">Continue with Google</span>
+                      <span className="flex-1 text-left">Connect Google Account</span>
                     </Button>
 
                     <Button
                       variant="outline"
                       size="lg"
                       className="w-full justify-start gap-3 h-14 text-base"
-                      onClick={() => handleOAuthSignup('outlook')}
-                      disabled={connectingProvider !== null}
+                      onClick={() => handleConnectEmail('outlook')}
+                      disabled={loading}
                     >
-                      {connectingProvider === 'outlook' ? (
+                      {loading ? (
                         <Loader2 className="w-5 h-5 animate-spin" />
                       ) : (
                         <OutlookIcon />
                       )}
-                      <span className="flex-1 text-left">Continue with Outlook</span>
+                      <span className="flex-1 text-left">Connect Outlook Account</span>
                     </Button>
                   </div>
 
@@ -560,20 +712,22 @@ export default function Auth() {
               )}
             </div>
 
-            <p className="mt-6 text-center text-sm text-muted-foreground">
-              Already have an account?{' '}
-              <button
-                type="button"
-                onClick={() => {
-                  setMode('signin');
-                  setSignupStep('workspace-type');
-                  setWorkspaceType(null);
-                }}
-                className="font-medium text-foreground hover:underline"
-              >
-                Sign In
-              </button>
-            </p>
+            {signupStep !== 'connect-email' && (
+              <p className="mt-6 text-center text-sm text-muted-foreground">
+                Already have an account?{' '}
+                <button
+                  type="button"
+                  onClick={() => {
+                    setMode('signin');
+                    setSignupStep('workspace-type');
+                    setWorkspaceType(null);
+                  }}
+                  className="font-medium text-foreground hover:underline"
+                >
+                  Sign In
+                </button>
+              </p>
+            )}
           </div>
         </main>
       </div>
