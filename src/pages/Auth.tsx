@@ -7,11 +7,6 @@ import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
 import { Loader2, ArrowLeft, Building2, Check, HelpCircle, User2, Mail } from 'lucide-react';
 import { z } from 'zod';
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipTrigger,
-} from '@/components/ui/tooltip';
 import wibooklyLogo from '@/assets/wibookly-logo.png';
 import { supabase } from '@/integrations/supabase/client';
 
@@ -52,13 +47,6 @@ const signInSchema = z.object({
   password: z.string().min(6, 'Password must be at least 6 characters')
 });
 
-const signUpSchema = signInSchema.extend({
-  fullName: z.string().min(2, 'Full name must be at least 2 characters').max(100, 'Full name is too long'),
-  workspaceName: z.string().min(2, 'Workspace name must be at least 2 characters').max(100, 'Workspace name is too long'),
-  workspaceType: z.enum(['personal', 'business']),
-  title: z.string().max(100, 'Title is too long').optional()
-});
-
 interface UserOrganization {
   id: string;
   name: string;
@@ -66,24 +54,20 @@ interface UserOrganization {
 }
 
 type AuthMode = 'signin' | 'signup' | 'forgot-password' | 'select-org';
-type SignupStep = 'workspace-type' | 'account-details' | 'connect-email';
 
 export default function Auth() {
   const [searchParams] = useSearchParams();
   const [mode, setMode] = useState<AuthMode>(searchParams.get('mode') === 'signup' ? 'signup' : 'signin');
-  const [signupStep, setSignupStep] = useState<SignupStep>('workspace-type');
+  const [workspaceType, setWorkspaceType] = useState<'personal' | 'business' | null>(null);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [fullName, setFullName] = useState('');
-  const [workspaceName, setWorkspaceName] = useState('');
-  const [workspaceType, setWorkspaceType] = useState<'personal' | 'business' | null>(null);
-  const [title, setTitle] = useState('');
   const [loading, setLoading] = useState(false);
+  const [connectingProvider, setConnectingProvider] = useState<'google' | 'outlook' | null>(null);
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [userOrganizations, setUserOrganizations] = useState<UserOrganization[]>([]);
   const [resetEmailSent, setResetEmailSent] = useState(false);
 
-  const { signIn, signUp, user, setSelectedOrganization } = useAuth();
+  const { signIn, user, setSelectedOrganization } = useAuth();
   const navigate = useNavigate();
   const { toast } = useToast();
 
@@ -95,16 +79,7 @@ export default function Auth() {
 
   const validateForm = () => {
     try {
-      if (mode === 'signup' && signupStep === 'account-details') {
-        signUpSchema.parse({ 
-          email, 
-          password, 
-          fullName, 
-          workspaceName, 
-          workspaceType: workspaceType || 'personal', 
-          title: title || undefined 
-        });
-      } else if (mode === 'signin') {
+      if (mode === 'signin') {
         signInSchema.parse({ email, password });
       } else if (mode === 'forgot-password') {
         z.string().email('Please enter a valid email address').parse(email);
@@ -159,121 +134,56 @@ export default function Auth() {
     navigate('/integrations');
   };
 
-  const createAccount = async (): Promise<boolean> => {
-    if (!validateForm()) return false;
-
-    setLoading(true);
-    try {
-      const { error } = await signUp(email, password, workspaceName, fullName, title || undefined);
-      if (error) {
-        if (error.message.includes('already registered')) {
-          toast({
-            title: 'Account exists',
-            description: 'This email is already registered. Please sign in instead.',
-            variant: 'destructive'
-          });
-          return false;
-        }
-        throw error;
-      }
-      return true;
-    } catch (error: any) {
+  const handleOAuthSignup = async (provider: 'google' | 'outlook') => {
+    if (!workspaceType) {
       toast({
-        title: 'Error',
-        description: error.message || 'Something went wrong. Please try again.',
+        title: 'Select workspace type',
+        description: 'Please select Personal or Business first.',
         variant: 'destructive'
       });
-      return false;
-    } finally {
-      setLoading(false);
+      return;
     }
-  };
 
-  const handleSignupSubmit = async () => {
-    const ok = await createAccount();
-    if (!ok) return;
-
-    toast({
-      title: 'Account created!',
-      description: 'Now connect your email to get started.'
-    });
-    setSignupStep('connect-email');
-  };
-
-  const ensureSignedIn = async () => {
-    const { data } = await supabase.auth.getSession();
-    if (data?.session) return data.session;
-
-    // If session isn't immediately available after sign up, sign in explicitly.
-    const { data: signedIn, error } = await supabase.auth.signInWithPassword({ email, password });
-    if (error || !signedIn.session) throw new Error('Sign in failed after account creation');
-    return signedIn.session;
-  };
-
-  const handleSignupAndConnect = async (provider: 'google' | 'outlook') => {
-    const ok = await createAccount();
-    if (!ok) return;
+    setConnectingProvider(provider);
 
     try {
-      await ensureSignedIn();
-      await handleConnectEmail(provider);
-    } catch (error: any) {
-      toast({
-        title: 'Could not start connection',
-        description: error.message || 'Please try again.',
-        variant: 'destructive'
-      });
-    }
-  };
-
-  const handleConnectEmail = async (provider: 'google' | 'outlook') => {
-    setLoading(true);
-    
-    try {
-      const { data: session } = await supabase.auth.getSession();
-      if (!session?.session) {
-        throw new Error('Not authenticated');
-      }
-
-      // Get organization ID from user profile
-      const { data: profile } = await supabase
-        .from('user_profiles')
-        .select('organization_id')
-        .eq('user_id', session.session.user.id)
-        .single();
-
-      if (!profile?.organization_id) {
-        throw new Error('Organization not found');
-      }
-
-      // Call the oauth-init edge function
-      const response = await supabase.functions.invoke('oauth-init', {
-        body: {
-          provider,
-          userId: session.session.user.id,
-          organizationId: profile.organization_id,
-          redirectUrl: '/integrations'
-        }
-      });
-
-      if (response.error) {
-        throw new Error(response.error.message || 'Failed to initialize OAuth');
-      }
-
-      const { authUrl } = response.data;
-      if (authUrl) {
-        window.location.href = authUrl;
+      // Store workspace type for after OAuth callback
+      sessionStorage.setItem('wibookly_signup_workspace_type', workspaceType);
+      
+      const redirectUrl = `${window.location.origin}/integrations?signup=complete`;
+      
+      if (provider === 'google') {
+        const { error } = await supabase.auth.signInWithOAuth({
+          provider: 'google',
+          options: {
+            redirectTo: redirectUrl,
+            queryParams: {
+              access_type: 'offline',
+              prompt: 'consent',
+            }
+          }
+        });
+        
+        if (error) throw error;
       } else {
-        throw new Error('No auth URL returned');
+        const { error } = await supabase.auth.signInWithOAuth({
+          provider: 'azure',
+          options: {
+            redirectTo: redirectUrl,
+            scopes: 'openid email profile'
+          }
+        });
+        
+        if (error) throw error;
       }
     } catch (error: any) {
-      console.error('Connect email error:', error);
+      console.error('OAuth signup error:', error);
       toast({
         title: 'Connection failed',
         description: error.message || 'Failed to connect. Please try again.',
         variant: 'destructive'
       });
-      setLoading(false);
+      setConnectingProvider(null);
     }
   };
 
@@ -302,7 +212,6 @@ export default function Auth() {
           throw error;
         }
       } else {
-        // After successful sign in, check for multiple organizations
         const { data: session } = await supabase.auth.getSession();
         if (session?.session?.user) {
           const { data: orgs } = await supabase.rpc('get_user_organizations', {
@@ -428,18 +337,15 @@ export default function Auth() {
     );
   }
 
-  // Signup flow - Full screen multi-step experience
+  // Signup flow - Two steps: workspace type then OAuth
   if (mode === 'signup') {
     return (
       <div className="min-h-screen bg-gradient-to-br from-primary/25 via-background to-accent/20 flex flex-col">
         <header className="p-6 flex items-center justify-between">
           <button 
             onClick={() => {
-              if (signupStep === 'connect-email') {
-                // Skip to integrations if they want to connect later
-                navigate('/integrations');
-              } else if (signupStep === 'account-details') {
-                setSignupStep('workspace-type');
+              if (workspaceType) {
+                setWorkspaceType(null);
               } else {
                 setMode('signin');
               }
@@ -447,39 +353,32 @@ export default function Auth() {
             className="inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors"
           >
             <ArrowLeft className="w-4 h-4" />
-            {signupStep === 'connect-email' ? 'Skip for now' : signupStep === 'account-details' ? 'Back' : 'Back to sign in'}
+            {workspaceType ? 'Back' : 'Back to sign in'}
           </button>
         </header>
 
         <main className="flex-1 flex items-center justify-center p-6">
           <div className="w-full max-w-lg">
             {/* Progress indicator */}
-            <div className="flex items-center justify-center gap-2 mb-8">
-              <div className={`flex items-center gap-2 ${signupStep === 'workspace-type' ? 'text-primary' : 'text-muted-foreground'}`}>
-                <div className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-medium ${signupStep === 'workspace-type' ? 'bg-primary text-primary-foreground' : 'bg-primary/20 text-primary'}`}>
-                  {signupStep !== 'workspace-type' ? <Check className="w-4 h-4" /> : '1'}
+            <div className="flex items-center justify-center gap-3 mb-8">
+              <div className={`flex items-center gap-2 ${!workspaceType ? 'text-primary' : 'text-muted-foreground'}`}>
+                <div className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-medium ${!workspaceType ? 'bg-primary text-primary-foreground' : 'bg-primary/20 text-primary'}`}>
+                  {workspaceType ? <Check className="w-4 h-4" /> : '1'}
                 </div>
-                <span className="text-sm font-medium hidden sm:inline">Type</span>
+                <span className="text-sm font-medium hidden sm:inline">Workspace Type</span>
               </div>
-              <div className="w-6 h-px bg-border" />
-              <div className={`flex items-center gap-2 ${signupStep === 'account-details' ? 'text-primary' : 'text-muted-foreground'}`}>
-                <div className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-medium ${signupStep === 'account-details' ? 'bg-primary text-primary-foreground' : signupStep === 'connect-email' ? 'bg-primary/20 text-primary' : 'bg-muted text-muted-foreground'}`}>
-                  {signupStep === 'connect-email' ? <Check className="w-4 h-4" /> : '2'}
+              <div className="w-8 h-px bg-border" />
+              <div className={`flex items-center gap-2 ${workspaceType ? 'text-primary' : 'text-muted-foreground'}`}>
+                <div className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-medium ${workspaceType ? 'bg-primary text-primary-foreground' : 'bg-muted text-muted-foreground'}`}>
+                  2
                 </div>
-                <span className="text-sm font-medium hidden sm:inline">Account</span>
-              </div>
-              <div className="w-6 h-px bg-border" />
-              <div className={`flex items-center gap-2 ${signupStep === 'connect-email' ? 'text-primary' : 'text-muted-foreground'}`}>
-                <div className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-medium ${signupStep === 'connect-email' ? 'bg-primary text-primary-foreground' : 'bg-muted text-muted-foreground'}`}>
-                  3
-                </div>
-                <span className="text-sm font-medium hidden sm:inline">Connect</span>
+                <span className="text-sm font-medium hidden sm:inline">Connect Account</span>
               </div>
             </div>
 
             <div className="bg-card/80 backdrop-blur-sm p-8 rounded-2xl shadow-lg border border-border/50">
               {/* Step 1: Workspace Type */}
-              {signupStep === 'workspace-type' && (
+              {!workspaceType && (
                 <>
                   <div className="text-center mb-8">
                     <img src={wibooklyLogo} alt="Wibookly" className="h-28 w-auto mx-auto mb-6" />
@@ -491,244 +390,50 @@ export default function Auth() {
                     </p>
                   </div>
 
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-8">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <button
                       type="button"
                       onClick={() => setWorkspaceType('personal')}
-                      className={`p-6 rounded-xl border-2 text-left transition-all ${
-                        workspaceType === 'personal'
-                          ? 'border-primary bg-primary/5 shadow-md'
-                          : 'border-border hover:border-primary/50 hover:bg-accent/50'
-                      }`}
+                      className="p-6 rounded-xl border-2 border-border hover:border-primary/50 hover:bg-accent/50 text-left transition-all"
                     >
-                      <div className={`w-12 h-12 rounded-xl flex items-center justify-center mb-4 ${
-                        workspaceType === 'personal' ? 'bg-primary text-primary-foreground' : 'bg-muted'
-                      }`}>
+                      <div className="w-12 h-12 rounded-xl bg-muted flex items-center justify-center mb-4">
                         <User2 className="w-6 h-6" />
                       </div>
                       <h3 className="text-lg font-semibold text-foreground mb-1">Personal</h3>
                       <p className="text-sm text-muted-foreground">
                         For individual use. Manage your personal emails.
                       </p>
-                      {workspaceType === 'personal' && (
-                        <div className="mt-3 flex items-center gap-1 text-primary text-sm font-medium">
-                          <Check className="w-4 h-4" />
-                          Selected
-                        </div>
-                      )}
                     </button>
 
                     <button
                       type="button"
                       onClick={() => setWorkspaceType('business')}
-                      className={`p-6 rounded-xl border-2 text-left transition-all ${
-                        workspaceType === 'business'
-                          ? 'border-primary bg-primary/5 shadow-md'
-                          : 'border-border hover:border-primary/50 hover:bg-accent/50'
-                      }`}
+                      className="p-6 rounded-xl border-2 border-border hover:border-primary/50 hover:bg-accent/50 text-left transition-all"
                     >
-                      <div className={`w-12 h-12 rounded-xl flex items-center justify-center mb-4 ${
-                        workspaceType === 'business' ? 'bg-primary text-primary-foreground' : 'bg-muted'
-                      }`}>
+                      <div className="w-12 h-12 rounded-xl bg-muted flex items-center justify-center mb-4">
                         <Building2 className="w-6 h-6" />
                       </div>
                       <h3 className="text-lg font-semibold text-foreground mb-1">Business</h3>
                       <p className="text-sm text-muted-foreground">
-                        For work. AI uses your title for better responses.
+                        For work. AI uses your professional context.
                       </p>
-                      {workspaceType === 'business' && (
-                        <div className="mt-3 flex items-center gap-1 text-primary text-sm font-medium">
-                          <Check className="w-4 h-4" />
-                          Selected
-                        </div>
-                      )}
                     </button>
                   </div>
-
-                  <Button 
-                    className="w-full" 
-                    size="lg"
-                    disabled={!workspaceType}
-                    onClick={() => setSignupStep('account-details')}
-                  >
-                    Continue
-                  </Button>
                 </>
               )}
 
-              {/* Step 2: Account Details */}
-              {signupStep === 'account-details' && (
-                <>
-                  <div className="text-center mb-6">
-                    <h1 className="text-2xl font-bold tracking-tight text-foreground">
-                      Create your account
-                    </h1>
-                    <p className="mt-2 text-muted-foreground">
-                      Enter your details to get started
-                    </p>
-                  </div>
-
-                  <div className="space-y-4">
-                    <div className="space-y-2">
-                      <div className="flex items-center gap-1.5">
-                        <Label htmlFor="fullName">Full Name <span className="text-destructive">*</span></Label>
-                        <Tooltip>
-                          <TooltipTrigger asChild>
-                            <HelpCircle className="w-3.5 h-3.5 text-muted-foreground cursor-help" />
-                          </TooltipTrigger>
-                          <TooltipContent side="right" className="max-w-xs bg-primary text-primary-foreground">
-                            <p className="text-sm">Used in your AI-generated email signature.</p>
-                          </TooltipContent>
-                        </Tooltip>
-                      </div>
-                      <Input
-                        id="fullName"
-                        type="text"
-                        placeholder="John Doe"
-                        value={fullName}
-                        onChange={(e) => setFullName(e.target.value)}
-                        disabled={loading}
-                        className={errors.fullName ? 'border-destructive' : ''}
-                      />
-                      {errors.fullName && <p className="text-xs text-destructive">{errors.fullName}</p>}
-                    </div>
-
-                    <div className="space-y-2">
-                      <div className="flex items-center gap-1.5">
-                        <Label htmlFor="workspaceName">
-                          {workspaceType === 'business' ? 'Company Name' : 'Workspace Name'} <span className="text-destructive">*</span>
-                        </Label>
-                      </div>
-                      <Input
-                        id="workspaceName"
-                        type="text"
-                        placeholder={workspaceType === 'personal' ? 'My Personal Inbox' : 'Acme Inc.'}
-                        value={workspaceName}
-                        onChange={(e) => setWorkspaceName(e.target.value)}
-                        disabled={loading}
-                        className={errors.workspaceName ? 'border-destructive' : ''}
-                      />
-                      {errors.workspaceName && <p className="text-xs text-destructive">{errors.workspaceName}</p>}
-                    </div>
-
-                    {workspaceType === 'business' && (
-                      <div className="space-y-2">
-                        <div className="flex items-center gap-1.5">
-                          <Label htmlFor="title">Title</Label>
-                          <Tooltip>
-                            <TooltipTrigger asChild>
-                              <HelpCircle className="w-3.5 h-3.5 text-muted-foreground cursor-help" />
-                            </TooltipTrigger>
-                            <TooltipContent side="right" className="max-w-xs bg-primary text-primary-foreground">
-                              <p className="text-sm">Helps AI tailor responses to your role.</p>
-                            </TooltipContent>
-                          </Tooltip>
-                        </div>
-                        <Input
-                          id="title"
-                          type="text"
-                          placeholder="e.g. Sales Manager, CEO"
-                          value={title}
-                          onChange={(e) => setTitle(e.target.value)}
-                          disabled={loading}
-                        />
-                      </div>
-                    )}
-
-                    <div className="space-y-2">
-                      <Label htmlFor="email">Email <span className="text-destructive">*</span></Label>
-                      <Input
-                        id="email"
-                        type="email"
-                        placeholder="you@example.com"
-                        value={email}
-                        onChange={(e) => setEmail(e.target.value)}
-                        disabled={loading}
-                        className={errors.email ? 'border-destructive' : ''}
-                      />
-                      {errors.email && <p className="text-xs text-destructive">{errors.email}</p>}
-                    </div>
-
-                    <div className="space-y-2">
-                      <Label htmlFor="password">Password <span className="text-destructive">*</span></Label>
-                      <Input
-                        id="password"
-                        type="password"
-                        placeholder="••••••••"
-                        value={password}
-                        onChange={(e) => setPassword(e.target.value)}
-                        disabled={loading}
-                        className={errors.password ? 'border-destructive' : ''}
-                      />
-                      {errors.password && <p className="text-xs text-destructive">{errors.password}</p>}
-                    </div>
-
-                    <div className="space-y-3">
-                      <Button
-                        variant="outline"
-                        size="lg"
-                        className="w-full justify-start gap-3 h-14 text-base"
-                        disabled={loading}
-                        onClick={() => handleSignupAndConnect('google')}
-                      >
-                        {loading ? (
-                          <Loader2 className="w-5 h-5 animate-spin" />
-                        ) : (
-                          <GoogleIcon />
-                        )}
-                        <span className="flex-1 text-left">Create account & connect Google</span>
-                      </Button>
-
-                      <Button
-                        variant="outline"
-                        size="lg"
-                        className="w-full justify-start gap-3 h-14 text-base"
-                        disabled={loading}
-                        onClick={() => handleSignupAndConnect('outlook')}
-                      >
-                        {loading ? (
-                          <Loader2 className="w-5 h-5 animate-spin" />
-                        ) : (
-                          <OutlookIcon />
-                        )}
-                        <span className="flex-1 text-left">Create account & connect Outlook</span>
-                      </Button>
-
-                      <div className="relative py-2">
-                        <div className="absolute inset-0 flex items-center" aria-hidden="true">
-                          <div className="w-full border-t border-border" />
-                        </div>
-                        <div className="relative flex justify-center">
-                          <span className="bg-card px-2 text-xs text-muted-foreground">or</span>
-                        </div>
-                      </div>
-
-                      <Button
-                        className="w-full"
-                        size="lg"
-                        disabled={loading}
-                        onClick={handleSignupSubmit}
-                      >
-                        {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                        Create Account
-                      </Button>
-                    </div>
-                  </div>
-                </>
-              )}
-
-              {/* Step 3: Connect Email */}
-              {signupStep === 'connect-email' && (
+              {/* Step 2: Connect Account via OAuth */}
+              {workspaceType && (
                 <>
                   <div className="text-center mb-8">
                     <div className="w-16 h-16 rounded-full bg-primary/10 flex items-center justify-center mx-auto mb-4">
                       <Mail className="w-8 h-8 text-primary" />
                     </div>
                     <h1 className="text-2xl font-bold tracking-tight text-foreground">
-                      Connect your email
+                      Connect your {workspaceType === 'personal' ? 'personal' : 'work'} email
                     </h1>
                     <p className="mt-2 text-muted-foreground">
-                      Connect your {workspaceType === 'personal' ? 'personal' : 'work'} email to get started
+                      Sign up by connecting your email account
                     </p>
                   </div>
 
@@ -737,30 +442,30 @@ export default function Auth() {
                       variant="outline"
                       size="lg"
                       className="w-full justify-start gap-3 h-14 text-base"
-                      onClick={() => handleConnectEmail('google')}
-                      disabled={loading}
+                      onClick={() => handleOAuthSignup('google')}
+                      disabled={connectingProvider !== null}
                     >
-                      {loading ? (
+                      {connectingProvider === 'google' ? (
                         <Loader2 className="w-5 h-5 animate-spin" />
                       ) : (
                         <GoogleIcon />
                       )}
-                      <span className="flex-1 text-left">Connect Google Account</span>
+                      <span className="flex-1 text-left">Continue with Google</span>
                     </Button>
 
                     <Button
                       variant="outline"
                       size="lg"
                       className="w-full justify-start gap-3 h-14 text-base"
-                      onClick={() => handleConnectEmail('outlook')}
-                      disabled={loading}
+                      onClick={() => handleOAuthSignup('outlook')}
+                      disabled={connectingProvider !== null}
                     >
-                      {loading ? (
+                      {connectingProvider === 'outlook' ? (
                         <Loader2 className="w-5 h-5 animate-spin" />
                       ) : (
                         <OutlookIcon />
                       )}
-                      <span className="flex-1 text-left">Connect Outlook Account</span>
+                      <span className="flex-1 text-left">Continue with Outlook</span>
                     </Button>
                   </div>
 
@@ -768,11 +473,11 @@ export default function Auth() {
                     <div className="flex items-start gap-3">
                       <HelpCircle className="w-5 h-5 text-muted-foreground shrink-0 mt-0.5" />
                       <div className="text-sm text-muted-foreground">
-                        <p className="font-medium text-foreground mb-1">What we'll access:</p>
+                        <p className="font-medium text-foreground mb-1">What happens next:</p>
                         <ul className="space-y-1">
-                          <li>• Your email address and name</li>
-                          <li>• Read access to organize your inbox</li>
-                          <li>• Ability to create draft responses</li>
+                          <li>• Your account is created automatically</li>
+                          <li>• Your name is pulled from your email account</li>
+                          <li>• You'll be redirected to connect email access</li>
                         </ul>
                       </div>
                     </div>
@@ -785,22 +490,19 @@ export default function Auth() {
               )}
             </div>
 
-            {signupStep !== 'connect-email' && (
-              <p className="mt-6 text-center text-sm text-muted-foreground">
-                Already have an account?{' '}
-                <button
-                  type="button"
-                  onClick={() => {
-                    setMode('signin');
-                    setSignupStep('workspace-type');
-                    setWorkspaceType(null);
-                  }}
-                  className="font-medium text-foreground hover:underline"
-                >
-                  Sign In
-                </button>
-              </p>
-            )}
+            <p className="mt-6 text-center text-sm text-muted-foreground">
+              Already have an account?{' '}
+              <button
+                type="button"
+                onClick={() => {
+                  setMode('signin');
+                  setWorkspaceType(null);
+                }}
+                className="font-medium text-foreground hover:underline"
+              >
+                Sign In
+              </button>
+            </p>
           </div>
         </main>
       </div>
