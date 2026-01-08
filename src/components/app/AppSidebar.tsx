@@ -1,5 +1,5 @@
 import { NavLink, useLocation } from 'react-router-dom';
-import { Plug, FolderOpen, Settings, LogOut, Sparkles, BarChart3, ChevronDown, Check, Mail, Calendar, Clock, Tag, Palette, User, PenTool, ListFilter, MessageSquare, Sun, Bot } from 'lucide-react';
+import { Plug, FolderOpen, Settings, LogOut, Sparkles, BarChart3, ChevronDown, Check, Mail, Calendar, Clock, Tag, Palette, User, PenTool, ListFilter, MessageSquare, Sun, Bot, UserPlus, Link2, Cog } from 'lucide-react';
 import { useAuth } from '@/lib/auth';
 import { cn } from '@/lib/utils';
 import wibooklyLogo from '@/assets/wibookly-logo.png';
@@ -168,17 +168,16 @@ export function AppSidebar() {
       <div className="flex-1 overflow-y-auto min-h-0">
 
         <nav className="p-3 pt-0 space-y-2">
-          {/* Email & Calendar Integrations */}
-          <NavSection title="Email & Calendar Integrations" icon={Plug} defaultOpen colorClass="text-blue-500">
-            <NavItem href="/integrations" icon={Mail}>Email Connections</NavItem>
-            <NavItem href="/integrations?tab=calendar" icon={Calendar}>Calendar Connections</NavItem>
-            <NavItem href="/integrations?tab=availability" icon={Clock}>Availability Hours</NavItem>
-            <NavItem href="/integrations?tab=calendar-color" icon={Palette}>Calendar Event Color</NavItem>
+          {/* Account Provisioning */}
+          <NavSection title="Account Provisioning" icon={UserPlus} defaultOpen colorClass="text-blue-500">
+            <NavItem href="/integrations" icon={Link2}>Email & Calendar Connections</NavItem>
           </NavSection>
 
-          {/* Email Folders/Labels */}
-          <NavSection title="Email Folders/Labels" icon={FolderOpen} defaultOpen colorClass="text-amber-500">
-            <NavItem href="/categories" icon={Tag}>Categories</NavItem>
+          {/* Email & Calendar Settings */}
+          <NavSection title="Email & Calendar Settings" icon={Cog} defaultOpen colorClass="text-indigo-500">
+            <NavItem href="/integrations?tab=availability" icon={Clock}>Availability Hours</NavItem>
+            <NavItem href="/integrations?tab=calendar" icon={Calendar}>Calendar Settings</NavItem>
+            <NavItem href="/categories" icon={Tag}>Email Categories</NavItem>
           </NavSection>
 
           {/* AI Settings */}
