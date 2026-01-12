@@ -1,11 +1,14 @@
 import { useState, useEffect, useMemo } from 'react';
 import { useAuth } from '@/lib/auth';
 import { useActiveEmail } from '@/contexts/ActiveEmailContext';
+import { useSubscription } from '@/lib/subscription';
 import { supabase } from '@/integrations/supabase/client';
 import { UserAvatarDropdown } from '@/components/app/UserAvatarDropdown';
+import { SubscriptionCard } from '@/components/subscription/SubscriptionCard';
+import { UpgradeInline } from '@/components/subscription/UpgradeBanner';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
-import { Check, ExternalLink, Clock, Loader2, Settings2, Link as LinkIcon, Calendar, Save } from 'lucide-react';
+import { Check, ExternalLink, Clock, Loader2, Settings2, Link as LinkIcon, Calendar, Save, Sparkles } from 'lucide-react';
 import { useSearchParams, Link } from 'react-router-dom';
 import {
   AlertDialog,
@@ -79,6 +82,7 @@ type ProviderId = 'google' | 'outlook';
 export default function Integrations() {
   const { organization, profile, loading: authLoading } = useAuth();
   const { activeConnection, loading: emailLoading } = useActiveEmail();
+  const { canConnectMoreMailboxes, getMailboxLimit, refreshSubscription, plan } = useSubscription();
   const { toast } = useToast();
   const { logAttempt } = useConnectAttemptLogger();
   const [connections, setConnections] = useState<Connection[]>([]);
@@ -219,6 +223,20 @@ export default function Integrations() {
     // Handle OAuth callback results
     const connected = searchParams.get('connected');
     const error = searchParams.get('error');
+    const checkout = searchParams.get('checkout');
+
+    if (checkout === 'success') {
+      toast({
+        title: 'Subscription Activated!',
+        description: 'Your plan has been upgraded successfully.',
+      });
+      refreshSubscription();
+      setSearchParams({});
+    }
+
+    if (checkout === 'canceled') {
+      setSearchParams({});
+    }
 
     if (connected) {
       logAttempt({ provider: connected, stage: 'callback_success' });
@@ -289,6 +307,20 @@ export default function Integrations() {
       return;
     }
 
+    // Check mailbox limit before connecting (unless it's calendar-only)
+    if (!calendarOnly) {
+      const currentCount = connections.length;
+      if (!canConnectMoreMailboxes(currentCount)) {
+        const limit = getMailboxLimit();
+        toast({
+          title: 'Mailbox Limit Reached',
+          description: `Your ${plan} plan allows up to ${limit} mailbox${limit > 1 ? 'es' : ''}. Upgrade to connect more.`,
+          variant: 'destructive',
+        });
+        return;
+      }
+    }
+
     logAttempt({ provider, stage: calendarOnly ? 'calendar_init_started' : 'init_started' });
 
     // Don't rely on context state alone; fetch a fresh session to avoid race/stale state.
@@ -325,6 +357,51 @@ export default function Integrations() {
     }
 
     setConnecting(provider);
+
+    try {
+      const { data: sessionData } = await supabase.auth.getSession();
+      const accessToken = sessionData.session?.access_token;
+
+      const { data, error } = await supabase.functions.invoke('oauth-init', {
+        body: {
+          provider,
+          userId: liveUserId,
+          organizationId: orgId,
+          redirectUrl: '/integrations',
+          calendarOnly,
+        },
+        headers: accessToken ? { Authorization: `Bearer ${accessToken}` } : undefined,
+      });
+
+      if (error) {
+        throw error;
+      }
+
+      if (data?.authUrl) {
+        logAttempt({ provider, stage: 'redirect_to_provider', meta: { authUrl: data.authUrl.substring(0, 100), calendarOnly } });
+        // Redirect to OAuth provider
+        window.location.href = data.authUrl;
+      } else {
+        throw new Error('No authorization URL received');
+      }
+    } catch (error: any) {
+      console.error('OAuth init error:', error);
+
+      const message = String(error?.message || 'Failed to start OAuth flow');
+      logAttempt({ provider, stage: 'init_error', errorMessage: message });
+      
+      const isInvalidJwt = /invalid jwt/i.test(message);
+
+      toast({
+        title: 'Connection Failed',
+        description: isInvalidJwt
+          ? 'Your session needs a refresh. Please sign out and sign back in, then try again.'
+          : message,
+        variant: 'destructive',
+      });
+      setConnecting(null);
+    }
+  };
 
     try {
       const { data: sessionData } = await supabase.auth.getSession();
@@ -478,6 +555,11 @@ export default function Integrations() {
         <UserAvatarDropdown />
       </div>
       
+      {/* Subscription Card */}
+      <div className="mb-6">
+        <SubscriptionCard />
+      </div>
+
       <section className="animate-fade-in bg-card/80 backdrop-blur-sm rounded-xl border border-border shadow-lg p-6" aria-busy={loading ? 'true' : 'false'}>
         <header className="mb-8">
           <div className="flex items-center justify-between">
