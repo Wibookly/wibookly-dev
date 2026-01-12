@@ -81,11 +81,15 @@ export default function AIDailyBrief() {
     queryFn: async (): Promise<DailyBrief> => {
       const { data: { session } } = await supabase.auth.getSession();
       
+      if (!session?.access_token) {
+        throw new Error('Not authenticated');
+      }
+      
       const response = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/ai-daily-brief`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${session?.access_token}`,
+          'Authorization': `Bearer ${session.access_token}`,
         },
         body: JSON.stringify({
           connectionId: activeConnection?.id,
@@ -101,6 +105,13 @@ export default function AIDailyBrief() {
     },
     enabled: !!activeConnection,
     staleTime: 5 * 60 * 1000,
+    retry: (failureCount, error) => {
+      // Don't retry auth errors
+      if (error instanceof Error && error.message === 'Not authenticated') {
+        return false;
+      }
+      return failureCount < 2;
+    },
   });
 
   const handleRefresh = async () => {
