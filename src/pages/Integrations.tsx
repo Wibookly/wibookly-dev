@@ -433,18 +433,20 @@ export default function Integrations() {
 
       toast({
         title: 'Disconnected',
-        description: `Your ${provider === 'google' ? 'Google' : 'Microsoft Outlook'} account and all related data have been removed.`,
+        description: `Your ${provider === 'google' ? 'Google' : 'Microsoft Outlook'} account and all related data have been removed. Signing out...`,
       });
 
       setDisconnectTarget(null);
-      fetchConnections();
+      
+      // Sign out and redirect to auth page
+      await supabase.auth.signOut();
+      window.location.href = '/auth';
     } catch (error: any) {
       toast({
         title: 'Error',
         description: error.message || 'Failed to disconnect',
         variant: 'destructive',
       });
-    } finally {
       setDisconnecting(false);
     }
   };
