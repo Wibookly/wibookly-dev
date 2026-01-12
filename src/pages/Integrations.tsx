@@ -5,7 +5,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { UserAvatarDropdown } from '@/components/app/UserAvatarDropdown';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
-import { Check, ExternalLink, Clock, Loader2, Settings2, Link as LinkIcon, Calendar, Palette, Save } from 'lucide-react';
+import { Check, ExternalLink, Clock, Loader2, Settings2, Link as LinkIcon, Calendar, Save } from 'lucide-react';
 import { useSearchParams, Link } from 'react-router-dom';
 import {
   AlertDialog,
@@ -101,19 +101,14 @@ export default function Integrations() {
   const [availability, setAvailability] = useState<AvailabilityDay[]>(DEFAULT_AVAILABILITY);
   const [savingAvailability, setSavingAvailability] = useState(false);
   
-  // Calendar color state
-  const [calendarEventColor, setCalendarEventColor] = useState('#9333EA');
-  const [savingColor, setSavingColor] = useState(false);
-  
   // Meeting duration state
   const [meetingDuration, setMeetingDuration] = useState(30);
   const [savingDuration, setSavingDuration] = useState(false);
 
-  // Fetch availability, calendar color, and meeting duration when active connection changes
+  // Fetch availability and meeting duration when active connection changes
   useEffect(() => {
     if (activeConnection?.id && organization?.id) {
       fetchAvailability();
-      fetchCalendarColor();
       fetchMeetingDuration();
     }
   }, [activeConnection?.id, organization?.id]);
@@ -143,20 +138,6 @@ export default function Integrations() {
     }
   };
 
-  const fetchCalendarColor = async () => {
-    if (!organization?.id || !activeConnection?.id) return;
-
-    const { data } = await supabase
-      .from('ai_settings')
-      .select('*')
-      .eq('organization_id', organization.id)
-      .eq('connection_id', activeConnection.id)
-      .maybeSingle();
-
-    if (data) {
-      setCalendarEventColor((data as Record<string, unknown>).ai_calendar_event_color as string || '#9333EA');
-    }
-  };
 
   const fetchMeetingDuration = async () => {
     if (!activeConnection?.id) return;
@@ -231,40 +212,6 @@ export default function Integrations() {
       toast({ title: 'Error', description: 'Failed to save availability', variant: 'destructive' });
     } finally {
       setSavingAvailability(false);
-    }
-  };
-
-  const saveCalendarColor = async () => {
-    if (!organization?.id || !activeConnection?.id) return;
-    
-    setSavingColor(true);
-    try {
-      const { data: existingAI } = await supabase
-        .from('ai_settings')
-        .select('id')
-        .eq('organization_id', organization.id)
-        .eq('connection_id', activeConnection.id)
-        .maybeSingle();
-
-      if (existingAI) {
-        await supabase
-          .from('ai_settings')
-          .update({ ai_calendar_event_color: calendarEventColor } as Record<string, unknown>)
-          .eq('id', existingAI.id);
-      } else {
-        await supabase
-          .from('ai_settings')
-          .insert([{
-            organization_id: organization.id,
-            connection_id: activeConnection.id,
-            writing_style: 'professional',
-          }]);
-      }
-      toast({ title: 'Color saved', description: 'AI calendar event color has been updated.' });
-    } catch (error) {
-      toast({ title: 'Error', description: 'Failed to save color', variant: 'destructive' });
-    } finally {
-      setSavingColor(false);
     }
   };
 
@@ -597,119 +544,117 @@ export default function Integrations() {
         </AlertDialogContent>
       </AlertDialog>
 
-      {/* Availability Hours Tab */}
-      {currentTab === 'availability' && (
-        <div className="space-y-4">
-          <div className="flex items-center gap-2 mb-4">
-            <Clock className="w-5 h-5 text-emerald-500" />
-            <h2 className="text-lg font-semibold">Availability Hours</h2>
-          </div>
-          <p className="text-sm text-muted-foreground mb-4">
-            Set your available hours for meetings and appointments. AI will only schedule events within these time slots.
-          </p>
-          
-          {!activeConnection ? (
-            <div className="py-8 text-center text-muted-foreground">
-              Connect an email account to configure availability hours.
-            </div>
-          ) : (
-            <>
-              <div className="space-y-3 p-4 bg-card rounded-lg border border-border">
-                {availability.map((day, index) => (
-                  <div key={day.day_of_week} className="flex items-center gap-4">
-                    <div className="w-28 flex items-center gap-2">
-                      <Switch
-                        checked={day.is_available}
-                        onCheckedChange={(checked) => {
-                          const updated = [...availability];
-                          updated[index] = { ...updated[index], is_available: checked };
-                          setAvailability(updated);
-                        }}
-                        className="scale-90"
-                      />
-                      <span className={`text-sm font-medium ${!day.is_available ? 'text-muted-foreground' : ''}`}>
-                        {DAYS_OF_WEEK[day.day_of_week].label.slice(0, 3)}
-                      </span>
-                    </div>
-                    
-                    {day.is_available ? (
-                      <div className="flex items-center gap-2 flex-1">
-                        <Select
-                          value={day.start_time}
-                          onValueChange={(value) => {
-                            const updated = [...availability];
-                            updated[index] = { ...updated[index], start_time: value };
-                            setAvailability(updated);
-                          }}
-                        >
-                          <SelectTrigger className="w-28">
-                            <SelectValue />
-                          </SelectTrigger>
-                          <SelectContent>
-                            {TIME_OPTIONS.map(opt => (
-                              <SelectItem key={opt.value} value={opt.value}>{opt.label}</SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
-                        <span className="text-muted-foreground">to</span>
-                        <Select
-                          value={day.end_time}
-                          onValueChange={(value) => {
-                            const updated = [...availability];
-                            updated[index] = { ...updated[index], end_time: value };
-                            setAvailability(updated);
-                          }}
-                        >
-                          <SelectTrigger className="w-28">
-                            <SelectValue />
-                          </SelectTrigger>
-                          <SelectContent>
-                            {TIME_OPTIONS.map(opt => (
-                              <SelectItem key={opt.value} value={opt.value}>{opt.label}</SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
-                      </div>
-                    ) : (
-                      <span className="text-sm text-muted-foreground italic">Unavailable</span>
-                    )}
-                  </div>
-                ))}
-              </div>
-              <Button onClick={saveAvailability} disabled={savingAvailability}>
-                {savingAvailability && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
-                <Save className="w-4 h-4 mr-2" />
-                Save Availability
-              </Button>
-            </>
-          )}
-        </div>
-      )}
-
-      {/* Calendar Settings Tab */}
-      {currentTab === 'calendar' && (
-        <div className="space-y-6">
-          {/* Meeting Duration */}
+      {/* Email & Calendar Settings Tab */}
+      {currentTab === 'settings' && (
+        <div className="space-y-8">
+          {/* Availability Hours Section */}
           <div className="space-y-4">
             <div className="flex items-center gap-2 mb-4">
-              <Clock className="w-5 h-5 text-blue-500" />
-              <h2 className="text-lg font-semibold">Default Meeting Duration</h2>
+              <Clock className="w-5 h-5 text-emerald-500" />
+              <h2 className="text-lg font-semibold">Availability Hours</h2>
             </div>
             <p className="text-sm text-muted-foreground mb-4">
-              Set the default duration for meetings scheduled by AI. This can be adjusted per meeting later.
+              Set your available hours for events and appointments. AI will only schedule events within these time slots.
             </p>
             
             {!activeConnection ? (
               <div className="py-8 text-center text-muted-foreground">
-                Connect an email account to configure meeting duration.
+                Connect an email account to configure availability hours.
+              </div>
+            ) : (
+              <>
+                <div className="space-y-3 p-4 bg-card rounded-lg border border-border">
+                  {availability.map((day, index) => (
+                    <div key={day.day_of_week} className="flex items-center gap-4">
+                      <div className="w-28 flex items-center gap-2">
+                        <Switch
+                          checked={day.is_available}
+                          onCheckedChange={(checked) => {
+                            const updated = [...availability];
+                            updated[index] = { ...updated[index], is_available: checked };
+                            setAvailability(updated);
+                          }}
+                          className="scale-90"
+                        />
+                        <span className={`text-sm font-medium ${!day.is_available ? 'text-muted-foreground' : ''}`}>
+                          {DAYS_OF_WEEK[day.day_of_week].label.slice(0, 3)}
+                        </span>
+                      </div>
+                      
+                      {day.is_available ? (
+                        <div className="flex items-center gap-2 flex-1">
+                          <Select
+                            value={day.start_time}
+                            onValueChange={(value) => {
+                              const updated = [...availability];
+                              updated[index] = { ...updated[index], start_time: value };
+                              setAvailability(updated);
+                            }}
+                          >
+                            <SelectTrigger className="w-28">
+                              <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {TIME_OPTIONS.map(opt => (
+                                <SelectItem key={opt.value} value={opt.value}>{opt.label}</SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                          <span className="text-muted-foreground">to</span>
+                          <Select
+                            value={day.end_time}
+                            onValueChange={(value) => {
+                              const updated = [...availability];
+                              updated[index] = { ...updated[index], end_time: value };
+                              setAvailability(updated);
+                            }}
+                          >
+                            <SelectTrigger className="w-28">
+                              <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {TIME_OPTIONS.map(opt => (
+                                <SelectItem key={opt.value} value={opt.value}>{opt.label}</SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        </div>
+                      ) : (
+                        <span className="text-sm text-muted-foreground italic">Unavailable</span>
+                      )}
+                    </div>
+                  ))}
+                </div>
+                <Button onClick={saveAvailability} disabled={savingAvailability}>
+                  {savingAvailability && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
+                  <Save className="w-4 h-4 mr-2" />
+                  Save Availability
+                </Button>
+              </>
+            )}
+          </div>
+
+          {/* Default Event Duration Section */}
+          <div className="space-y-4">
+            <div className="flex items-center gap-2 mb-4">
+              <Calendar className="w-5 h-5 text-blue-500" />
+              <h2 className="text-lg font-semibold">Default Event Duration</h2>
+            </div>
+            <p className="text-sm text-muted-foreground mb-4">
+              Set the default duration for events scheduled by AI. This can be adjusted per event later.
+            </p>
+            
+            {!activeConnection ? (
+              <div className="py-8 text-center text-muted-foreground">
+                Connect an email account to configure event duration.
               </div>
             ) : (
               <div className="space-y-4 p-4 bg-card rounded-lg border border-border">
                 <div className="flex items-center gap-4">
                   <div className="flex-1 space-y-2">
-                    <Label htmlFor="meetingDuration">Meeting Duration</Label>
+                    <Label htmlFor="meetingDuration">Event Duration</Label>
                     <p className="text-xs text-muted-foreground">
-                      Applied to all meetings scheduled by AI from email requests
+                      Applied to all events scheduled by AI from email requests
                     </p>
                   </div>
                   <Select
@@ -733,54 +678,6 @@ export default function Integrations() {
                   {savingDuration && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
                   <Save className="w-4 h-4 mr-2" />
                   Save Duration
-                </Button>
-              </div>
-            )}
-          </div>
-
-          {/* Calendar Event Color */}
-          <div className="space-y-4">
-            <div className="flex items-center gap-2 mb-4">
-              <Palette className="w-5 h-5 text-purple-500" />
-              <h2 className="text-lg font-semibold">AI Calendar Event Color</h2>
-            </div>
-            <p className="text-sm text-muted-foreground mb-4">
-              When AI adds events or appointments to your calendar, they will be displayed with this color to distinguish them from your manually created events.
-            </p>
-            
-            {!activeConnection ? (
-              <div className="py-8 text-center text-muted-foreground">
-                Connect an email account to configure calendar event color.
-              </div>
-            ) : (
-              <div className="space-y-4 p-4 bg-card rounded-lg border border-border">
-                <div className="flex items-center gap-4">
-                  <div className="flex-1 space-y-2">
-                    <Label htmlFor="aiCalendarColor">Calendar Event Color</Label>
-                    <p className="text-xs text-muted-foreground">
-                      Applied to events and appointments created by AI from meeting requests
-                    </p>
-                  </div>
-                  <div className="flex items-center gap-3">
-                    <div
-                      className="w-10 h-10 rounded-lg border-2 border-border shadow-sm cursor-pointer relative overflow-hidden"
-                      style={{ backgroundColor: calendarEventColor }}
-                    >
-                      <input
-                        type="color"
-                        id="aiCalendarColor"
-                        value={calendarEventColor}
-                        onChange={(e) => setCalendarEventColor(e.target.value)}
-                        className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
-                      />
-                    </div>
-                    <span className="text-sm font-mono text-muted-foreground">{calendarEventColor}</span>
-                  </div>
-                </div>
-                <Button onClick={saveCalendarColor} disabled={savingColor}>
-                  {savingColor && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
-                  <Save className="w-4 h-4 mr-2" />
-                  Save Color
                 </Button>
               </div>
             )}

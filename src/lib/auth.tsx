@@ -169,7 +169,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         { name: 'Urgent', color: '#ef4444', sort_order: 0 },
         { name: 'Follow Up', color: '#f97316', sort_order: 1 },
         { name: 'Approvals', color: '#eab308', sort_order: 2 },
-        { name: 'Meetings', color: '#22c55e', sort_order: 3 },
+        { name: 'Events', color: '#22c55e', sort_order: 3 },
         { name: 'Customers', color: '#3b82f6', sort_order: 4 },
         { name: 'Vendors', color: '#8b5cf6', sort_order: 5 },
         { name: 'Internal', color: '#ec4899', sort_order: 6 },

@@ -175,8 +175,7 @@ export function AppSidebar() {
 
           {/* Email & Calendar Settings */}
           <NavSection title="Email & Calendar Settings" icon={Cog} defaultOpen colorClass="text-indigo-500">
-            <NavItem href="/integrations?tab=availability" icon={Clock}>Availability Hours</NavItem>
-            <NavItem href="/integrations?tab=calendar" icon={Calendar}>Calendar Settings</NavItem>
+            <NavItem href="/integrations?tab=settings" icon={Clock}>Availability & Calendar</NavItem>
             <NavItem href="/categories" icon={Tag}>Email Categories</NavItem>
           </NavSection>
 

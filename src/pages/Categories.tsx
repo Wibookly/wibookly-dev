@@ -96,7 +96,7 @@ const DEFAULT_CATEGORIES = [
   { name: 'Urgent', color: '#EF4444' },
   { name: 'Follow Up', color: '#F97316' },
   { name: 'Approvals', color: '#EAB308' },
-  { name: 'Meetings', color: '#22C55E' },
+  { name: 'Events', color: '#22C55E' },
   { name: 'Customers', color: '#06B6D4' },
   { name: 'Vendors', color: '#3B82F6' },
   { name: 'Internal', color: '#8B5CF6' },
