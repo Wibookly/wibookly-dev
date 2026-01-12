@@ -6,6 +6,8 @@ import wibooklyLogo from '@/assets/wibookly-logo.png';
 import { OnboardingChecklist } from './OnboardingChecklist';
 import { PostOnboardingNav } from './PostOnboardingNav';
 import { useActiveEmail } from '@/contexts/ActiveEmailContext';
+import { useSubscription } from '@/lib/subscription';
+import { UpgradeBadge } from '@/components/subscription/PlanBadge';
 import { useState, useEffect } from 'react';
 import {
   Collapsible,
@@ -75,9 +77,10 @@ interface NavItemProps {
   href: string;
   icon: React.ElementType;
   children: React.ReactNode;
+  showUpgradeBadge?: boolean;
 }
 
-function NavItem({ href, icon: Icon, children }: NavItemProps) {
+function NavItem({ href, icon: Icon, children, showUpgradeBadge }: NavItemProps) {
   const location = useLocation();
   const currentUrl = location.pathname + location.search;
   const isActive = currentUrl === href || (location.pathname === href.split('?')[0] && location.search === '?' + href.split('?')[1]);
@@ -94,9 +97,10 @@ function NavItem({ href, icon: Icon, children }: NavItemProps) {
     >
       <Icon className="w-4 h-4" />
       <span className={cn(
-        "relative pb-1",
+        "relative pb-1 flex-1",
         isActive && "after:content-[''] after:absolute after:bottom-0 after:left-0 after:w-full after:h-0.5 after:bg-green-500 after:rounded-full"
       )}>{children}</span>
+      {showUpgradeBadge && <UpgradeBadge />}
     </NavLink>
   );
 }
@@ -105,7 +109,12 @@ export function AppSidebar() {
   const { signOut, organization } = useAuth();
   const location = useLocation();
   const { connections, activeConnection, setActiveConnectionId, loading } = useActiveEmail();
+  const { hasFeature } = useSubscription();
   const [isOnboardingComplete, setIsOnboardingComplete] = useState(false);
+
+  // Check feature access for upgrade badges
+  const needsUpgradeForAutoReply = !hasFeature('aiAutoReply');
+  const needsUpgradeForAnalytics = !hasFeature('advancedAnalytics');
 
   // Check if onboarding has been dismissed
   useEffect(() => {
@@ -182,6 +191,7 @@ export function AppSidebar() {
           {/* AI Settings */}
           <NavSection title="AI Settings" icon={Sparkles} defaultOpen colorClass="text-purple-500">
             <NavItem href="/email-draft" icon={Sparkles}>AI Draft Settings</NavItem>
+            <NavItem href="/email-draft?tab=auto-reply" icon={MessageSquare} showUpgradeBadge={needsUpgradeForAutoReply}>AI Auto Reply</NavItem>
             <NavItem href="/email-draft?tab=labels" icon={Palette}>AI Label Colors</NavItem>
           </NavSection>
 
@@ -199,7 +209,7 @@ export function AppSidebar() {
 
           {/* Reports */}
           <NavSection title="Reports" icon={BarChart3} defaultOpen colorClass="text-emerald-500">
-            <NavItem href="/ai-activity" icon={BarChart3}>AI Activity</NavItem>
+            <NavItem href="/ai-activity" icon={BarChart3} showUpgradeBadge={needsUpgradeForAnalytics}>AI Activity</NavItem>
           </NavSection>
         </nav>
       </div>
