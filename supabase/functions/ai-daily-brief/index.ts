@@ -433,10 +433,17 @@ serve(async (req) => {
     );
     
     if (!accessToken) {
-      return new Response(JSON.stringify({ error: "Failed to get access token" }), {
-        status: 500,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
+      return new Response(
+        JSON.stringify({
+          error: "Re-authentication required",
+          details:
+            "We could not refresh your provider access token. This usually happens after OAuth credentials change or the connection was revoked. Please disconnect and reconnect your account in Integrations.",
+        }),
+        {
+          status: 401,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        }
+      );
     }
 
     // Fetch real calendar events and emails
