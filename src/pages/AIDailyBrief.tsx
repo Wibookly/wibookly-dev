@@ -97,7 +97,13 @@ export default function AIDailyBrief() {
       });
 
       if (!response.ok) {
-        const errorData = await response.json();
+        const errorData = await response.json().catch(() => ({}));
+
+        // Surface backend guidance for re-auth flows
+        if (response.status === 401 && typeof errorData?.details === 'string') {
+          throw new Error(errorData.details);
+        }
+
         throw new Error(errorData.error || 'Failed to fetch daily brief');
       }
 
