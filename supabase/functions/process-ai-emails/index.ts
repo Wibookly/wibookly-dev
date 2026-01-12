@@ -263,7 +263,7 @@ const CATEGORY_CONTEXT: Record<string, string> = {
   'Urgent': 'This is an urgent matter requiring immediate attention. Respond promptly.',
   'Follow Up': 'This is a follow-up to a previous conversation. Reference prior context.',
   'Approvals': 'This relates to approving or reviewing something. Be clear and decisive.',
-  'Meetings': 'This relates to scheduling, confirming, or discussing meetings. Be specific with times. If you schedule a meeting, include the exact date, time, and duration.',
+  'Events': 'This relates to scheduling, confirming, or discussing meetings, appointments, or events. Be specific with times. If you schedule an event, include the exact date, time, and duration.',
   'Customers': 'This is client-facing communication. Represent the business professionally.',
   'Vendors': 'This is communication with vendors, suppliers, or external partners.',
   'Internal': 'This is internal team communication. Can be slightly less formal.',
@@ -272,20 +272,21 @@ const CATEGORY_CONTEXT: Record<string, string> = {
   'FYI': 'This is informational communication for awareness. Keep it brief.',
 };
 
-// Keywords that indicate meeting-related emails
-const MEETING_KEYWORDS = [
+// Keywords that indicate event-related emails (meetings, appointments, etc.)
+const EVENT_KEYWORDS = [
   'meeting', 'schedule', 'appointment', 'call', 'calendar', 'invite',
   'availability', 'available', 'book', 'booking', 'reschedule',
   'conference', 'sync', 'catch up', 'catch-up', 'discuss', 'chat',
   'time slot', 'timeslot', 'free time', 'when are you', 'let\'s meet',
   'can we meet', 'would you be available', 'set up a time', 'block time',
-  'zoom', 'teams', 'google meet', 'webex', 'hangout', 'video call'
+  'zoom', 'teams', 'google meet', 'webex', 'hangout', 'video call',
+  'event', 'session', 'webinar'
 ];
 
-// Check if email content indicates a meeting request
-function isMeetingRelatedEmail(subject: string, body: string): boolean {
+// Check if email content indicates an event request
+function isEventRelatedEmail(subject: string, body: string): boolean {
   const content = `${subject} ${body}`.toLowerCase();
-  return MEETING_KEYWORDS.some(keyword => content.includes(keyword.toLowerCase()));
+  return EVENT_KEYWORDS.some(keyword => content.includes(keyword.toLowerCase()));
 }
 
 // Interface for parsed meeting from AI response
@@ -1287,7 +1288,7 @@ async function generateAIDraft(
   let meetingContext = '';
   
   // Handle multiple slots with conflict detection (preferred method)
-  if (multipleSlots && multipleSlots.slots.length > 0 && cleanCategory === 'Meetings') {
+  if (multipleSlots && multipleSlots.slots.length > 0 && cleanCategory === 'Events') {
     const formatSlot = (slot: { start: Date; end: Date }, index: number) => {
       const formattedDate = slot.start.toLocaleDateString('en-US', { 
         weekday: 'long', 
@@ -1334,7 +1335,7 @@ ${slotDescriptions}
 5. The marker will be removed before sending and used to create a calendar event with invite once they confirm`;
   }
   // Fallback to single slot (legacy)
-  else if (nextAvailableSlot && cleanCategory === 'Meetings') {
+  else if (nextAvailableSlot && cleanCategory === 'Events') {
     const startIso = nextAvailableSlot.start.toISOString();
     const endIso = nextAvailableSlot.end.toISOString();
     const formattedDate = nextAvailableSlot.start.toLocaleDateString('en-US', { 
@@ -1857,21 +1858,35 @@ function generateEmailSignature(profile: EmailProfile): string {
 </div>`;
 }
 
-// Get the Meetings category label name for a connection
+// Get the Events category label name for a connection
 // deno-lint-ignore no-explicit-any
-async function getMeetingsCategoryLabel(supabaseAdmin: any, connectionId: string): Promise<string | null> {
-  const { data: meetingsCategory } = await supabaseAdmin
+async function getEventsCategoryLabel(supabaseAdmin: any, connectionId: string): Promise<string | null> {
+  const { data: eventsCategory } = await supabaseAdmin
     .from('categories')
-    .select('name, sort_order')
+    .select('name, sort_order, color')
     .eq('connection_id', connectionId)
-    .ilike('name', '%meetings%')
+    .ilike('name', '%events%')
     .limit(1)
     .maybeSingle();
   
-  if (meetingsCategory) {
-    return `${String(meetingsCategory.sort_order + 1).padStart(2, '0')}: ${meetingsCategory.name}`;
+  if (eventsCategory) {
+    return `${String(eventsCategory.sort_order + 1).padStart(2, '0')}: ${eventsCategory.name}`;
   }
   return null;
+}
+
+// Get the Events category color for calendar events
+// deno-lint-ignore no-explicit-any
+async function getEventsCategoryColor(supabaseAdmin: any, connectionId: string): Promise<string> {
+  const { data: eventsCategory } = await supabaseAdmin
+    .from('categories')
+    .select('color')
+    .eq('connection_id', connectionId)
+    .ilike('name', '%events%')
+    .limit(1)
+    .maybeSingle();
+  
+  return eventsCategory?.color || '#22C55E';
 }
 
 // Process emails for a single connection
@@ -2097,23 +2112,23 @@ async function processConnectionEmails(
           continue;
         }
 
-        // Detect if this is a meeting-related email
-        const isMeetingEmail = isMeetingRelatedEmail(emailDetails.subject, emailDetails.body);
+        // Detect if this is an event-related email (meetings, appointments, etc.)
+        const isEventEmail = isEventRelatedEmail(emailDetails.subject, emailDetails.body);
         
-        // Get available slots for Meetings category with conflict detection
-        // Also apply meeting scheduling logic if the email content is about meetings
+        // Get available slots for Events category with conflict detection
+        // Also apply event scheduling logic if the email content is about events
         const cleanCategoryName = category.name.replace(/^\d+:\s*/, '').trim();
-        const shouldUseMeetingLogic = cleanCategoryName === 'Meetings' || isMeetingEmail;
+        const shouldUseEventLogic = cleanCategoryName === 'Events' || isEventEmail;
         
         let nextAvailableSlot: { start: Date; end: Date } | null = null;
         let multipleSlots: { slots: { start: Date; end: Date }[]; conflictInfo?: string } | undefined;
         
-        if (shouldUseMeetingLogic) {
-          console.log(`Email ${msg.id} requires meeting scheduling logic (category: ${cleanCategoryName}, detected meeting: ${isMeetingEmail})`);
+        if (shouldUseEventLogic) {
+          console.log(`Email ${msg.id} requires event scheduling logic (category: ${cleanCategoryName}, detected event: ${isEventEmail})`);
           
           // Use meeting duration from user's profile settings
           const meetingDuration = profile.default_meeting_duration || 30;
-          console.log(`Using meeting duration: ${meetingDuration} minutes`);
+          console.log(`Using event duration: ${meetingDuration} minutes`);
           
           // Use the new multi-slot finder with conflict detection
           multipleSlots = await findMultipleAvailableSlots(
@@ -2136,33 +2151,34 @@ async function processConnectionEmails(
             }
           }
           
-          // If this is a meeting email but not in Meetings category, also apply Meetings label
-          if (isMeetingEmail && cleanCategoryName !== 'Meetings') {
-            // Get or create Meetings category label
-            const meetingsLabelName = await getMeetingsCategoryLabel(supabaseAdmin, connectionId);
-            if (meetingsLabelName && tokenRecord.provider === 'google') {
-              if (!gmailLabelCache[meetingsLabelName]) {
-                const labelId = await getOrCreateGmailLabel(accessToken, meetingsLabelName, '#22C55E');
-                if (labelId) gmailLabelCache[meetingsLabelName] = labelId;
+          // If this is an event email but not in Events category, also apply Events label
+          if (isEventEmail && cleanCategoryName !== 'Events') {
+            // Get or create Events category label and color
+            const eventsLabelName = await getEventsCategoryLabel(supabaseAdmin, connectionId);
+            const eventsCategoryColor = await getEventsCategoryColor(supabaseAdmin, connectionId);
+            if (eventsLabelName && tokenRecord.provider === 'google') {
+              if (!gmailLabelCache[eventsLabelName]) {
+                const labelId = await getOrCreateGmailLabel(accessToken, eventsLabelName, eventsCategoryColor);
+                if (labelId) gmailLabelCache[eventsLabelName] = labelId;
               }
-              if (gmailLabelCache[meetingsLabelName]) {
-                await applyGmailLabel(accessToken, msg.id, gmailLabelCache[meetingsLabelName]);
-                console.log(`Applied Meetings label to email ${msg.id} (detected as meeting-related)`);
+              if (gmailLabelCache[eventsLabelName]) {
+                await applyGmailLabel(accessToken, msg.id, gmailLabelCache[eventsLabelName]);
+                console.log(`Applied Events label to email ${msg.id} (detected as event-related)`);
               }
-            } else if (isMeetingEmail && meetingsLabelName && tokenRecord.provider === 'microsoft') {
-              if (!outlookCategoryCache[meetingsLabelName]) {
-                await getOrCreateOutlookCategory(accessToken, meetingsLabelName, '#22C55E');
-                outlookCategoryCache[meetingsLabelName] = true;
+            } else if (isEventEmail && eventsLabelName && tokenRecord.provider === 'microsoft') {
+              if (!outlookCategoryCache[eventsLabelName]) {
+                await getOrCreateOutlookCategory(accessToken, eventsLabelName, eventsCategoryColor);
+                outlookCategoryCache[eventsLabelName] = true;
               }
-              await applyOutlookCategory(accessToken, msg.id, meetingsLabelName);
-              console.log(`Applied Meetings category to email ${msg.id} (detected as meeting-related)`);
+              await applyOutlookCategory(accessToken, msg.id, eventsLabelName);
+              console.log(`Applied Events category to email ${msg.id} (detected as event-related)`);
             }
           }
         }
 
         // Generate AI draft content (without signature - AI will just create the body)
-        // Use Meetings category context if this is a meeting-related email
-        const categoryNameForAI = shouldUseMeetingLogic ? 'Meetings' : category.name;
+        // Use Events category context if this is an event-related email
+        const categoryNameForAI = shouldUseEventLogic ? 'Events' : category.name;
         const aiDraftBody = await generateAIDraft(
           emailDetails.subject,
           emailDetails.body,
