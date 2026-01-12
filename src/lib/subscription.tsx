@@ -83,7 +83,8 @@ export function SubscriptionProvider({ children }: { children: ReactNode }) {
   });
 
   const fetchSubscription = useCallback(async () => {
-    if (!organization?.id) {
+    // Don't call if no org or no valid session
+    if (!organization?.id || !session?.access_token) {
       setState(prev => ({ ...prev, loading: false }));
       return;
     }
@@ -109,30 +110,28 @@ export function SubscriptionProvider({ children }: { children: ReactNode }) {
         setState(prev => ({ ...prev, plan: 'starter', status: 'active', loading: false }));
       }
 
-      // If user has a session, verify with Stripe
-      if (session?.access_token) {
-        const { data, error } = await supabase.functions.invoke('check-subscription', {
-          headers: { Authorization: `Bearer ${session.access_token}` },
-        });
+      // Verify with Stripe (session is guaranteed to exist here)
+      const { data, error } = await supabase.functions.invoke('check-subscription', {
+        headers: { Authorization: `Bearer ${session.access_token}` },
+      });
 
-        if (!error && data) {
-          // Determine plan from product ID
-          let detectedPlan: PlanType = 'starter';
-          if (data.product_id === PLAN_CONFIG.professional.productId) {
-            detectedPlan = 'professional';
-          } else if (data.subscribed && data.product_id) {
-            // Could be enterprise or other
-            detectedPlan = 'professional';
-          }
-
-          setState(prev => ({
-            ...prev,
-            plan: data.subscribed ? detectedPlan : prev.plan,
-            status: data.subscribed ? 'active' : prev.status,
-            currentPeriodEnd: data.subscription_end || prev.currentPeriodEnd,
-            loading: false,
-          }));
+      if (!error && data && !data.error) {
+        // Determine plan from product ID
+        let detectedPlan: PlanType = 'starter';
+        if (data.product_id === PLAN_CONFIG.professional.productId) {
+          detectedPlan = 'professional';
+        } else if (data.subscribed && data.product_id) {
+          // Could be enterprise or other
+          detectedPlan = 'professional';
         }
+
+        setState(prev => ({
+          ...prev,
+          plan: data.subscribed ? detectedPlan : prev.plan,
+          status: data.subscribed ? 'active' : prev.status,
+          currentPeriodEnd: data.subscription_end || prev.currentPeriodEnd,
+          loading: false,
+        }));
       }
     } catch (error) {
       console.error('Error fetching subscription:', error);
