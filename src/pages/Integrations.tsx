@@ -285,7 +285,9 @@ export default function Integrations() {
     fetchConnections();
   }, [organization?.id, authLoading]);
 
-  const getConnectionsByProvider = (provider: ProviderId) => connections.filter((c) => c.provider === provider && c.is_connected);
+  // Show connections that are connected OR have a connected_email (to handle cases where is_connected may be stale)
+  const getConnectionsByProvider = (provider: ProviderId) => 
+    connections.filter((c) => c.provider === provider && (c.is_connected || c.connected_email));
 
   const providerLabel = useMemo(
     () => ({
