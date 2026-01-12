@@ -539,7 +539,8 @@ serve(async (req) => {
         // Create labels/folders for enabled categories
         for (const category of enabledCategories) {
           // Create label/folder name with number prefix based on actual sort_order (1-indexed)
-          const labelName = `${category.sort_order + 1}: ${category.name}`;
+          // Format: "1: Name" (single digit, no padding)
+          const labelName = `${String(category.sort_order + 1).padStart(2, '0')}: ${category.name}`;
           let success = false;
           
           if (tokenRecord.provider === 'google') {
@@ -561,7 +562,7 @@ serve(async (req) => {
 
         // Delete labels/folders for disabled categories
         for (const category of disabledCategories) {
-          const labelName = `${category.sort_order + 1}: ${category.name}`;
+          const labelName = `${String(category.sort_order + 1).padStart(2, '0')}: ${category.name}`;
           let success = false;
           
           if (tokenRecord.provider === 'google') {
@@ -572,6 +573,17 @@ serve(async (req) => {
           
           if (success) {
             deleted++;
+          }
+        }
+        
+        // Clean up legacy labels/folders with old naming format
+        // Delete old "04: Meetings" (renamed to Events) and any unnumbered "Meetings" labels
+        const legacyLabelsToClean = ['04: Meetings', 'Meetings', '4: Meetings'];
+        for (const legacyLabel of legacyLabelsToClean) {
+          if (tokenRecord.provider === 'google') {
+            await deleteGmailLabel(accessToken, legacyLabel);
+          } else if (tokenRecord.provider === 'microsoft') {
+            await deleteOutlookFolder(accessToken, legacyLabel);
           }
         }
 

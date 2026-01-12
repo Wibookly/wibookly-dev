@@ -2277,11 +2277,11 @@ async function processConnectionEmails(
             results.draftsCreated++;
             console.log(`Created draft for email ${msg.id}`);
             
-            // Build category label name (e.g., "10: FYI")
+            // Build category label name (e.g., "10: FYI") - padded to 2 digits
             const categoryLabelName = `${String(category.sort_order + 1).padStart(2, '0')}: ${category.name}`;
             
-            // Apply AI Draft label to original email (numbered as 00:)
-            const aiDraftLabelName = '00: AI Draft';
+            // Apply AI Draft label to original email (0. prefix - before categories)
+            const aiDraftLabelName = '0. AI Draft';
             if (tokenRecord.provider === 'google') {
               // Get/create the category label
               if (!gmailLabelCache[categoryLabelName]) {
@@ -2403,7 +2403,7 @@ async function processConnectionEmails(
 
           if (sent) {
             // Remove AI Draft label from original email and delete the draft
-            const aiDraftLabelName = '00: AI Draft';
+            const aiDraftLabelName = '0. AI Draft';
             
             if (tokenRecord.provider === 'google') {
               // Get or cache the AI Draft label ID
@@ -2459,11 +2459,11 @@ async function processConnectionEmails(
             results.autoRepliesSent++;
             console.log(`Sent auto-reply for email ${msg.id}`);
             
-            // Build category label name (e.g., "10: FYI")
+            // Build category label name (e.g., "10: FYI") - padded to 2 digits
             const categoryLabelName = `${String(category.sort_order + 1).padStart(2, '0')}: ${category.name}`;
             
-            // Apply AI Sent label to original email (numbered as 01:)
-            const aiSentLabelName = '01: AI Sent';
+            // Apply AI Sent label to original email (11. prefix - after 10 categories)
+            const aiSentLabelName = '11. AI Sent';
             if (tokenRecord.provider === 'google') {
               // Get/create category label if not cached
               if (!gmailLabelCache[categoryLabelName]) {
