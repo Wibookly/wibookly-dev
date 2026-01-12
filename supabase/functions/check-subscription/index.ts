@@ -130,6 +130,15 @@ serve(async (req) => {
   } catch (error) {
     const errorMessage = error instanceof Error ? error.message : String(error);
     logStep("ERROR in check-subscription", { message: errorMessage });
+
+    // Never hard-fail the app for auth/session edge cases.
+    if (/auth session missing|invalid jwt|jwt/i.test(errorMessage)) {
+      return new Response(JSON.stringify({ subscribed: false, error: "Not authenticated" }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+        status: 200,
+      });
+    }
+
     return new Response(JSON.stringify({ error: errorMessage }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
       status: 500,
