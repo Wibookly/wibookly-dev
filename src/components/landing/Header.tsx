@@ -29,6 +29,9 @@ export function Header({ onSignInClick }: HeaderProps) {
             <a href="#security" className="text-sm font-medium text-foreground/80 hover:text-foreground transition-colors">
               Security
             </a>
+            <Link to="/pricing" className="text-sm font-medium text-foreground/80 hover:text-foreground transition-colors">
+              Pricing
+            </Link>
           </nav>
 
           <div className="flex items-center gap-3">
