@@ -403,51 +403,6 @@ export default function Integrations() {
     }
   };
 
-    try {
-      const { data: sessionData } = await supabase.auth.getSession();
-      const accessToken = sessionData.session?.access_token;
-
-      const { data, error } = await supabase.functions.invoke('oauth-init', {
-        body: {
-          provider,
-          userId: liveUserId,
-          organizationId: orgId,
-          redirectUrl: '/integrations',
-          calendarOnly,
-        },
-        headers: accessToken ? { Authorization: `Bearer ${accessToken}` } : undefined,
-      });
-
-      if (error) {
-        throw error;
-      }
-
-      if (data?.authUrl) {
-        logAttempt({ provider, stage: 'redirect_to_provider', meta: { authUrl: data.authUrl.substring(0, 100), calendarOnly } });
-        // Redirect to OAuth provider
-        window.location.href = data.authUrl;
-      } else {
-        throw new Error('No authorization URL received');
-      }
-    } catch (error: any) {
-      console.error('OAuth init error:', error);
-
-      const message = String(error?.message || 'Failed to start OAuth flow');
-      logAttempt({ provider, stage: 'init_error', errorMessage: message });
-      
-      const isInvalidJwt = /invalid jwt/i.test(message);
-
-      toast({
-        title: 'Connection Failed',
-        description: isInvalidJwt
-          ? 'Your session needs a refresh. Please sign out and sign back in, then try again.'
-          : message,
-        variant: 'destructive',
-      });
-      setConnecting(null);
-    }
-  };
-
   const handleDisconnect = async (provider: ProviderId, connectionId: string) => {
     const { data: sessionData } = await supabase.auth.getSession();
     if (!sessionData.session?.user) return;
