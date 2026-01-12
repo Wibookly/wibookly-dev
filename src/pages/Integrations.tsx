@@ -98,6 +98,10 @@ export default function Integrations() {
   const [showGoogleError, setShowGoogleError] = useState(false);
   const [googleErrorMessage, setGoogleErrorMessage] = useState<string | undefined>();
 
+  // Disconnect confirmation state
+  const [disconnectTarget, setDisconnectTarget] = useState<{ provider: ProviderId; connectionId: string; email: string | null } | null>(null);
+  const [disconnecting, setDisconnecting] = useState(false);
+
   // Tab state
   const currentTab = searchParams.get('tab') || 'email';
   
@@ -405,14 +409,20 @@ export default function Integrations() {
     }
   };
 
-  const handleDisconnect = async (provider: ProviderId, connectionId: string) => {
+  const confirmDisconnect = (provider: ProviderId, connectionId: string, email: string | null) => {
+    setDisconnectTarget({ provider, connectionId, email });
+  };
+
+  const handleDisconnect = async () => {
+    if (!disconnectTarget) return;
+    
+    const { provider, connectionId } = disconnectTarget;
     const { data: sessionData } = await supabase.auth.getSession();
     if (!sessionData.session?.user) return;
 
+    setDisconnecting(true);
     try {
-      // Use secure RPC function to disconnect - clears tokens server-side
-      // Note: disconnect_provider will disconnect by provider, but for multi-account
-      // we need to pass the connection ID. For now, this disconnects all of same provider.
+      // Use secure RPC function to disconnect - clears tokens and all related data server-side
       const { error } = await supabase.rpc('disconnect_provider', {
         _provider: provider,
       });
@@ -423,9 +433,10 @@ export default function Integrations() {
 
       toast({
         title: 'Disconnected',
-        description: `Your ${provider === 'google' ? 'Google' : 'Microsoft Outlook'} account has been disconnected.`,
+        description: `Your ${provider === 'google' ? 'Google' : 'Microsoft Outlook'} account and all related data have been removed.`,
       });
 
+      setDisconnectTarget(null);
       fetchConnections();
     } catch (error: any) {
       toast({
@@ -433,6 +444,8 @@ export default function Integrations() {
         description: error.message || 'Failed to disconnect',
         variant: 'destructive',
       });
+    } finally {
+      setDisconnecting(false);
     }
   };
 
@@ -583,7 +596,55 @@ export default function Integrations() {
         </AlertDialogContent>
       </AlertDialog>
 
-      {/* Email & Calendar Settings Tab */}
+      {/* Disconnect Confirmation Dialog */}
+      <AlertDialog open={!!disconnectTarget} onOpenChange={(open) => {
+        if (!open) setDisconnectTarget(null);
+      }}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle className="text-destructive">
+              Disconnect Email Account
+            </AlertDialogTitle>
+            <AlertDialogDescription className="space-y-2">
+              <p>
+                Are you sure you want to disconnect{' '}
+                <strong>{disconnectTarget?.email || 'this account'}</strong>?
+              </p>
+              <p className="text-destructive font-medium">
+                This will permanently delete:
+              </p>
+              <ul className="list-disc list-inside text-sm space-y-1 text-muted-foreground">
+                <li>All categories and rules for this email</li>
+                <li>Email signature and profile settings</li>
+                <li>AI settings and chat history</li>
+                <li>Availability hours configuration</li>
+                <li>Calendar connection</li>
+              </ul>
+              <p className="text-sm text-muted-foreground mt-2">
+                This action cannot be undone.
+              </p>
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={disconnecting}>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleDisconnect}
+              disabled={disconnecting}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              {disconnecting ? (
+                <>
+                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                  Disconnecting...
+                </>
+              ) : (
+                'Disconnect & Delete Data'
+              )}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
       {currentTab === 'settings' && (
         <div className="space-y-8">
           {/* Availability Hours Section */}
@@ -777,7 +838,7 @@ export default function Integrations() {
                               variant="ghost" 
                               size="sm" 
                               className="text-destructive hover:text-destructive h-7 px-2"
-                              onClick={() => handleDisconnect(integration.id, conn.id)}
+                              onClick={() => confirmDisconnect(integration.id, conn.id, conn.connected_email)}
                             >
                               Disconnect
                             </Button>
