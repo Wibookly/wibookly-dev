@@ -452,21 +452,10 @@ export default function Auth() {
                       )}
                       <span className="flex-1 text-left">Continue with Google</span>
                     </Button>
-
-                    <Button
-                      variant="outline"
-                      size="lg"
-                      className="w-full justify-start gap-3 h-14 text-base"
-                      onClick={() => handleOAuthSignup('outlook')}
-                      disabled={connectingProvider !== null}
-                    >
-                      {connectingProvider === 'outlook' ? (
-                        <Loader2 className="w-5 h-5 animate-spin" />
-                      ) : (
-                        <OutlookIcon />
-                      )}
-                      <span className="flex-1 text-left">Continue with Outlook</span>
-                    </Button>
+                    
+                    <p className="text-center text-sm text-muted-foreground pt-2">
+                      Use Outlook? Sign up with Google first, then connect your Outlook account on the Integrations page.
+                    </p>
                   </div>
 
                   <div className="mt-6 p-4 bg-muted/50 rounded-lg">
