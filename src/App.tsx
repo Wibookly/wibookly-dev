@@ -8,6 +8,7 @@ import { ActiveEmailProvider } from "@/contexts/ActiveEmailContext";
 import { SubscriptionProvider } from "@/lib/subscription";
 import Landing from "./pages/Landing";
 import Auth from "./pages/Auth";
+import AuthCallback from "./pages/AuthCallback";
 import { AppLayout } from "./components/app/AppLayout";
 import Integrations from "./pages/Integrations";
 import IntegrationSetup from "./pages/IntegrationSetup";
@@ -37,6 +38,7 @@ const App = () => (
                 <Route path="/" element={<Landing />} />
                 <Route path="/pricing" element={<Pricing />} />
                 <Route path="/auth" element={<Auth />} />
+                <Route path="/auth/callback" element={<AuthCallback />} />
                 <Route path="/reset-password" element={<ResetPassword />} />
                 {/* Backwards-compatible: older links/routes may still use /dashboard */}
                 <Route path="/dashboard" element={<Navigate to="/integrations" replace />} />
