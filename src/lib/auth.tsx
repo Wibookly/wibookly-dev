@@ -1,7 +1,8 @@
 import { createContext, useContext, useEffect, useState, ReactNode } from 'react';
 import { User, Session } from '@supabase/supabase-js';
 import { supabase } from '@/integrations/supabase/client';
-import { organizationNameSchema, emailSchema, passwordSchema, validateField } from '@/lib/validation';
+import { COGNITO_CONFIG } from './cognito-config';
+import { generateCodeVerifier, generateCodeChallenge } from './pkce';
 
 interface UserProfile {
   id: string;
@@ -26,6 +27,7 @@ interface AuthContextType {
   signUp: (email: string, password: string, organizationName: string, fullName: string, title?: string) => Promise<{ error: Error | null }>;
   signIn: (email: string, password: string) => Promise<{ error: Error | null }>;
   signOut: () => Promise<void>;
+  signInWithCognito: (provider?: 'google' | 'microsoft') => Promise<void>;
   setSelectedOrganization: (orgId: string) => void;
 }
 
@@ -39,6 +41,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    // Listen for backend session changes (created by the Cognito bridge)
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
       setSession(session);
       setUser(session?.user ?? null);
@@ -54,6 +57,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       }
     });
 
+    // Check for existing session on mount
     supabase.auth.getSession().then(({ data: { session } }) => {
       setSession(session);
       setUser(session?.user ?? null);
@@ -69,7 +73,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const fetchUserData = async (userId: string) => {
     try {
-      // Use secure RPC function instead of direct table access
       const { data: profileRows } = await supabase.rpc('get_my_profile');
       const profileData = profileRows?.[0];
 
@@ -100,125 +103,75 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   };
 
-  const signUp = async (email: string, password: string, organizationName: string, fullName: string, title?: string) => {
-    try {
-      // Validate inputs
-      const emailValidation = validateField(emailSchema, email);
-      if (!emailValidation.success) {
-        return { error: new Error(emailValidation.error) };
-      }
+  /**
+   * Redirect to AWS Cognito hosted UI for authentication.
+   * Optionally specify a provider to skip the Cognito provider-selection screen.
+   */
+  const signInWithCognito = async (provider?: 'google' | 'microsoft') => {
+    const codeVerifier = generateCodeVerifier();
+    const codeChallenge = await generateCodeChallenge(codeVerifier);
 
-      const passwordValidation = validateField(passwordSchema, password);
-      if (!passwordValidation.success) {
-        return { error: new Error(passwordValidation.error) };
-      }
+    // Store PKCE verifier for the callback
+    sessionStorage.setItem('cognito_code_verifier', codeVerifier);
 
-      const orgNameValidation = validateField(organizationNameSchema, organizationName);
-      if (!orgNameValidation.success) {
-        return { error: new Error(orgNameValidation.error) };
-      }
+    const params = new URLSearchParams({
+      client_id: COGNITO_CONFIG.clientId,
+      response_type: 'code',
+      scope: COGNITO_CONFIG.scopes,
+      redirect_uri: COGNITO_CONFIG.redirectUri,
+      code_challenge_method: 'S256',
+      code_challenge: codeChallenge,
+    });
 
-      const redirectUrl = `${window.location.origin}/`;
-
-      const { data: authData, error: authError } = await supabase.auth.signUp({
-        email: emailValidation.data,
-        password: passwordValidation.data,
-        options: {
-          emailRedirectTo: redirectUrl
-        }
-      });
-
-      if (authError) throw authError;
-      if (!authData.user) throw new Error('No user returned from signup');
-
-      // Create organization with validated name
-      const { data: orgData, error: orgError } = await supabase
-        .from('organizations')
-        .insert({ name: orgNameValidation.data })
-        .select()
-        .single();
-
-      if (orgError) throw orgError;
-
-      // Create user profile with full name and title
-      const { error: profileError } = await supabase
-        .from('user_profiles')
-        .insert({
-          user_id: authData.user.id,
-          organization_id: orgData.id,
-          email: email,
-          full_name: fullName,
-          title: title || null
-        });
-
-      if (profileError) throw profileError;
-
-      // Create user role as admin
-      const { error: roleError } = await supabase
-        .from('user_roles')
-        .insert({
-          user_id: authData.user.id,
-          organization_id: orgData.id,
-          role: 'admin'
-        });
-
-      if (roleError) throw roleError;
-
-      // Create default categories
-      const defaultCategories = [
-        { name: 'Urgent', color: '#ef4444', sort_order: 0 },
-        { name: 'Follow Up', color: '#f97316', sort_order: 1 },
-        { name: 'Approvals', color: '#eab308', sort_order: 2 },
-        { name: 'Events', color: '#22c55e', sort_order: 3 },
-        { name: 'Customers', color: '#3b82f6', sort_order: 4 },
-        { name: 'Vendors', color: '#8b5cf6', sort_order: 5 },
-        { name: 'Internal', color: '#ec4899', sort_order: 6 },
-        { name: 'Projects', color: '#06b6d4', sort_order: 7 },
-        { name: 'Finance', color: '#84cc16', sort_order: 8 },
-        { name: 'FYI', color: '#6b7280', sort_order: 9 }
-      ];
-
-      await supabase
-        .from('categories')
-        .insert(defaultCategories.map(cat => ({ ...cat, organization_id: orgData.id })));
-
-      // Create default AI settings
-      await supabase
-        .from('ai_settings')
-        .insert({
-          organization_id: orgData.id,
-          writing_style: 'professional'
-        });
-
-      return { error: null };
-    } catch (error) {
-      return { error: error as Error };
+    if (provider) {
+      const idpName = provider === 'google'
+        ? COGNITO_CONFIG.identityProviders.google
+        : COGNITO_CONFIG.identityProviders.microsoft;
+      params.set('identity_provider', idpName);
     }
+
+    window.location.href = `${COGNITO_CONFIG.authorizeEndpoint}?${params.toString()}`;
   };
 
-  const signIn = async (email: string, password: string) => {
-    const { error } = await supabase.auth.signInWithPassword({ email, password });
-    return { error };
+  // Legacy sign-up – redirects to Cognito (account creation happens there)
+  const signUp = async (_email: string, _password: string, _orgName: string, _fullName: string, _title?: string) => {
+    await signInWithCognito();
+    return { error: null };
+  };
+
+  // Legacy sign-in – redirects to Cognito
+  const signIn = async (_email: string, _password: string) => {
+    await signInWithCognito();
+    return { error: null };
   };
 
   const signOut = async () => {
     try {
+      // Clear Cognito tokens
+      localStorage.removeItem('cognito_tokens');
+      sessionStorage.removeItem('cognito_code_verifier');
+
+      // Clear backend session
       await supabase.auth.signOut();
+
       setProfile(null);
       setOrganization(null);
       setUser(null);
       setSession(null);
-      // Force redirect to auth page
-      window.location.href = '/auth';
+
+      // Redirect to Cognito logout endpoint (clears SSO session)
+      const logoutParams = new URLSearchParams({
+        client_id: COGNITO_CONFIG.clientId,
+        logout_uri: COGNITO_CONFIG.logoutUri,
+      });
+      window.location.href = `${COGNITO_CONFIG.logoutEndpoint}?${logoutParams.toString()}`;
     } catch (error) {
       console.error('Sign out error:', error);
-      // Force redirect even on error
       window.location.href = '/auth';
     }
   };
 
   const setSelectedOrganization = async (orgId: string) => {
-    // Fetch the organization and update profile context
     try {
       const { data: orgData } = await supabase
         .from('organizations')
@@ -235,7 +188,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   return (
-    <AuthContext.Provider value={{ user, session, profile, organization, loading, signUp, signIn, signOut, setSelectedOrganization }}>
+    <AuthContext.Provider value={{
+      user, session, profile, organization, loading,
+      signUp, signIn, signOut, signInWithCognito, setSelectedOrganization
+    }}>
       {children}
     </AuthContext.Provider>
   );
