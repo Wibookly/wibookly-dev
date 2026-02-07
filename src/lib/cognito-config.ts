@@ -9,7 +9,7 @@ export const COGNITO_CONFIG = {
   domain: 'https://webookly-auth-dev.auth.us-west-2.amazoncognito.com',
 
   /** Cognito App Client ID (public) */
-  clientId: '26l038en94nlshm9rfmmel21no',
+  clientId: '7n6n6ohj1kvuc36op6fooe4da',
 
   /** OAuth scopes */
   scopes: 'openid email profile',
