@@ -63,6 +63,7 @@ const plans = [
       'SLA guarantee',
     ],
     notIncluded: [],
+    showGetStarted: true,
   },
 ];
 
@@ -148,7 +149,7 @@ export function PricingSection() {
                     size="lg"
                     onClick={handleGetStarted}
                   >
-                    {plan.price === null ? 'Contact Sales' : 'Get Started'}
+                    {plan.price === null ? 'Get Started' : 'Get Started'}
                   </Button>
                 </CardFooter>
               </Card>

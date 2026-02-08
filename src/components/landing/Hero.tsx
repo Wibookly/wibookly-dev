@@ -1,8 +1,5 @@
 import { ArrowUpRight } from 'lucide-react';
-
-interface HeroProps {
-  onGetStartedClick: () => void;
-}
+import outlookLogo from '@/assets/outlook-logo.png';
 
 // Official Gmail logo SVG
 const GmailIcon = () => (
@@ -15,22 +12,9 @@ const GmailIcon = () => (
   </svg>
 );
 
-// Official Outlook logo SVG
-const OutlookIcon = () => (
-  <svg viewBox="0 0 48 48" className="w-7 h-7" aria-hidden="true">
-    <path fill="#1976d2" d="M28,13h14.533C43.343,13,44,13.657,44,14.467v19.066C44,34.343,43.343,35,42.533,35H28V13z" />
-    <rect fill="#1565c0" x="28" y="17" width="16" height="16" />
-    <polygon fill="#1565c0" points="28,17 44,17 44,13.533" />
-    <polygon fill="#1e88e5" points="28,35 44,35 44,31" />
-    <rect fill="#42a5f5" x="32" y="21" width="8" height="2" />
-    <rect fill="#42a5f5" x="32" y="25" width="8" height="2" />
-    <rect fill="#42a5f5" x="32" y="29" width="5" height="2" />
-    <path fill="#1565c0" d="M28,35V13L4,17.452V30.548L28,35z" />
-    <path fill="#1976d2" d="M28,35V13L4,17.452V30.548L28,35z" opacity="0.05" />
-    <ellipse fill="#fff" cx="14.5" cy="24" rx="5.5" ry="6.5" />
-    <ellipse fill="#1565c0" cx="14.5" cy="24" rx="4" ry="5" />
-  </svg>
-);
+interface HeroProps {
+  onGetStartedClick: () => void;
+}
 
 export function Hero({ onGetStartedClick }: HeroProps) {
   return (
@@ -72,8 +56,8 @@ export function Hero({ onGetStartedClick }: HeroProps) {
               <div className="w-9 h-9 rounded-full bg-card border border-border flex items-center justify-center shadow-sm">
                 <GmailIcon />
               </div>
-              <div className="w-9 h-9 rounded-full bg-card border border-border flex items-center justify-center shadow-sm">
-                <OutlookIcon />
+              <div className="w-9 h-9 rounded-full bg-card border border-border flex items-center justify-center shadow-sm overflow-hidden">
+                <img src={outlookLogo} alt="Outlook" className="w-7 h-7 object-contain" />
               </div>
             </div>
           </div>
