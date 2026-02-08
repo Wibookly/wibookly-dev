@@ -1,89 +1,15 @@
+import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
-import { Check, Zap, Sparkles, Crown, ArrowLeft } from 'lucide-react';
+import { Check } from 'lucide-react';
 import wibooklyLogo from '@/assets/wibookly-logo.png';
-
-const plans = [
-  {
-    id: 'starter',
-    name: 'Starter',
-    price: 20,
-    description: 'Perfect for individuals getting started with email automation',
-    icon: Zap,
-    features: [
-      '1 connected account',
-      '10 auto drafts daily',
-      '50 AI messages daily',
-      'Chat with 3 months of email history',
-      'Smart email categorization',
-      '10 email categories',
-      'Basic analytics',
-      'Email support',
-    ],
-    notIncluded: [
-      'AI Auto Reply',
-      'Advanced automation rules',
-      'AI email signature',
-      'Advanced AI analytics',
-      'Calendar daily brief',
-      'Advanced AI intelligence',
-    ],
-  },
-  {
-    id: 'professional',
-    name: 'Professional',
-    price: 50,
-    description: 'For professionals who need powerful automation and insights',
-    icon: Sparkles,
-    popular: true,
-    features: [
-      'Up to 6 connected accounts',
-      '30 auto drafts daily',
-      '240 AI messages daily',
-      'Chat with 3 years of email history',
-      'Advanced AI intelligence',
-      
-      'AI Auto Drafts',
-      'AI Auto Reply',
-      'Smart email categorization',
-      '20 email categories',
-      'Advanced automation rules',
-      'AI email signature',
-      'Advanced AI analytics',
-      'Calendar daily brief',
-      'Increase auto draft daily limit',
-      'Increase AI message daily limit',
-      'Increase AI chat daily limit',
-      'Priority support',
-    ],
-    notIncluded: [],
-  },
-  {
-    id: 'enterprise',
-    name: 'Enterprise',
-    price: null,
-    description: 'For teams and organizations with advanced needs',
-    icon: Crown,
-    features: [
-      'Unlimited connected accounts',
-      'Everything in Professional',
-      'Admin dashboard',
-      'Increased auto draft daily limits',
-      'Increased AI message daily limits',
-      'Increased AI chat daily limits',
-      'Advanced reporting',
-      'Team management',
-      'License assignment',
-      'Dedicated account manager',
-      'SLA guarantee',
-    ],
-    notIncluded: [],
-  },
-];
+import { PRICING_PLANS, ANNUAL_DISCOUNT_TIERS, getAnnualPricePerMonth, type BillingInterval } from '@/lib/pricing-config';
+import { BillingToggle } from '@/components/landing/BillingToggle';
 
 export default function Pricing() {
   const navigate = useNavigate();
+  const [billingInterval, setBillingInterval] = useState<BillingInterval>('annual');
 
   const handleGetStarted = () => {
     navigate('/auth');
@@ -116,18 +42,10 @@ export default function Pricing() {
             </nav>
 
             <div className="flex items-center gap-3">
-              <Button 
-                variant="ghost" 
-                size="sm" 
-                onClick={handleGetStarted}
-              >
+              <Button variant="ghost" size="sm" onClick={handleGetStarted}>
                 Sign In
               </Button>
-              <Button 
-                variant="gradient"
-                size="sm" 
-                onClick={handleGetStarted}
-              >
+              <Button variant="gradient" size="sm" onClick={handleGetStarted}>
                 Get Started
               </Button>
             </div>
@@ -138,36 +56,34 @@ export default function Pricing() {
       {/* Main Content */}
       <main className="pt-36 pb-20 px-6">
         <div className="container mx-auto max-w-6xl">
-          {/* Back Link */}
-          <Link 
-            to="/" 
-            className="inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors mb-8"
-          >
-            <ArrowLeft className="w-4 h-4" />
-            Back to Home
-          </Link>
-
           {/* Header */}
           <div className="text-center mb-16">
             <h1 className="text-4xl md:text-5xl font-bold tracking-tight mb-4 text-foreground">
               Simple, transparent pricing
             </h1>
             <p className="text-xl text-muted-foreground max-w-2xl mx-auto">
-              Choose the plan that fits your needs. Upgrade or downgrade anytime.
+              Choose monthly or save more with annual billing.
             </p>
+            <BillingToggle interval={billingInterval} onChange={setBillingInterval} />
           </div>
 
           {/* Pricing Cards */}
           <div className="grid md:grid-cols-3 gap-8">
-            {plans.map((plan) => {
+            {PRICING_PLANS.map((plan) => {
               const Icon = plan.icon;
+              const annualPrice = plan.monthlyPrice
+                ? getAnnualPricePerMonth(plan.monthlyPrice)
+                : null;
+              const displayPrice =
+                billingInterval === 'annual' ? annualPrice : plan.monthlyPrice;
+
               return (
                 <Card 
                   key={plan.id}
                   className={`relative overflow-hidden bg-card border ${plan.popular ? 'border-primary ring-2 ring-primary/20 shadow-lg scale-105' : 'border-border shadow-sm'} rounded-2xl transition-all duration-300 hover:shadow-md`}
                 >
                   {plan.popular && (
-                    <div className="absolute top-0 right-0 bg-[image:var(--gradient-primary)] text-white px-4 py-1 text-xs font-semibold rounded-bl-xl">
+                    <div className="absolute top-0 right-0 bg-[image:var(--gradient-primary)] text-primary-foreground px-4 py-1 text-xs font-semibold rounded-bl-xl">
                       Most Popular
                     </div>
                   )}
@@ -176,16 +92,33 @@ export default function Pricing() {
                       <Icon className="w-6 h-6 text-primary" />
                     </div>
                     <CardTitle className="text-2xl">{plan.name}</CardTitle>
-                    <CardDescription>
-                      {plan.description}
-                    </CardDescription>
+                    <CardDescription>{plan.description}</CardDescription>
                   </CardHeader>
                   <CardContent className="pb-6">
                     <div className="mb-6">
-                      {plan.price !== null ? (
-                        <div className="flex items-baseline gap-1">
-                          <span className="text-4xl font-bold text-foreground">${plan.price}</span>
-                          <span className="text-muted-foreground">/month</span>
+                      {displayPrice !== null ? (
+                        <div>
+                          <div className="flex items-baseline gap-1">
+                            <span className="text-4xl font-bold text-foreground">
+                              ${displayPrice}
+                            </span>
+                            <span className="text-muted-foreground">/month</span>
+                          </div>
+                          {billingInterval === 'annual' && plan.monthlyPrice && (
+                            <div className="mt-1 flex items-center gap-2">
+                              <span className="text-sm text-muted-foreground line-through">
+                                ${plan.monthlyPrice}/mo
+                              </span>
+                              <span className="text-xs font-semibold text-primary bg-primary/10 px-2 py-0.5 rounded-full">
+                                Save 15%
+                              </span>
+                            </div>
+                          )}
+                          {billingInterval === 'annual' && plan.monthlyPrice && (
+                            <p className="text-xs text-muted-foreground mt-1">
+                              Billed ${Math.round(displayPrice * 12)}/year
+                            </p>
+                          )}
                         </div>
                       ) : (
                         <div className="text-2xl font-semibold text-foreground">
@@ -218,12 +151,55 @@ export default function Pricing() {
                       size="lg"
                       onClick={handleGetStarted}
                     >
-                      {plan.price === null ? 'Contact Sales' : 'Get Started'}
+                      {plan.monthlyPrice === null ? 'Contact Sales' : 'Get Started'}
                     </Button>
                   </CardFooter>
                 </Card>
               );
             })}
+          </div>
+
+          {/* Volume Discount Section */}
+          <div className="mt-20 max-w-3xl mx-auto">
+            <div className="bg-card border border-border rounded-2xl p-8">
+              <h2 className="text-2xl font-bold mb-6 text-center text-foreground">
+                {billingInterval === 'annual' ? 'Annual Discounts by Team Size' : 'Volume Discounts'}
+              </h2>
+              {billingInterval === 'annual' ? (
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                  {ANNUAL_DISCOUNT_TIERS.map((tier) => (
+                    <div
+                      key={tier.label}
+                      className="text-center p-4 rounded-xl bg-primary/5 border border-primary/10"
+                    >
+                      <p className="text-sm text-muted-foreground mb-1">{tier.label}</p>
+                      <p className="text-2xl font-bold text-primary">
+                        {Math.round(tier.discount * 100)}%
+                      </p>
+                      <p className="text-xs text-muted-foreground">off</p>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <p className="text-center text-muted-foreground">
+                  Standard pricing applies.
+                  <br />
+                  Volume discounts available for organizations with 100+ users (15% off).
+                </p>
+              )}
+              <div className="mt-6 pt-6 border-t border-border text-center">
+                <p className="text-sm text-muted-foreground">
+                  <strong className="text-foreground">Enterprise (100+ users):</strong> Custom pricing,
+                  priority support, and flexible billing.{' '}
+                  <a
+                    href="mailto:sales@wibookly.com?subject=Enterprise%20Plan%20Inquiry"
+                    className="text-primary hover:underline"
+                  >
+                    Contact sales for a tailored plan.
+                  </a>
+                </p>
+              </div>
+            </div>
           </div>
 
           {/* FAQ Section */}
