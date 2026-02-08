@@ -118,7 +118,7 @@ export function AppSidebar() {
   }, [organization?.id]);
 
   return (
-    <aside className="hidden lg:flex w-72 h-screen bg-card border-r border-border flex-col">
+    <aside className="hidden lg:flex w-72 h-screen bg-[image:var(--gradient-card)] backdrop-blur-md border-r border-border/40 flex-col">
       {/* Logo */}
       <div className="p-5 border-b border-border">
         <img src={wibooklyLogo} alt="Wibookly" className="h-12 w-auto" />

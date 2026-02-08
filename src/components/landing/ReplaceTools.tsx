@@ -43,8 +43,10 @@ const totalCompetitor = competitors.reduce((sum, c) => sum + c.price, 0);
 
 export function ReplaceTools() {
   return (
-    <section className="py-24 md:py-32">
-      <div className="container mx-auto px-6">
+    <section className="relative py-24 md:py-32">
+      <div className="blob-decoration blob-blue w-80 h-80 -bottom-20 -right-20" />
+
+      <div className="container mx-auto px-6 relative z-10">
         <div className="text-center mb-16">
           <h2
             className="text-3xl md:text-4xl lg:text-5xl font-bold tracking-tight"
@@ -60,17 +62,17 @@ export function ReplaceTools() {
         </div>
 
         <div className="max-w-4xl mx-auto">
-          <div className="rounded-2xl border border-border bg-card shadow-sm overflow-hidden">
+          <div className="glass-panel overflow-hidden">
             <div className="grid md:grid-cols-2">
               {/* Left — Competitors */}
-              <div className="p-8 border-b md:border-b-0 md:border-r border-border">
+              <div className="p-8 border-b md:border-b-0 md:border-r border-border/40">
                 <div className="space-y-4">
                   {competitors.map((tool) => (
                     <div
                       key={tool.name}
-                      className="flex items-center gap-4 p-4 rounded-xl border border-border bg-secondary"
+                      className="flex items-center gap-4 p-4 rounded-2xl bg-secondary/40 border border-border/30"
                     >
-                      <div className="w-10 h-10 rounded-lg bg-card border border-border flex items-center justify-center shadow-sm overflow-hidden">
+                      <div className="w-10 h-10 rounded-xl bg-card/80 border border-border/30 flex items-center justify-center shadow-sm overflow-hidden">
                         <img src={tool.logo} alt={tool.name} className="w-7 h-7 object-contain" />
                       </div>
                       <div className="flex-1 min-w-0">
@@ -84,8 +86,7 @@ export function ReplaceTools() {
                   ))}
                 </div>
 
-                {/* Total */}
-                <div className="mt-6 pt-6 border-t border-dashed border-border">
+                <div className="mt-6 pt-6 border-t border-dashed border-border/40">
                   <div className="flex items-center justify-between">
                     <span className="text-sm text-muted-foreground">In total</span>
                     <span className="text-xl font-bold text-foreground">${totalCompetitor}/month</span>
@@ -94,9 +95,9 @@ export function ReplaceTools() {
               </div>
 
               {/* Right — Wibookly */}
-              <div className="p-8 flex flex-col bg-primary/[0.03]">
+              <div className="p-8 flex flex-col bg-primary/[0.04]">
                 <div className="flex items-center gap-3 mb-6">
-                  <div className="w-16 h-16 rounded-xl bg-primary/10 flex items-center justify-center">
+                  <div className="w-16 h-16 rounded-2xl bg-primary/10 flex items-center justify-center">
                     <img src={wibooklyLogo} alt="Wibookly" className="h-12 w-auto" />
                   </div>
                   <div>
@@ -119,8 +120,7 @@ export function ReplaceTools() {
                   ))}
                 </div>
 
-                {/* Total */}
-                <div className="mt-6 pt-6 border-t border-dashed border-border">
+                <div className="mt-6 pt-6 border-t border-dashed border-border/40">
                   <div className="flex items-center justify-between">
                     <span className="text-sm text-muted-foreground">In total</span>
                     <span className="text-xl font-bold text-primary">$20/month</span>

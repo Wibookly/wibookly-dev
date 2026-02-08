@@ -15,8 +15,10 @@ const GmailIcon = () => (
 
 export function HowItWorks() {
   return (
-    <section id="how-it-works" className="py-24 md:py-32">
-      <div className="container mx-auto px-6">
+    <section id="how-it-works" className="relative py-24 md:py-32">
+      <div className="blob-decoration blob-green w-64 h-64 top-0 right-20" />
+
+      <div className="container mx-auto px-6 relative z-10">
         <div className="text-center mb-16">
           <h2
             className="text-3xl md:text-4xl lg:text-5xl font-bold tracking-tight"
@@ -38,23 +40,20 @@ export function HowItWorks() {
                 Securely link your Google or Microsoft account. Wibookly uses OAuth 2.0 — we never see your password.
               </p>
             </div>
-            <div className="rounded-2xl border border-border bg-card p-6 flex flex-col items-center flex-1">
+            <div className="floating-card p-6 flex flex-col items-center flex-1">
               <span className="inline-flex items-center px-4 py-1.5 rounded-full bg-primary/10 text-primary text-xs font-semibold mb-6">
                 Takes 1 min
               </span>
-              {/* Gmail + Outlook on top */}
               <div className="flex items-center gap-5 mb-4">
-                <div className="w-18 h-18 rounded-2xl bg-secondary flex items-center justify-center shadow-sm p-3">
+                <div className="w-18 h-18 rounded-2xl bg-secondary/60 flex items-center justify-center shadow-sm p-3">
                   <GmailIcon />
                 </div>
-                <div className="w-18 h-18 rounded-2xl bg-secondary flex items-center justify-center shadow-sm p-3 overflow-hidden">
+                <div className="w-18 h-18 rounded-2xl bg-secondary/60 flex items-center justify-center shadow-sm p-3 overflow-hidden">
                   <img src={outlookLogo} alt="Outlook" className="w-12 h-12 object-contain" />
                 </div>
               </div>
-              {/* Arrow down */}
               <ArrowDown className="w-5 h-5 text-muted-foreground my-2" />
-              {/* Wibookly at bottom */}
-              <div className="w-20 h-20 rounded-2xl bg-secondary flex items-center justify-center shadow-sm mt-2">
+              <div className="w-20 h-20 rounded-2xl bg-secondary/60 flex items-center justify-center shadow-sm mt-2">
                 <img src={wibooklyLogo} alt="Wibookly" className="h-14 w-auto" />
               </div>
             </div>
@@ -68,40 +67,30 @@ export function HowItWorks() {
                 AI scans your inbox, learns your patterns, and creates smart categories and rules automatically.
               </p>
             </div>
-            <div className="rounded-2xl border border-border bg-card p-6 flex flex-col items-center flex-1">
+            <div className="floating-card-alt p-6 flex flex-col items-center flex-1">
               <span className="inline-flex items-center px-4 py-1.5 rounded-full bg-primary/10 text-primary text-xs font-semibold mb-6">
                 Takes 5 min
               </span>
-              {/* Circular hub layout */}
               <div className="relative w-[200px] h-[200px] flex items-center justify-center">
-                {/* Connecting lines (SVG) */}
                 <svg className="absolute inset-0 w-full h-full" viewBox="0 0 200 200" fill="none">
-                  {/* Lines from center to each icon */}
                   <line x1="100" y1="100" x2="55" y2="35" stroke="hsl(var(--border))" strokeWidth="1.5" strokeDasharray="4 3" />
                   <line x1="100" y1="100" x2="145" y2="35" stroke="hsl(var(--border))" strokeWidth="1.5" strokeDasharray="4 3" />
                   <line x1="100" y1="100" x2="55" y2="165" stroke="hsl(var(--border))" strokeWidth="1.5" strokeDasharray="4 3" />
                   <line x1="100" y1="100" x2="145" y2="165" stroke="hsl(var(--border))" strokeWidth="1.5" strokeDasharray="4 3" />
                 </svg>
-
-                {/* Center — Wibookly */}
-                <div className="w-20 h-20 rounded-2xl bg-secondary flex items-center justify-center shadow-sm z-10">
+                <div className="w-20 h-20 rounded-2xl bg-secondary/60 flex items-center justify-center shadow-sm z-10">
                   <img src={wibooklyLogo} alt="Wibookly" className="h-14 w-auto" />
                 </div>
-
-                {/* Top-left — Tag */}
-                <div className="absolute top-0 left-[15%] w-14 h-14 rounded-xl bg-primary/10 flex items-center justify-center">
+                <div className="absolute top-0 left-[15%] w-14 h-14 rounded-2xl bg-primary/10 flex items-center justify-center">
                   <Tag className="w-6 h-6 text-primary" />
                 </div>
-                {/* Top-right — FolderOpen */}
-                <div className="absolute top-0 right-[15%] w-14 h-14 rounded-xl bg-accent/10 flex items-center justify-center">
+                <div className="absolute top-0 right-[15%] w-14 h-14 rounded-2xl bg-accent/10 flex items-center justify-center">
                   <FolderOpen className="w-6 h-6 text-accent" />
                 </div>
-                {/* Bottom-left — Mail */}
-                <div className="absolute bottom-0 left-[15%] w-14 h-14 rounded-xl bg-primary/10 flex items-center justify-center">
+                <div className="absolute bottom-0 left-[15%] w-14 h-14 rounded-2xl bg-primary/10 flex items-center justify-center">
                   <Mail className="w-6 h-6 text-primary" />
                 </div>
-                {/* Bottom-right — Sparkles */}
-                <div className="absolute bottom-0 right-[15%] w-14 h-14 rounded-xl bg-accent/10 flex items-center justify-center">
+                <div className="absolute bottom-0 right-[15%] w-14 h-14 rounded-2xl bg-accent/10 flex items-center justify-center">
                   <Sparkles className="w-6 h-6 text-accent" />
                 </div>
               </div>
@@ -116,17 +105,16 @@ export function HowItWorks() {
                 AI drafts polished replies for every category. Review, tweak if needed, and send — all in one click.
               </p>
             </div>
-            <div className="rounded-2xl border border-border bg-card p-6 flex flex-col items-center flex-1">
+            <div className="floating-card p-6 flex flex-col items-center flex-1">
               <span className="inline-flex items-center px-4 py-1.5 rounded-full bg-primary/10 text-primary text-xs font-semibold mb-6">
                 Save 2h a day for free
               </span>
-              {/* Mock email draft UI */}
-              <div className="w-full rounded-xl border border-border bg-secondary p-4 text-left space-y-3 flex-1">
+              <div className="w-full rounded-2xl bg-secondary/40 border border-border/40 p-4 text-left space-y-3 flex-1">
                 <div className="flex items-center gap-2 text-sm text-muted-foreground">
                   <span className="font-medium text-foreground">To:</span>
                   <span>john@example.com</span>
                 </div>
-                <div className="h-px bg-border" />
+                <div className="h-px bg-border/40" />
                 <p className="text-sm text-muted-foreground leading-relaxed">
                   Hi John, thanks for reaching out! I'd love to schedule a call to discuss the project timeline...
                 </p>
@@ -152,12 +140,11 @@ export function HowItWorks() {
                 Set rules to auto-reply to common emails. Your AI handles repetitive responses while you focus on priorities.
               </p>
             </div>
-            <div className="rounded-2xl border border-border bg-card p-6 flex flex-col items-center flex-1">
+            <div className="floating-card-alt p-6 flex flex-col items-center flex-1">
               <span className="inline-flex items-center px-4 py-1.5 rounded-full bg-primary/10 text-primary text-xs font-semibold mb-6">
                 Fully automated
               </span>
-              {/* Mock auto-reply UI */}
-              <div className="w-full rounded-xl border border-border bg-secondary p-4 text-left space-y-3 flex-1">
+              <div className="w-full rounded-2xl bg-secondary/40 border border-border/40 p-4 text-left space-y-3 flex-1">
                 <div className="flex items-center gap-2 text-sm">
                   <div className="w-7 h-7 rounded-full bg-primary/10 flex items-center justify-center">
                     <Reply className="w-3.5 h-3.5 text-primary" />
@@ -165,7 +152,7 @@ export function HowItWorks() {
                   <span className="font-medium text-foreground">Auto-replied</span>
                   <span className="text-muted-foreground ml-auto">· 2 min ago</span>
                 </div>
-                <div className="h-px bg-border" />
+                <div className="h-px bg-border/40" />
                 <p className="text-sm text-muted-foreground leading-relaxed">
                   Thank you for your inquiry! I've forwarded this to our scheduling team and you'll hear back within 24h...
                 </p>
