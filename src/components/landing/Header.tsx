@@ -8,48 +8,32 @@ interface HeaderProps {
 
 export function Header({ onSignInClick }: HeaderProps) {
   return (
-    <header className="fixed top-0 left-0 right-0 z-50">
-      <div className="container mx-auto px-6 py-4">
-        <div className="flex items-center justify-between h-14 px-6 rounded-2xl bg-card/80 backdrop-blur-lg border border-border/50 shadow-sm">
-          <Link to="/" className="flex items-center group">
-            <img 
-              src={wibooklyLogo} 
-              alt="WeBookly" 
-              className="h-10 w-auto transition-transform duration-300 group-hover:scale-105" 
-            />
-          </Link>
+    <header className="fixed top-0 left-0 right-0 z-50 flex justify-center pt-4 px-4">
+      <div className="flex items-center gap-6 h-14 px-6 rounded-full bg-card border border-border shadow-sm">
+        <Link to="/" className="flex items-center">
+          <img 
+            src={wibooklyLogo} 
+            alt="WeBookly" 
+            className="h-8 w-auto" 
+          />
+        </Link>
 
-          <nav className="hidden md:flex items-center gap-8">
-            <a href="#how-it-works" className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors">
-              How It Works
-            </a>
-            <a href="#features" className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors">
-              Features
-            </a>
-            <a href="#security" className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors">
-              Security
-            </a>
-            <Link to="/pricing" className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors">
-              Pricing
-            </Link>
-          </nav>
-
-          <div className="flex items-center gap-3">
-            <Button 
-              variant="ghost" 
-              size="sm" 
-              onClick={onSignInClick}
-            >
-              Sign In
-            </Button>
-            <Button 
-              variant="gradient"
-              size="sm" 
-              onClick={onSignInClick}
-            >
-              Get Started
-            </Button>
-          </div>
+        <div className="flex items-center gap-2">
+          <Button 
+            variant="outline" 
+            size="sm" 
+            className="rounded-full px-5"
+            onClick={onSignInClick}
+          >
+            Log In
+          </Button>
+          <Button 
+            size="sm" 
+            className="rounded-full px-5 bg-foreground text-background hover:bg-foreground/90"
+            onClick={onSignInClick}
+          >
+            Get started
+          </Button>
         </div>
       </div>
     </header>
