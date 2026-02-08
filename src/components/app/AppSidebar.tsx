@@ -121,7 +121,7 @@ export function AppSidebar() {
     <aside className="hidden lg:flex w-72 h-screen bg-card border-r border-border flex-col">
       {/* Logo */}
       <div className="p-5 border-b border-border">
-        <img src={wibooklyLogo} alt="Wibookly" className="h-10 w-auto" />
+        <img src={wibooklyLogo} alt="Wibookly" className="h-12 w-auto" />
       </div>
 
       {/* Active Email Selector */}
