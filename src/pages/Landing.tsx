@@ -26,7 +26,7 @@ export default function Landing() {
       <Header onSignInClick={handleSignIn} />
       <main>
         <Hero onGetStartedClick={handleGetStarted} />
-        <HowItWorks onGetStartedClick={handleGetStarted} />
+        <HowItWorks />
         <Features />
         <ToolComparison />
         <Testimonials />
