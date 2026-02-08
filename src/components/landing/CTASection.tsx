@@ -13,7 +13,10 @@ export function CTASection({ onGetStartedClick }: CTASectionProps) {
 
       <div className="container mx-auto px-6 relative z-10">
         <div className="max-w-3xl mx-auto text-center">
-          <h2 className="text-3xl md:text-4xl lg:text-5xl font-bold tracking-tight animate-fade-in">
+          <h2
+            className="text-3xl md:text-4xl lg:text-5xl font-bold tracking-tight animate-fade-in"
+            style={{ fontFamily: "'Playfair Display', Georgia, serif" }}
+          >
             Ready to take control of your inbox?
           </h2>
           <p className="mt-6 text-lg text-muted-foreground max-w-xl mx-auto leading-relaxed animate-fade-in" style={{ animationDelay: '100ms' }}>
