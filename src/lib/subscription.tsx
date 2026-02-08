@@ -23,7 +23,7 @@ export const PLAN_CONFIG = {
     price: 50,
     priceId: 'price_1Sog6BAESvm0s6EqGMDf8sch',
     productId: 'prod_TmEZZY5hzUCPhe',
-    mailboxLimit: 4,
+    mailboxLimit: 6,
     features: {
       aiAutoDrafts: true,
       aiAutoReply: true,
