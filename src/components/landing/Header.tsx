@@ -9,13 +9,13 @@ interface HeaderProps {
 export function Header({ onSignInClick }: HeaderProps) {
   return (
     <header className="fixed top-0 left-0 right-0 z-50 flex justify-center pt-4 px-4">
-      <div className="flex items-center justify-between w-full max-w-2xl h-16 px-8 rounded-full glass-panel">
+      <div className="flex items-center justify-between w-full max-w-3xl h-16 px-8 rounded-full glass-panel">
         {/* Logo — left side */}
-        <Link to="/" className="flex items-center -mb-6">
+        <Link to="/" className="flex items-center">
           <img 
             src={wibooklyLogo} 
             alt="Wibookly" 
-            className="h-[7.5rem] w-auto" 
+            className="h-14 w-auto" 
           />
         </Link>
 
