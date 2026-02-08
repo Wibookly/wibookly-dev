@@ -2,8 +2,9 @@ import { useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '@/lib/auth';
 import { Button } from '@/components/ui/button';
-import { Loader2, ArrowLeft } from 'lucide-react';
+import { Loader2, ArrowLeft, ShieldCheck, Lock, CheckCircle2 } from 'lucide-react';
 import wibooklyLogo from '@/assets/wibookly-logo.png';
+import outlookLogo from '@/assets/outlook-logo.png';
 
 // Google icon component
 const GoogleIcon = () => (
@@ -15,15 +16,17 @@ const GoogleIcon = () => (
   </svg>
 );
 
-// Microsoft icon component
-const MicrosoftIcon = () => (
-  <svg viewBox="0 0 24 24" className="w-5 h-5" aria-hidden="true">
-    <rect x="1" y="1" width="10" height="10" fill="#F25022" />
-    <rect x="13" y="1" width="10" height="10" fill="#7FBA00" />
-    <rect x="1" y="13" width="10" height="10" fill="#00A4EF" />
-    <rect x="13" y="13" width="10" height="10" fill="#FFB900" />
-  </svg>
+// Outlook icon component using imported logo
+const OutlookIcon = ({ logo }: { logo: string }) => (
+  <img src={logo} alt="Outlook" className="w-5 h-5 object-contain" />
 );
+
+const complianceBadges = [
+  { label: 'CASA', sublabel: 'Tier 3 Certified' },
+  { label: 'GDPR', sublabel: 'Aligned' },
+  { label: 'CCPA', sublabel: 'Compliant' },
+  { label: 'SOC 2', sublabel: 'Type 1 Audited' },
+];
 
 export default function Auth() {
   const { user, loading, signInWithCognito } = useAuth();
@@ -44,61 +47,114 @@ export default function Auth() {
   }
 
   return (
-    <div className="min-h-screen bg-[image:var(--gradient-hero)] flex flex-col">
-      <header className="p-6">
-        <Link
-          to="/"
-          className="inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors"
-        >
-          <ArrowLeft className="w-4 h-4" />
-          Back to home
-        </Link>
-      </header>
+    <div className="min-h-screen flex">
+      {/* Left — Sign-in form */}
+      <div className="flex-1 flex flex-col justify-between p-8 md:p-12 lg:p-16 bg-background">
+        {/* Top: Logo + Sign in link */}
+        <div className="flex items-center justify-between">
+          <Link to="/" className="flex items-center">
+            <img src={wibooklyLogo} alt="Wibookly" className="h-12 w-auto" />
+          </Link>
+          <Link
+            to="/"
+            className="text-sm text-muted-foreground hover:text-foreground transition-colors"
+          >
+            ← Back to home
+          </Link>
+        </div>
 
-      <main className="flex-1 flex items-center justify-center p-6">
-        <div className="w-full max-w-md">
-          <div className="bg-card rounded-2xl shadow-lg border border-border p-10">
-            <div className="text-center mb-10">
-              <img src={wibooklyLogo} alt="Wibookly" className="h-12 w-auto mx-auto mb-8" />
-              <h1 className="text-3xl font-bold tracking-tight text-foreground">
-                Welcome back
-              </h1>
-              <p className="mt-2 text-muted-foreground">
-                Sign in to continue to Wibookly
-              </p>
-            </div>
+        {/* Middle: Form */}
+        <div className="max-w-md w-full mx-auto lg:mx-0">
+          <h1
+            className="text-3xl md:text-4xl font-bold tracking-tight text-foreground leading-tight"
+            style={{ fontFamily: "'Playfair Display', Georgia, serif" }}
+          >
+            Sign up with your
+            <br />
+            <span className="text-primary">work email</span>
+          </h1>
+          <p className="mt-4 text-muted-foreground">
+            Use your <span className="font-semibold text-foreground">work email</span> to get started with Wibookly.
+          </p>
 
-            <div className="space-y-3">
-              <Button
-                variant="outline"
-                size="lg"
-                className="w-full justify-start gap-3 h-13 text-base rounded-xl"
-                onClick={() => signInWithCognito('google')}
-              >
-                <GoogleIcon />
-                <span className="flex-1 text-left">Continue with Google</span>
-              </Button>
+          <div className="mt-8 space-y-3">
+            <Button
+              variant="outline"
+              size="lg"
+              className="w-full justify-center gap-3 h-14 text-base rounded-xl border-border hover:bg-secondary transition-colors"
+              onClick={() => signInWithCognito('google')}
+            >
+              <GoogleIcon />
+              Continue with Google
+            </Button>
 
-              <Button
-                variant="outline"
-                size="lg"
-                className="w-full justify-start gap-3 h-13 text-base rounded-xl"
-                onClick={() => signInWithCognito('microsoft')}
-              >
-                <MicrosoftIcon />
-                <span className="flex-1 text-left">Continue with Microsoft</span>
-              </Button>
-            </div>
-
-            <p className="mt-10 text-center text-xs text-muted-foreground leading-relaxed">
-              By continuing, you agree to our{' '}
-              <Link to="/terms" className="text-primary hover:underline">Terms of Service</Link>
-              {' '}and{' '}
-              <Link to="/privacy" className="text-primary hover:underline">Privacy Policy</Link>.
-            </p>
+            <Button
+              variant="outline"
+              size="lg"
+              className="w-full justify-center gap-3 h-14 text-base rounded-xl border-border hover:bg-secondary transition-colors"
+              onClick={() => signInWithCognito('microsoft')}
+            >
+              <OutlookIcon logo={outlookLogo} />
+              Continue with Outlook
+            </Button>
           </div>
         </div>
-      </main>
+
+        {/* Bottom: Compliance badges */}
+        <div className="mt-12">
+          <div className="flex items-center gap-6 mb-4">
+            {complianceBadges.map((badge) => (
+              <div key={badge.label} className="flex flex-col items-center text-center">
+                <div className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center mb-1">
+                  {badge.label === 'SOC 2' ? (
+                    <ShieldCheck className="w-4 h-4 text-primary" />
+                  ) : badge.label === 'GDPR' ? (
+                    <Lock className="w-4 h-4 text-primary" />
+                  ) : (
+                    <CheckCircle2 className="w-4 h-4 text-primary" />
+                  )}
+                </div>
+                <span className="text-xs font-semibold text-foreground">{badge.label}</span>
+                <span className="text-[10px] text-muted-foreground">{badge.sublabel}</span>
+              </div>
+            ))}
+          </div>
+          <p className="text-xs text-muted-foreground leading-relaxed max-w-md">
+            Wibookly has undergone a SOC 2® Type 1 examination and complies with GDPR, CCPA, and CASA Tier 3 requirements. By signing up, you agree to the Wibookly{' '}
+            <Link to="/privacy" className="text-primary hover:underline">Privacy Policy</Link> and{' '}
+            <Link to="/terms" className="text-primary hover:underline">Terms of Service</Link>.
+          </p>
+        </div>
+      </div>
+
+      {/* Right — Testimonial + gradient (hidden on mobile) */}
+      <div
+        className="hidden lg:flex flex-1 items-center justify-center p-12"
+        style={{
+          background: 'linear-gradient(135deg, hsl(150 40% 92%) 0%, hsl(180 40% 88%) 30%, hsl(210 50% 90%) 60%, hsl(170 35% 85%) 100%)',
+        }}
+      >
+        <div className="max-w-md bg-card/90 backdrop-blur-sm rounded-2xl shadow-lg border border-border p-10">
+          <div className="text-4xl text-primary/30 mb-4" style={{ fontFamily: "'Playfair Display', Georgia, serif" }}>
+            "
+          </div>
+          <p
+            className="text-xl md:text-2xl font-medium text-foreground leading-relaxed mb-8"
+            style={{ fontFamily: "'Playfair Display', Georgia, serif" }}
+          >
+            I'm impressed by how good the generated replies are. It's just like myself. And I hardly ever need to edit them. I'm saving hours a week on email.
+          </p>
+          <div className="flex items-center gap-4">
+            <div className="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center">
+              <span className="text-lg font-bold text-primary">S</span>
+            </div>
+            <div>
+              <div className="font-semibold text-foreground">Sarah Mitchell</div>
+              <div className="text-sm text-muted-foreground">VP of Sales, TechCorp</div>
+            </div>
+          </div>
+        </div>
+      </div>
     </div>
   );
 }

@@ -80,7 +80,7 @@ export function PricingSection() {
         <div className="text-center mb-16">
           <h2
             className="text-3xl md:text-4xl lg:text-5xl font-bold tracking-tight"
-            style={{ fontFamily: "'Georgia', 'Times New Roman', serif" }}
+            style={{ fontFamily: "'Playfair Display', Georgia, serif" }}
           >
             Simple, <span className="text-primary">transparent</span> pricing
           </h2>
