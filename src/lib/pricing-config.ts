@@ -23,6 +23,7 @@ export interface PricingPlan {
   priceLabel?: string;
   features: string[];
   notIncluded: string[];
+  showAnnualDiscount?: boolean;
 }
 
 export const PRICING_PLANS: PricingPlan[] = [
@@ -32,6 +33,7 @@ export const PRICING_PLANS: PricingPlan[] = [
     monthlyPrice: 20,
     description: 'Perfect for individuals getting started with email automation',
     icon: Zap,
+    showAnnualDiscount: true,
     features: [
       '1 connected account',
       '10 auto drafts daily',
@@ -52,12 +54,13 @@ export const PRICING_PLANS: PricingPlan[] = [
     ],
   },
   {
-    id: 'professional',
-    name: 'Professional',
+    id: 'pro',
+    name: 'Pro',
     monthlyPrice: 50,
     description: 'For professionals who need powerful automation and insights',
     icon: Sparkles,
     popular: true,
+    showAnnualDiscount: true,
     features: [
       'Up to 6 connected accounts',
       '30 auto drafts daily',
@@ -86,9 +89,10 @@ export const PRICING_PLANS: PricingPlan[] = [
     priceLabel: 'Custom Pricing',
     description: 'For teams and organizations with advanced needs',
     icon: Crown,
+    showAnnualDiscount: false,
     features: [
       'Unlimited connected accounts',
-      'Everything in Professional',
+      'Everything in Pro',
       'Admin dashboard',
       'Increased auto draft daily limits',
       'Increased AI message daily limits',

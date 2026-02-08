@@ -103,16 +103,16 @@ export function SubscriptionCard() {
         <div className="flex gap-2 pt-2">
           {plan !== 'enterprise' && (
             <Button 
-              onClick={() => handleUpgrade(plan === 'starter' ? 'professional' : 'enterprise')}
+              onClick={() => handleUpgrade(plan === 'starter' ? 'pro' : 'enterprise')}
               disabled={loading !== null}
               className="flex-1"
               size="sm"
             >
               <Sparkles className="w-4 h-4 mr-2" />
-              {loading === (plan === 'starter' ? 'professional' : 'enterprise') 
+              {loading === (plan === 'starter' ? 'pro' : 'enterprise') 
                 ? 'Loading...' 
                 : plan === 'starter' 
-                  ? 'Upgrade to Professional' 
+                  ? 'Upgrade to Pro' 
                   : 'Contact Sales'}
             </Button>
           )}
