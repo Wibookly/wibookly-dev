@@ -85,7 +85,7 @@ export const PRICING_PLANS: PricingPlan[] = [
   },
   {
     id: 'enterprise',
-    name: 'Enterprise',
+    name: 'Business',
     monthlyPrice: null,
     priceLabel: 'Volume Pricing',
     description: 'For growing teams of 6+ users with volume discounts',

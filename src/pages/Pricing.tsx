@@ -145,15 +145,24 @@ export default function Pricing() {
                       ))}
                     </ul>
                   </CardContent>
-                  <CardFooter>
+                  <CardFooter className="flex-col gap-2">
                     <Button 
                       className="w-full"
                       variant={plan.popular ? 'gradient' : 'outline'}
                       size="lg"
                       onClick={handleGetStarted}
                     >
-                      {plan.monthlyPrice === null ? 'Contact Sales' : 'Get Started'}
+                      {plan.id === 'starter'
+                        ? 'Start your free trial'
+                        : plan.id === 'pro'
+                          ? 'Try Pro – full power unlocked'
+                          : 'Get Started'}
                     </Button>
+                    {(plan.id === 'starter' || plan.id === 'pro') && (
+                      <p className="text-xs text-muted-foreground text-center">
+                        Your 3-day free trial included – cancel anytime
+                      </p>
+                    )}
                   </CardFooter>
                 </Card>
               );
