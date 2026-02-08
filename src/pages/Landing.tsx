@@ -4,6 +4,7 @@ import { Hero } from '@/components/landing/Hero';
 import { HowItWorks } from '@/components/landing/HowItWorks';
 import { Features } from '@/components/landing/Features';
 import { Security } from '@/components/landing/Security';
+import { CTASection } from '@/components/landing/CTASection';
 import { Footer } from '@/components/landing/Footer';
 
 export default function Landing() {
@@ -18,13 +19,14 @@ export default function Landing() {
   };
 
   return (
-    <div className="min-h-screen bg-[image:var(--gradient-hero)]">
+    <div className="min-h-screen bg-background">
       <Header onSignInClick={handleSignIn} />
       <main>
         <Hero onGetStartedClick={handleGetStarted} />
         <HowItWorks />
         <Features />
         <Security />
+        <CTASection onGetStartedClick={handleGetStarted} />
       </main>
       <Footer />
     </div>

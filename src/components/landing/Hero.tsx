@@ -1,5 +1,5 @@
 import { Button } from '@/components/ui/button';
-import { ArrowRight, Sparkles, Mail, FolderOpen } from 'lucide-react';
+import { ArrowRight, Mail, FolderOpen, Sparkles, Bot } from 'lucide-react';
 
 interface HeroProps {
   onGetStartedClick: () => void;
@@ -7,73 +7,85 @@ interface HeroProps {
 
 export function Hero({ onGetStartedClick }: HeroProps) {
   return (
-    <section className="pt-32 pb-16 md:pt-44 md:pb-24 overflow-hidden">
+    <section className="pt-36 pb-20 md:pt-48 md:pb-32 bg-[image:var(--gradient-hero)] overflow-hidden">
       <div className="container mx-auto px-6">
-        <div className="max-w-3xl mx-auto text-center">
+        <div className="max-w-4xl mx-auto text-center">
+          {/* Badge */}
+          <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-primary/10 border border-primary/20 mb-8 animate-fade-in">
+            <Bot className="w-4 h-4 text-primary" />
+            <span className="text-sm font-medium text-primary">AI-Powered Email Management</span>
+          </div>
+
           {/* Headline */}
-          <h1 className="text-4xl md:text-5xl lg:text-6xl font-semibold tracking-tight leading-[1.1] animate-fade-in text-foreground">
-            Your inbox, organized
+          <h1 className="text-5xl md:text-6xl lg:text-7xl font-extrabold tracking-tight leading-[1.05] animate-fade-in text-foreground">
+            Your inbox,{' '}
+            <span className="bg-[image:var(--gradient-primary)] bg-clip-text text-transparent">
+              organized
+            </span>
             <br />
             and handled for you.
           </h1>
           
           {/* Sub-headline */}
-          <p className="mt-8 text-xl md:text-2xl text-muted-foreground max-w-2xl mx-auto leading-relaxed animate-fade-in" style={{ animationDelay: '100ms' }}>
-            Wibookly brings clarity to your inbox by organizing messages, creating smart categories, and drafting thoughtful replies — all with AI working quietly in the background.
+          <p className="mt-8 text-lg md:text-xl text-muted-foreground max-w-2xl mx-auto leading-relaxed animate-fade-in" style={{ animationDelay: '100ms' }}>
+            WeBookly brings clarity to your inbox by organizing messages, creating smart categories, and drafting thoughtful replies — all with AI working quietly in the background.
           </p>
           
-          {/* CTA Button */}
-          <div className="mt-10 animate-fade-in" style={{ animationDelay: '200ms' }}>
+          {/* CTA Buttons */}
+          <div className="mt-10 flex flex-col sm:flex-row items-center justify-center gap-4 animate-fade-in" style={{ animationDelay: '200ms' }}>
             <Button 
-              size="lg" 
-              className="group px-8 py-6 text-base font-medium"
+              variant="gradient"
+              size="xl" 
+              className="group"
               onClick={onGetStartedClick}
             >
-              Get Started
-              <ArrowRight className="ml-2 h-4 w-4 transition-transform group-hover:translate-x-1" />
+              Get Started Free
+              <ArrowRight className="ml-2 h-5 w-5 transition-transform group-hover:translate-x-1" />
+            </Button>
+            <Button 
+              variant="outline" 
+              size="xl"
+              onClick={() => document.getElementById('how-it-works')?.scrollIntoView({ behavior: 'smooth' })}
+            >
+              See How It Works
             </Button>
           </div>
           
           {/* Trust line */}
-          <p className="mt-6 text-sm text-muted-foreground/70 animate-fade-in" style={{ animationDelay: '300ms' }}>
-            You stay in control.
+          <p className="mt-6 text-sm text-muted-foreground animate-fade-in" style={{ animationDelay: '300ms' }}>
+            No credit card required · Free plan available · You stay in control
           </p>
         </div>
 
-        {/* AI Visual Element */}
-        <div className="mt-16 max-w-4xl mx-auto animate-fade-in" style={{ animationDelay: '400ms' }}>
-          <div className="relative rounded-2xl bg-card/50 backdrop-blur-sm border border-border/50 p-8 md:p-12">
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-              {/* Inbox Card */}
-              <div className="flex flex-col items-center text-center p-6 rounded-xl bg-background/50 border border-border/30">
-                <div className="w-14 h-14 rounded-full bg-primary/10 flex items-center justify-center mb-4">
-                  <Mail className="w-7 h-7 text-primary" />
-                </div>
-                <h3 className="font-medium text-foreground mb-2">Smart Inbox</h3>
-                <p className="text-sm text-muted-foreground">Emails sorted automatically</p>
+        {/* Feature Cards Preview */}
+        <div className="mt-20 max-w-5xl mx-auto animate-fade-in" style={{ animationDelay: '400ms' }}>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            {/* Smart Inbox */}
+            <div className="group p-8 rounded-2xl bg-card border border-border shadow-sm hover:shadow-md hover:-translate-y-1 transition-all duration-300">
+              <div className="w-12 h-12 rounded-xl bg-primary/10 flex items-center justify-center mb-5">
+                <Mail className="w-6 h-6 text-primary" />
               </div>
-              
-              {/* Categories Card */}
-              <div className="flex flex-col items-center text-center p-6 rounded-xl bg-background/50 border border-border/30">
-                <div className="w-14 h-14 rounded-full bg-accent/20 flex items-center justify-center mb-4">
-                  <FolderOpen className="w-7 h-7 text-accent-foreground" />
-                </div>
-                <h3 className="font-medium text-foreground mb-2">Categories</h3>
-                <p className="text-sm text-muted-foreground">Organized by context</p>
-              </div>
-              
-              {/* AI Draft Card */}
-              <div className="flex flex-col items-center text-center p-6 rounded-xl bg-background/50 border border-border/30">
-                <div className="w-14 h-14 rounded-full bg-success/20 flex items-center justify-center mb-4">
-                  <Sparkles className="w-7 h-7 text-success" />
-                </div>
-                <h3 className="font-medium text-foreground mb-2">AI Drafts</h3>
-                <p className="text-sm text-muted-foreground">Replies ready for review</p>
-              </div>
+              <h3 className="text-lg font-semibold text-foreground mb-2">Smart Inbox</h3>
+              <p className="text-muted-foreground leading-relaxed">Emails sorted and organized automatically by AI</p>
             </div>
             
-            {/* Decorative glow */}
-            <div className="absolute -inset-1 bg-gradient-to-r from-primary/20 via-transparent to-accent/20 rounded-2xl blur-xl -z-10" />
+            {/* Categories */}
+            <div className="group p-8 rounded-2xl bg-card border border-border shadow-sm hover:shadow-md hover:-translate-y-1 transition-all duration-300">
+              <div className="w-12 h-12 rounded-xl bg-accent/10 flex items-center justify-center mb-5">
+                <FolderOpen className="w-6 h-6 text-accent" />
+              </div>
+              <h3 className="text-lg font-semibold text-foreground mb-2">Categories</h3>
+              <p className="text-muted-foreground leading-relaxed">Custom categories organized by context and priority</p>
+            </div>
+            
+            {/* AI Drafts */}
+            <div className="group p-8 rounded-2xl bg-card border border-border shadow-sm hover:shadow-md hover:-translate-y-1 transition-all duration-300">
+              <div className="w-12 h-12 rounded-xl bg-primary/10 flex items-center justify-center mb-5">
+                <Sparkles className="w-6 h-6 text-primary" />
+              </div>
+              <h3 className="text-lg font-semibold text-foreground mb-2">AI Drafts</h3>
+              <p className="text-muted-foreground leading-relaxed">Intelligent replies ready for your review and approval</p>
+            </div>
           </div>
         </div>
       </div>
