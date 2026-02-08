@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { useNavigate, Link, useSearchParams } from 'react-router-dom';
 import { useAuth } from '@/lib/auth';
 import { Button } from '@/components/ui/button';
-import { Loader2, ShieldCheck, Lock, CheckCircle2 } from 'lucide-react';
+import { Loader2 } from 'lucide-react';
 import wibooklyLogo from '@/assets/wibookly-logo.png';
 import outlookLogo from '@/assets/outlook-logo.png';
 
@@ -54,12 +54,6 @@ const testimonials = [
   },
 ];
 
-const complianceBadges = [
-  { label: 'CASA', sublabel: 'Tier 3 Certified' },
-  { label: 'GDPR', sublabel: 'Aligned' },
-  { label: 'CCPA', sublabel: 'Compliant' },
-  { label: 'SOC 2', sublabel: 'Type 1 Audited' },
-];
 
 export default function Auth() {
   const { user, loading, signInWithCognito } = useAuth();
@@ -197,22 +191,61 @@ export default function Auth() {
 
         {/* Bottom: Compliance badges */}
         <div className="mt-12 flex flex-col items-center">
-          <div className="flex items-center gap-6 mb-4">
-            {complianceBadges.map((badge) => (
-              <div key={badge.label} className="flex flex-col items-center text-center">
-                <div className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center mb-1">
-                  {badge.label === 'SOC 2' ? (
-                    <ShieldCheck className="w-4 h-4 text-primary" />
-                  ) : badge.label === 'GDPR' ? (
-                    <Lock className="w-4 h-4 text-primary" />
-                  ) : (
-                    <CheckCircle2 className="w-4 h-4 text-primary" />
-                  )}
-                </div>
-                <span className="text-xs font-semibold text-foreground">{badge.label}</span>
-                <span className="text-[10px] text-muted-foreground">{badge.sublabel}</span>
+          <div className="flex items-center gap-8 mb-4">
+            {/* CASA — Shield with checkmark */}
+            <div className="flex flex-col items-center text-center">
+              <div className="w-12 h-12 flex items-center justify-center mb-1.5">
+                <svg viewBox="0 0 40 40" className="w-10 h-10" fill="none">
+                  <path d="M20 3L5 10V19C5 28.94 11.4 38.12 20 40C28.6 38.12 35 28.94 35 19V10L20 3Z" fill="hsl(var(--primary) / 0.12)" stroke="hsl(var(--primary))" strokeWidth="1.5"/>
+                  <path d="M15 20L18.5 23.5L26 16" stroke="hsl(var(--primary))" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"/>
+                </svg>
               </div>
-            ))}
+              <span className="text-xs font-semibold text-foreground">CASA</span>
+              <span className="text-[10px] text-muted-foreground">Tier 3 Certified</span>
+            </div>
+
+            {/* GDPR — Lock with EU stars circle */}
+            <div className="flex flex-col items-center text-center">
+              <div className="w-12 h-12 flex items-center justify-center mb-1.5">
+                <svg viewBox="0 0 40 40" className="w-10 h-10" fill="none">
+                  {[0, 30, 60, 90, 120, 150, 180, 210, 240, 270, 300, 330].map((angle) => {
+                    const rad = (angle * Math.PI) / 180;
+                    const cx = 20 + 14 * Math.cos(rad - Math.PI / 2);
+                    const cy = 20 + 14 * Math.sin(rad - Math.PI / 2);
+                    return <circle key={angle} cx={cx} cy={cy} r="1.2" fill="hsl(var(--primary))" />;
+                  })}
+                  <rect x="14" y="19" width="12" height="10" rx="2" fill="hsl(var(--primary) / 0.12)" stroke="hsl(var(--primary))" strokeWidth="1.5"/>
+                  <path d="M16.5 19V15.5C16.5 13.57 18.07 12 20 12C21.93 12 23.5 13.57 23.5 15.5V19" stroke="hsl(var(--primary))" strokeWidth="1.5" strokeLinecap="round"/>
+                  <circle cx="20" cy="24" r="1.5" fill="hsl(var(--primary))"/>
+                </svg>
+              </div>
+              <span className="text-xs font-semibold text-foreground">GDPR</span>
+              <span className="text-[10px] text-muted-foreground">Aligned</span>
+            </div>
+
+            {/* CCPA — California state outline */}
+            <div className="flex flex-col items-center text-center">
+              <div className="w-12 h-12 flex items-center justify-center mb-1.5">
+                <svg viewBox="0 0 40 40" className="w-10 h-10" fill="none">
+                  <path d="M14 6C14 6 12 8 11 11C10 14 9 16 9 18C9 20 10 23 11 25C12 27 13 29 14 31C15 33 16 35 18 36C20 37 22 36 23 35C24 34 25 32 26 30C27 28 28 26 29 24C30 22 31 20 31 18C31 16 30 13 29 11C28 9 27 8 26 7C25 6 23 5 21 5C19 5 16 5 14 6Z" fill="hsl(var(--primary) / 0.12)" stroke="hsl(var(--primary))" strokeWidth="1.5"/>
+                  <path d="M16 20L19 23L25 17" stroke="hsl(var(--primary))" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                </svg>
+              </div>
+              <span className="text-xs font-semibold text-foreground">CCPA</span>
+              <span className="text-[10px] text-muted-foreground">Compliant</span>
+            </div>
+
+            {/* SOC 2 — Shield with checkmark */}
+            <div className="flex flex-col items-center text-center">
+              <div className="w-12 h-12 flex items-center justify-center mb-1.5">
+                <svg viewBox="0 0 40 40" className="w-10 h-10" fill="none">
+                  <path d="M20 3L6 9V18.5C6 28.5 12 36.5 20 39C28 36.5 34 28.5 34 18.5V9L20 3Z" fill="hsl(var(--primary) / 0.12)" stroke="hsl(var(--primary))" strokeWidth="1.5"/>
+                  <path d="M14.5 20.5L18 24L25.5 16.5" stroke="hsl(var(--primary))" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"/>
+                </svg>
+              </div>
+              <span className="text-xs font-semibold text-foreground">SOC 2</span>
+              <span className="text-[10px] text-muted-foreground">Type 1 Audited</span>
+            </div>
           </div>
           <p className="text-xs text-muted-foreground leading-relaxed max-w-md text-center">
             Wibookly has undergone a SOC 2® Type 1 examination and complies with GDPR, CCPA, and CASA Tier 3 requirements. By signing up, you agree to the Wibookly{' '}
