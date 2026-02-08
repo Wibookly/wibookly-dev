@@ -35,7 +35,7 @@ const features = [
 
 export function Features() {
   return (
-    <section id="features" className="py-24 md:py-32 bg-[image:var(--gradient-subtle)]">
+    <section id="features" className="py-24 md:py-32">
       <div className="container mx-auto px-6">
         <div className="text-center mb-16">
           <div className="inline-flex items-center px-4 py-1.5 rounded-full bg-accent/10 border border-accent/20 mb-6 animate-fade-in">

@@ -21,15 +21,27 @@ export default function Landing() {
   };
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen ocean-bg">
       <Header onSignInClick={handleSignIn} />
       <main>
-        <Hero onGetStartedClick={handleGetStarted} />
-        <HowItWorks />
-        <Features />
-        <ReplaceTools />
-        <PricingSection />
-        <Security />
+        <div className="section-divider">
+          <Hero onGetStartedClick={handleGetStarted} />
+        </div>
+        <div className="section-divider">
+          <HowItWorks />
+        </div>
+        <div className="section-divider">
+          <Features />
+        </div>
+        <div className="section-divider">
+          <ReplaceTools />
+        </div>
+        <div className="section-divider">
+          <PricingSection />
+        </div>
+        <div className="section-divider">
+          <Security />
+        </div>
         <CTASection onGetStartedClick={handleGetStarted} />
       </main>
       <Footer />
