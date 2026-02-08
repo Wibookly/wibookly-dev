@@ -69,7 +69,7 @@ export function ToolComparison() {
             <span className="inline-block px-4 py-1.5 rounded-full bg-card/70 text-primary text-sm font-medium mb-4 border border-primary/20 shadow-sm">
               Why Wibookly?
             </span>
-            <h2 className="text-3xl md:text-4xl lg:text-5xl font-semibold tracking-tight text-foreground leading-tight">
+            <h2 className="text-3xl md:text-4xl lg:text-5xl font-bold tracking-tight text-foreground leading-tight">
               Replace 4 tools with one
               <br />
               <span className="text-primary">intelligent assistant.</span>
@@ -80,7 +80,7 @@ export function ToolComparison() {
           </div>
 
           {/* Comparison Card */}
-          <div className="rounded-3xl bg-card/50 backdrop-blur-sm border border-card/60 p-6 md:p-10 lg:p-14 shadow-xl animate-fade-in" style={{ animationDelay: '200ms' }}>
+          <div className="rounded-3xl bg-card/50 backdrop-blur-sm border border-border/30 p-6 md:p-10 lg:p-14 shadow-xl animate-fade-in" style={{ animationDelay: '200ms' }}>
             <div className="grid grid-cols-1 lg:grid-cols-[1fr_auto_1fr] gap-8 lg:gap-6 items-center">
               
               {/* Left: Competitors */}
@@ -89,7 +89,7 @@ export function ToolComparison() {
                 {competitors.map((comp) => (
                   <div
                     key={comp.name}
-                    className="flex items-center justify-between p-4 rounded-2xl border border-border/40 bg-card/70 shadow-sm hover:shadow-md transition-shadow"
+                    className="flex items-center justify-between p-4 rounded-2xl border border-border/30 bg-card/70 shadow-sm hover:shadow-md transition-shadow"
                   >
                     <div className="flex items-center gap-3">
                       <div className={`w-10 h-10 rounded-xl ${comp.bg} flex items-center justify-center`}>
@@ -125,8 +125,8 @@ export function ToolComparison() {
               {/* Right: Wibookly */}
               <div className="space-y-5">
                 <div className="flex flex-col items-center mb-6">
-                  <div className="w-28 h-28 rounded-3xl bg-gradient-to-br from-primary/20 to-success/20 border-2 border-primary/30 flex items-center justify-center shadow-lg mb-3">
-                    <img src={wibooklyLogo} alt="Wibookly" className="w-16 h-16 object-contain" />
+                  <div className="w-24 h-24 rounded-3xl bg-gradient-to-br from-primary/20 to-success/20 border-2 border-primary/30 flex items-center justify-center shadow-lg mb-3">
+                    <img src={wibooklyLogo} alt="Wibookly" className="w-14 h-14 object-contain" />
                   </div>
                   <h3 className="text-lg font-bold text-foreground">Wibookly</h3>
                   <p className="text-sm text-muted-foreground">All-in-one email assistant</p>

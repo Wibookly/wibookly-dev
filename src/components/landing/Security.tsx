@@ -1,142 +1,103 @@
-import { Shield, Key, Lock, CheckCircle2, Eye, Server, FileCheck } from 'lucide-react';
+import { Shield, Lock, Eye, Server, CheckCircle2 } from 'lucide-react';
 
-const securityFeatures = [
+const securityCards = [
   {
-    icon: Key,
-    title: 'OAuth-based Access',
-    description: 'We use industry-standard OAuth 2.0 for all email provider connections. Your credentials stay with Microsoft and Google — we never see them.',
+    icon: Shield,
+    title: 'SOC 2 Type II',
+    description: 'Audited and certified to meet the highest standards for data security, availability, and confidentiality.',
     iconColor: 'text-primary',
-    iconBg: 'bg-primary/15',
+    iconBg: 'bg-primary/20',
   },
   {
     icon: Lock,
-    title: 'No Password Storage',
-    description: 'We never ask for or store your email password. Access is granted through secure tokens that can be revoked at any time from your email provider.',
-    iconColor: 'text-accent-foreground',
-    iconBg: 'bg-accent/20',
-  },
-  {
-    icon: Shield,
-    title: 'Enterprise-grade Encryption',
-    description: 'All data is encrypted with 256-bit AES encryption at rest and TLS 1.3 in transit. Your emails and personal data are always protected.',
+    title: 'End-to-End Encryption',
+    description: 'All data encrypted with AES-256 at rest and TLS 1.3 in transit. Your emails are protected at every step.',
     iconColor: 'text-success',
-    iconBg: 'bg-success/15',
-  },
-  {
-    icon: Eye,
-    title: 'Privacy by Design',
-    description: 'We follow privacy-by-design principles. Your data is never sold, shared with third parties, or used for advertising purposes.',
-    iconColor: 'text-warning',
-    iconBg: 'bg-warning/15',
+    iconBg: 'bg-success/20',
   },
   {
     icon: Server,
-    title: 'Secure Infrastructure',
+    title: 'Enterprise Infrastructure',
     description: 'Hosted on enterprise-grade cloud infrastructure with automatic failover, DDoS protection, and 99.9% uptime SLA.',
     iconColor: 'text-primary',
-    iconBg: 'bg-primary/15',
+    iconBg: 'bg-primary/20',
   },
   {
-    icon: FileCheck,
-    title: 'Regular Security Audits',
-    description: 'Our systems undergo regular penetration testing and security audits by independent third-party firms to ensure the highest standards.',
+    icon: Eye,
+    title: 'Privacy First',
+    description: 'Your data is never sold, shared with third parties, or used for advertising. We follow privacy-by-design principles.',
     iconColor: 'text-success',
-    iconBg: 'bg-success/15',
+    iconBg: 'bg-success/20',
   },
 ];
 
 const complianceBadges = [
-  {
-    name: 'SOC 2 Type II',
-    description: 'Certified',
-    icon: Shield,
-    color: 'text-primary',
-    bg: 'bg-primary/10',
-  },
-  {
-    name: 'GDPR',
-    description: 'Compliant',
-    icon: FileCheck,
-    color: 'text-success',
-    bg: 'bg-success/10',
-  },
-  {
-    name: 'AES-256',
-    description: 'Encryption',
-    icon: Lock,
-    color: 'text-accent-foreground',
-    bg: 'bg-accent/10',
-  },
-  {
-    name: 'ISO 27001',
-    description: 'Standards',
-    icon: Key,
-    color: 'text-warning',
-    bg: 'bg-warning/10',
-  },
+  { name: 'SOC 2', label: 'Type II Certified' },
+  { name: 'GDPR', label: 'Compliant' },
+  { name: 'AES-256', label: 'Encryption' },
+  { name: 'ISO 27001', label: 'Standards' },
+  { name: 'OAuth 2.0', label: 'Secure Access' },
+  { name: 'CCPA', label: 'Compliant' },
 ];
 
 export function Security() {
   return (
-    <section id="security" className="py-24 md:py-36">
+    <section id="security" className="py-20 md:py-32">
       <div className="container mx-auto px-6">
         <div className="max-w-6xl mx-auto">
-          {/* Dark security banner */}
-          <div className="rounded-3xl bg-foreground text-background px-8 py-16 md:px-16 md:py-20 text-center mb-14 shadow-xl animate-fade-in">
-            <div className="inline-flex items-center justify-center w-20 h-20 rounded-2xl bg-primary/20 mb-8">
-              <Shield className="w-10 h-10 text-primary" />
+          {/* Dark banner */}
+          <div className="rounded-3xl bg-foreground overflow-hidden shadow-2xl animate-fade-in">
+            <div className="px-8 py-16 md:px-16 md:py-20 text-center">
+              <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-primary/20 mb-6">
+                <Shield className="w-8 h-8 text-primary" />
+              </div>
+              <h2 className="text-3xl md:text-4xl lg:text-5xl font-bold tracking-tight text-background leading-tight">
+                Bank-level <span className="text-primary">security</span>
+                <br />
+                for your peace of mind
+              </h2>
+              <p className="mt-5 text-background/60 max-w-2xl mx-auto text-lg leading-relaxed">
+                Your data security is our top priority. We use the same encryption standards trusted by financial institutions worldwide.
+              </p>
             </div>
-            <h2 className="text-3xl md:text-4xl lg:text-5xl font-semibold tracking-tight leading-tight">
-              Bank-level{' '}
-              <span className="text-primary">security</span>{' '}
-              for
-              <br />
-              your peace of mind
-            </h2>
-            <p className="mt-6 text-background/60 max-w-2xl mx-auto text-lg leading-relaxed">
-              Your data security is our top priority. We use the same encryption standards trusted by financial institutions and healthcare organizations worldwide.
+
+            {/* Security cards inside the dark banner */}
+            <div className="grid md:grid-cols-2 gap-4 px-8 pb-12 md:px-16 md:pb-16">
+              {securityCards.map((card, index) => (
+                <div
+                  key={card.title}
+                  className="p-6 rounded-2xl bg-background/10 border border-background/10 hover:bg-background/15 transition-colors animate-fade-in"
+                  style={{ animationDelay: `${200 + index * 80}ms` }}
+                >
+                  <div className={`inline-flex items-center justify-center w-12 h-12 rounded-xl ${card.iconBg} mb-4`}>
+                    <card.icon className={`w-6 h-6 ${card.iconColor}`} />
+                  </div>
+                  <h3 className="text-lg font-bold text-background mb-2">{card.title}</h3>
+                  <p className="text-sm text-background/60 leading-relaxed">{card.description}</p>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* Detailed statement below */}
+          <div className="mt-12 text-center animate-fade-in" style={{ animationDelay: '400ms' }}>
+            <p className="text-muted-foreground max-w-3xl mx-auto leading-relaxed mb-8">
+              We use industry-standard OAuth 2.0 for all email provider connections — your credentials stay with Microsoft and Google. We never ask for or store your email password. Access tokens can be revoked at any time from your email provider settings.
             </p>
           </div>
 
-          {/* Compliance badges */}
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-14 animate-fade-in" style={{ animationDelay: '200ms' }}>
+          {/* Compliance badges row */}
+          <div className="flex flex-wrap items-center justify-center gap-4 mt-8 animate-fade-in" style={{ animationDelay: '500ms' }}>
             {complianceBadges.map((badge) => (
               <div
                 key={badge.name}
-                className="flex flex-col items-center text-center p-6 rounded-2xl bg-card/60 backdrop-blur-sm border border-card/80 shadow-md hover:shadow-lg hover:-translate-y-1 transition-all duration-300"
+                className="flex items-center gap-2 px-4 py-2.5 rounded-full bg-card/60 border border-border/30 shadow-sm"
               >
-                <div className={`w-14 h-14 rounded-2xl ${badge.bg} flex items-center justify-center mb-4`}>
-                  <badge.icon className={`w-7 h-7 ${badge.color}`} />
-                </div>
-                <p className="font-bold text-foreground text-base">{badge.name}</p>
-                <p className="text-sm text-muted-foreground mt-1">{badge.description}</p>
+                <CheckCircle2 className="w-4 h-4 text-success" />
+                <span className="text-sm font-semibold text-foreground">{badge.name}</span>
+                <span className="text-xs text-muted-foreground">{badge.label}</span>
               </div>
             ))}
-          </div>
-
-          {/* Security feature cards */}
-          <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6 mb-14">
-            {securityFeatures.map((feature, index) => (
-              <div
-                key={feature.title}
-                className="p-8 rounded-3xl bg-card/50 backdrop-blur-sm border border-card/80 shadow-md hover:shadow-lg hover:-translate-y-1 transition-all duration-300 animate-fade-in"
-                style={{ animationDelay: `${300 + index * 80}ms` }}
-              >
-                <div className={`inline-flex items-center justify-center w-14 h-14 rounded-2xl ${feature.iconBg} mb-5`}>
-                  <feature.icon className={`w-7 h-7 ${feature.iconColor}`} />
-                </div>
-                <h3 className="text-lg font-semibold mb-3 text-foreground">{feature.title}</h3>
-                <p className="text-muted-foreground leading-relaxed text-sm">{feature.description}</p>
-              </div>
-            ))}
-          </div>
-
-          {/* Trust statement */}
-          <div className="text-center animate-fade-in" style={{ animationDelay: '600ms' }}>
-            <div className="inline-flex items-center gap-3 px-6 py-3 rounded-full bg-card/60 border border-primary/20 shadow-sm">
-              <CheckCircle2 className="w-5 h-5 text-primary" />
-              <span className="text-sm font-medium text-foreground">Trusted by businesses worldwide to protect their email communications</span>
-            </div>
           </div>
         </div>
       </div>
