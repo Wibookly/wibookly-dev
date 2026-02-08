@@ -71,11 +71,11 @@ export default function Pricing() {
           <div className="grid md:grid-cols-3 gap-8">
             {PRICING_PLANS.map((plan) => {
               const Icon = plan.icon;
+              const showDiscount = plan.showAnnualDiscount && billingInterval === 'annual';
               const annualPrice = plan.monthlyPrice
                 ? getAnnualPricePerMonth(plan.monthlyPrice)
                 : null;
-              const displayPrice =
-                billingInterval === 'annual' ? annualPrice : plan.monthlyPrice;
+              const displayPrice = showDiscount ? annualPrice : plan.monthlyPrice;
 
               return (
                 <Card 
@@ -104,8 +104,8 @@ export default function Pricing() {
                             </span>
                             <span className="text-muted-foreground">/month</span>
                           </div>
-                          {billingInterval === 'annual' && plan.monthlyPrice && (
-                            <div className="mt-1 flex items-center gap-2">
+                          {showDiscount && plan.monthlyPrice && (
+                            <div className="mt-1.5 flex items-center gap-2">
                               <span className="text-sm text-muted-foreground line-through">
                                 ${plan.monthlyPrice}/mo
                               </span>
@@ -114,9 +114,9 @@ export default function Pricing() {
                               </span>
                             </div>
                           )}
-                          {billingInterval === 'annual' && plan.monthlyPrice && (
+                          {showDiscount && annualPrice && (
                             <p className="text-xs text-muted-foreground mt-1">
-                              Billed ${Math.round(displayPrice * 12)}/year
+                              Billed ${Math.round(annualPrice * 12)}/year
                             </p>
                           )}
                         </div>

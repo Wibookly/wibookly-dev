@@ -35,11 +35,11 @@ export function PricingSection() {
         <div className="grid md:grid-cols-3 gap-8 max-w-5xl mx-auto">
           {PRICING_PLANS.map((plan) => {
             const Icon = plan.icon;
+            const showDiscount = plan.showAnnualDiscount && billingInterval === 'annual';
             const annualPrice = plan.monthlyPrice
               ? getAnnualPricePerMonth(plan.monthlyPrice)
               : null;
-            const displayPrice =
-              billingInterval === 'annual' ? annualPrice : plan.monthlyPrice;
+            const displayPrice = showDiscount ? annualPrice : plan.monthlyPrice;
 
             return (
               <div
@@ -72,8 +72,8 @@ export function PricingSection() {
                           </span>
                           <span className="text-muted-foreground">/month</span>
                         </div>
-                        {billingInterval === 'annual' && plan.monthlyPrice && (
-                          <div className="mt-1 flex items-center gap-2">
+                        {showDiscount && plan.monthlyPrice && (
+                          <div className="mt-1.5 flex items-center gap-2">
                             <span className="text-sm text-muted-foreground line-through">
                               ${plan.monthlyPrice}/mo
                             </span>
@@ -82,9 +82,9 @@ export function PricingSection() {
                             </span>
                           </div>
                         )}
-                        {billingInterval === 'annual' && plan.monthlyPrice && (
+                        {showDiscount && annualPrice && (
                           <p className="text-xs text-muted-foreground mt-1">
-                            Billed ${Math.round(displayPrice * 12)}/year
+                            Billed ${Math.round(annualPrice * 12)}/year
                           </p>
                         )}
                       </div>

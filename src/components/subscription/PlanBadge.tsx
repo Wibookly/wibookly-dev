@@ -18,13 +18,13 @@ export function PlanBadge({ plan: propPlan, size = 'md', showIcon = true, classN
 
   const icons = {
     starter: Zap,
-    professional: Sparkles,
+    pro: Sparkles,
     enterprise: Crown,
   };
 
   const colors = {
     starter: 'bg-muted text-muted-foreground border-border',
-    professional: 'bg-primary/10 text-primary border-primary/20',
+    pro: 'bg-primary/10 text-primary border-primary/20',
     enterprise: 'bg-accent/10 text-accent-foreground border-accent/20',
   };
 

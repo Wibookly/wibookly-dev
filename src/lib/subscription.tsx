@@ -19,8 +19,8 @@ export const PLAN_CONFIG = {
       advancedAnalytics: false,
     },
   },
-  professional: {
-    name: 'Professional',
+  pro: {
+    name: 'Pro',
     price: 50,
     monthlyPriceId: 'price_1Sog6BAESvm0s6EqGMDf8sch',
     annualPriceId: null as string | null, // TODO: Create annual Stripe price
@@ -86,14 +86,12 @@ export function SubscriptionProvider({ children }: { children: ReactNode }) {
   });
 
   const fetchSubscription = useCallback(async () => {
-    // Don't call if no org or no valid session
     if (!organization?.id || !session?.access_token) {
       setState(prev => ({ ...prev, loading: false }));
       return;
     }
 
     try {
-      // First check local database for subscription
       const { data: subData } = await supabase
         .from('subscriptions')
         .select('*')
@@ -101,8 +99,12 @@ export function SubscriptionProvider({ children }: { children: ReactNode }) {
         .maybeSingle();
 
       if (subData) {
+        // Map legacy 'professional' plan name to 'pro'
+        let plan = (subData.plan as string) || 'starter';
+        if (plan === 'professional') plan = 'pro';
+        
         setState({
-          plan: (subData.plan as PlanType) || 'starter',
+          plan: (plan as PlanType),
           status: (subData.status as SubscriptionState['status']) || 'active',
           stripeCustomerId: subData.stripe_customer_id,
           stripeSubscriptionId: subData.stripe_subscription_id,
@@ -113,19 +115,16 @@ export function SubscriptionProvider({ children }: { children: ReactNode }) {
         setState(prev => ({ ...prev, plan: 'starter', status: 'active', loading: false }));
       }
 
-      // Verify with Stripe (session is guaranteed to exist here)
       const { data, error } = await supabase.functions.invoke('check-subscription', {
         headers: { Authorization: `Bearer ${session.access_token}` },
       });
 
       if (!error && data && !data.error) {
-        // Determine plan from product ID
         let detectedPlan: PlanType = 'starter';
-        if (data.product_id === PLAN_CONFIG.professional.productId) {
-          detectedPlan = 'professional';
+        if (data.product_id === PLAN_CONFIG.pro.productId) {
+          detectedPlan = 'pro';
         } else if (data.subscribed && data.product_id) {
-          // Could be enterprise or other
-          detectedPlan = 'professional';
+          detectedPlan = 'pro';
         }
 
         setState(prev => ({
@@ -146,7 +145,6 @@ export function SubscriptionProvider({ children }: { children: ReactNode }) {
     fetchSubscription();
   }, [fetchSubscription]);
 
-  // Auto-refresh subscription every minute
   useEffect(() => {
     const interval = setInterval(fetchSubscription, 60000);
     return () => clearInterval(interval);
@@ -166,8 +164,8 @@ export function SubscriptionProvider({ children }: { children: ReactNode }) {
   }, [state.plan]);
 
   const getUpgradePlan = useCallback((): PlanType | null => {
-    if (state.plan === 'starter') return 'professional';
-    if (state.plan === 'professional') return 'enterprise';
+    if (state.plan === 'starter') return 'pro';
+    if (state.plan === 'pro') return 'enterprise';
     return null;
   }, [state.plan]);
 
@@ -178,7 +176,6 @@ export function SubscriptionProvider({ children }: { children: ReactNode }) {
 
     const priceId = PLAN_CONFIG[plan].monthlyPriceId;
     if (!priceId) {
-      // Enterprise - contact sales
       window.open('mailto:sales@wibookly.com?subject=Enterprise%20Plan%20Inquiry', '_blank');
       return;
     }

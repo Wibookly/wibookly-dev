@@ -19,7 +19,7 @@ export function FeatureGate({
   fallback,
   showBanner = true,
   featureDisplayName,
-  requiredPlan = 'professional'
+  requiredPlan = 'pro'
 }: FeatureGateProps) {
   const { hasFeature } = useSubscription();
 
@@ -53,7 +53,7 @@ export function MailboxGate({ currentCount, children, onBlocked }: MailboxGatePr
   }
 
   const limit = getMailboxLimit();
-  const nextPlan = plan === 'starter' ? 'professional' : 'enterprise';
+  const nextPlan = plan === 'starter' ? 'pro' : 'enterprise';
 
   return (
     <UpgradeBanner 

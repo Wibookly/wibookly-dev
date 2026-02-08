@@ -10,7 +10,7 @@ interface UpgradeBannerProps {
   className?: string;
 }
 
-export function UpgradeBanner({ feature, requiredPlan = 'professional', className = '' }: UpgradeBannerProps) {
+export function UpgradeBanner({ feature, requiredPlan = 'pro', className = '' }: UpgradeBannerProps) {
   const { startCheckout, plan } = useSubscription();
   const { toast } = useToast();
   const [loading, setLoading] = useState(false);
@@ -65,7 +65,7 @@ interface UpgradeInlineProps {
   requiredPlan?: PlanType;
 }
 
-export function UpgradeInline({ message, requiredPlan = 'professional' }: UpgradeInlineProps) {
+export function UpgradeInline({ message, requiredPlan = 'pro' }: UpgradeInlineProps) {
   const { startCheckout } = useSubscription();
   const { toast } = useToast();
   const [loading, setLoading] = useState(false);
