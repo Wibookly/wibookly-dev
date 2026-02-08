@@ -12,7 +12,7 @@ const plans = [
     features: [
       '1 connected account',
       '10 auto drafts daily',
-      '80 AI messages daily',
+      '50 AI messages daily',
       'Chat with 3 months of email history',
       'Smart email categorization',
       '10 email categories',
