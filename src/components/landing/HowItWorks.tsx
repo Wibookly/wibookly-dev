@@ -1,5 +1,6 @@
 import { ArrowRight, FolderOpen, Mail, Send, Sparkles, Tag } from 'lucide-react';
 import wibooklyLogo from '@/assets/wibookly-logo.png';
+import outlookLogo from '@/assets/outlook-logo.png';
 
 // Gmail icon (compact)
 const GmailSmall = () => (
@@ -9,17 +10,6 @@ const GmailSmall = () => (
     <polygon fill="#e53935" points="35,11.2 24,19.45 13,11.2 12,17 13,23.7 24,31.95 35,23.7 36,17" />
     <path fill="#c62828" d="M3,12.298V16.2l10,7.5V11.2L9.876,8.859C9.132,8.301,8.228,8,7.298,8h0C4.924,8,3,9.924,3,12.298z" />
     <path fill="#fbc02d" d="M45,12.298V16.2l-10,7.5V11.2l3.124-2.341C38.868,8.301,39.772,8,40.702,8h0 C43.076,8,45,9.924,45,12.298z" />
-  </svg>
-);
-
-// Outlook icon (compact)
-const OutlookSmall = () => (
-  <svg viewBox="0 0 48 48" className="w-8 h-8" aria-hidden="true">
-    <path fill="#1976d2" d="M28,13h14.533C43.343,13,44,13.657,44,14.467v19.066C44,34.343,43.343,35,42.533,35H28V13z" />
-    <rect fill="#1565c0" x="28" y="17" width="16" height="16" />
-    <path fill="#1565c0" d="M28,35V13L4,17.452V30.548L28,35z" />
-    <ellipse fill="#fff" cx="14.5" cy="24" rx="5.5" ry="6.5" />
-    <ellipse fill="#1565c0" cx="14.5" cy="24" rx="4" ry="5" />
   </svg>
 );
 
@@ -54,8 +44,8 @@ export function HowItWorks() {
                 <div className="w-14 h-14 rounded-xl bg-secondary flex items-center justify-center shadow-sm">
                   <GmailSmall />
                 </div>
-                <div className="w-14 h-14 rounded-xl bg-secondary flex items-center justify-center shadow-sm">
-                  <OutlookSmall />
+                <div className="w-14 h-14 rounded-xl bg-secondary flex items-center justify-center shadow-sm overflow-hidden">
+                  <img src={outlookLogo} alt="Outlook" className="w-10 h-10 object-contain" />
                 </div>
                 <ArrowRight className="w-5 h-5 text-muted-foreground mx-1" />
                 <div className="w-14 h-14 rounded-xl bg-secondary flex items-center justify-center shadow-sm">
