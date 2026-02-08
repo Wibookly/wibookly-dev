@@ -29,13 +29,10 @@ export function CTASection({ onGetStartedClick }: CTASectionProps) {
               className="group rounded-full"
               onClick={onGetStartedClick}
             >
-              Get Started Free
+              Get Started
               <ArrowRight className="ml-2 h-5 w-5 transition-transform group-hover:translate-x-1" />
             </Button>
           </div>
-          <p className="mt-5 text-sm text-muted-foreground animate-fade-in" style={{ animationDelay: '300ms' }}>
-            No credit card required · Cancel anytime
-          </p>
         </div>
       </div>
     </section>
