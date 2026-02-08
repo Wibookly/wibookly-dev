@@ -3,7 +3,7 @@ import outlookLogo from '@/assets/outlook-logo.png';
 
 // Official Gmail logo SVG
 const GmailIcon = () => (
-  <svg viewBox="0 0 48 48" className="w-7 h-7" aria-hidden="true">
+  <svg viewBox="0 0 48 48" className="w-8 h-8" aria-hidden="true">
     <path fill="#4caf50" d="M45,16.2l-5,2.75l-5,4.75L35,40h7c1.657,0,3-1.343,3-3V16.2z" />
     <path fill="#1e88e5" d="M3,16.2l3.614,1.71L13,23.7V40H6c-1.657,0-3-1.343-3-3V16.2z" />
     <polygon fill="#e53935" points="35,11.2 24,19.45 13,11.2 12,17 13,23.7 24,31.95 35,23.7 36,17" />
@@ -21,14 +21,14 @@ export function Hero({ onGetStartedClick }: HeroProps) {
     <section className="pt-32 pb-24 md:pt-40 md:pb-32 bg-secondary overflow-hidden">
       <div className="container mx-auto px-6">
         <div className="max-w-5xl mx-auto text-center">
-          {/* Headline — large serif */}
+          {/* Headline — elegant serif */}
           <h1
             className="text-5xl md:text-7xl lg:text-8xl font-bold tracking-tight leading-[1.08] text-foreground"
-            style={{ fontFamily: "'Georgia', 'Times New Roman', serif" }}
+            style={{ fontFamily: "'Playfair Display', Georgia, serif" }}
           >
-            Inbox zero,
+            Stop writing emails.
             <br />
-            every single day.
+            Start closing deals.
           </h1>
 
           {/* Sub-headline */}
@@ -49,15 +49,15 @@ export function Hero({ onGetStartedClick }: HeroProps) {
             </button>
           </div>
 
-          {/* Provider line */}
+          {/* Provider line — Outlook same size as Gmail */}
           <div className="mt-8 flex items-center justify-center gap-3 text-sm text-muted-foreground">
             <span>Wibookly sits on top of</span>
             <div className="flex items-center gap-2">
-              <div className="w-10 h-10 rounded-full bg-card border border-border flex items-center justify-center shadow-sm">
+              <div className="w-11 h-11 rounded-full bg-card border border-border flex items-center justify-center shadow-sm">
                 <GmailIcon />
               </div>
-              <div className="w-10 h-10 rounded-full bg-card border border-border flex items-center justify-center shadow-sm overflow-hidden">
-                <img src={outlookLogo} alt="Outlook" className="w-7 h-7 object-contain" />
+              <div className="w-11 h-11 rounded-full bg-card border border-border flex items-center justify-center shadow-sm overflow-hidden">
+                <img src={outlookLogo} alt="Outlook" className="w-8 h-8 object-contain" />
               </div>
             </div>
           </div>
