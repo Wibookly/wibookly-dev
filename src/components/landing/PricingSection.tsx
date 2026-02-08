@@ -1,88 +1,14 @@
+import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
-import { Check, Zap, Sparkles, Crown } from 'lucide-react';
-
-const plans = [
-  {
-    id: 'starter',
-    name: 'Starter',
-    price: 20,
-    description: 'Perfect for individuals getting started with email automation',
-    icon: Zap,
-    features: [
-      '1 connected account',
-      '10 auto drafts daily',
-      '50 AI messages daily',
-      'Chat with 3 months of email history',
-      'Smart email categorization',
-      '10 email categories',
-      'Basic analytics',
-      'Email support',
-    ],
-    notIncluded: [
-      'AI Auto Reply',
-      'Advanced automation rules',
-      'AI email signature',
-      'Advanced AI analytics',
-      'Calendar daily brief',
-      'Advanced AI intelligence',
-    ],
-  },
-  {
-    id: 'professional',
-    name: 'Professional',
-    price: 50,
-    description: 'For professionals who need powerful automation and insights',
-    icon: Sparkles,
-    popular: true,
-    features: [
-      'Up to 6 connected accounts',
-      '30 auto drafts daily',
-      '240 AI messages daily',
-      'Chat with 3 years of email history',
-      'Advanced AI intelligence',
-      
-      'AI Auto Drafts',
-      'AI Auto Reply',
-      'Smart email categorization',
-      '20 email categories',
-      'Advanced automation rules',
-      'AI email signature',
-      'Advanced AI analytics',
-      'Calendar daily brief',
-      'Increase auto draft daily limit',
-      'Increase AI message daily limit',
-      'Increase AI chat daily limit',
-      'Priority support',
-    ],
-    notIncluded: [],
-  },
-  {
-    id: 'enterprise',
-    name: 'Enterprise',
-    price: null,
-    priceLabel: 'Custom Pricing',
-    description: 'For teams and organizations with advanced needs',
-    icon: Crown,
-    features: [
-      'Unlimited connected accounts',
-      'Everything in Professional',
-      'Admin dashboard',
-      'Increased auto draft daily limits',
-      'Increased AI message daily limits',
-      'Increased AI chat daily limits',
-      'Advanced reporting',
-      'Team management',
-      'License assignment',
-      'Dedicated account manager',
-      'SLA guarantee',
-    ],
-    notIncluded: [],
-  },
-];
+import { Check } from 'lucide-react';
+import { PRICING_PLANS, getAnnualPricePerMonth, type BillingInterval } from '@/lib/pricing-config';
+import { BillingToggle } from './BillingToggle';
+import { VolumeDiscountInfo } from './VolumeDiscountInfo';
 
 export function PricingSection() {
   const navigate = useNavigate();
+  const [billingInterval, setBillingInterval] = useState<BillingInterval>('annual');
 
   const handleGetStarted = () => {
     navigate('/auth?mode=signup');
@@ -101,13 +27,20 @@ export function PricingSection() {
             Simple, <span className="text-primary">transparent</span> pricing
           </h2>
           <p className="mt-5 text-lg text-muted-foreground max-w-xl mx-auto">
-            Choose the plan that fits your needs. Upgrade or downgrade anytime.
+            Choose monthly or save more with annual billing.
           </p>
+          <BillingToggle interval={billingInterval} onChange={setBillingInterval} />
         </div>
 
         <div className="grid md:grid-cols-3 gap-8 max-w-5xl mx-auto">
-          {plans.map((plan) => {
+          {PRICING_PLANS.map((plan) => {
             const Icon = plan.icon;
+            const annualPrice = plan.monthlyPrice
+              ? getAnnualPricePerMonth(plan.monthlyPrice)
+              : null;
+            const displayPrice =
+              billingInterval === 'annual' ? annualPrice : plan.monthlyPrice;
+
             return (
               <div
                 key={plan.id}
@@ -131,13 +64,34 @@ export function PricingSection() {
                 </div>
                 <div className="px-6 pb-6 flex-1">
                   <div className="mb-6">
-                    {plan.price !== null ? (
-                      <div className="flex items-baseline gap-1">
-                        <span className="text-4xl font-bold text-foreground">${plan.price}</span>
-                        <span className="text-muted-foreground">/month</span>
+                    {displayPrice !== null ? (
+                      <div>
+                        <div className="flex items-baseline gap-1">
+                          <span className="text-4xl font-bold text-foreground">
+                            ${displayPrice}
+                          </span>
+                          <span className="text-muted-foreground">/month</span>
+                        </div>
+                        {billingInterval === 'annual' && plan.monthlyPrice && (
+                          <div className="mt-1 flex items-center gap-2">
+                            <span className="text-sm text-muted-foreground line-through">
+                              ${plan.monthlyPrice}/mo
+                            </span>
+                            <span className="text-xs font-semibold text-primary bg-primary/10 px-2 py-0.5 rounded-full">
+                              Save 15%
+                            </span>
+                          </div>
+                        )}
+                        {billingInterval === 'annual' && plan.monthlyPrice && (
+                          <p className="text-xs text-muted-foreground mt-1">
+                            Billed ${Math.round(displayPrice * 12)}/year
+                          </p>
+                        )}
                       </div>
                     ) : (
-                      <div className="text-2xl font-semibold text-primary">{plan.priceLabel}</div>
+                      <div className="text-2xl font-semibold text-primary">
+                        {plan.priceLabel}
+                      </div>
                     )}
                   </div>
 
@@ -165,13 +119,15 @@ export function PricingSection() {
                     size="lg"
                     onClick={handleGetStarted}
                   >
-                    Get Started
+                    {plan.monthlyPrice === null ? 'Contact Sales' : 'Get Started'}
                   </Button>
                 </div>
               </div>
             );
           })}
         </div>
+
+        <VolumeDiscountInfo interval={billingInterval} />
       </div>
     </section>
   );

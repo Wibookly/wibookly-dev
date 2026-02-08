@@ -7,7 +7,8 @@ export const PLAN_CONFIG = {
   starter: {
     name: 'Starter',
     price: 20,
-    priceId: 'price_1Sog5tAESvm0s6Eqlef0MlRD',
+    monthlyPriceId: 'price_1Sog5tAESvm0s6Eqlef0MlRD',
+    annualPriceId: null as string | null, // TODO: Create annual Stripe price
     productId: 'prod_TmEZSmRDQaRFxJ',
     mailboxLimit: 1,
     features: {
@@ -21,7 +22,8 @@ export const PLAN_CONFIG = {
   professional: {
     name: 'Professional',
     price: 50,
-    priceId: 'price_1Sog6BAESvm0s6EqGMDf8sch',
+    monthlyPriceId: 'price_1Sog6BAESvm0s6EqGMDf8sch',
+    annualPriceId: null as string | null, // TODO: Create annual Stripe price
     productId: 'prod_TmEZZY5hzUCPhe',
     mailboxLimit: 6,
     features: {
@@ -35,7 +37,8 @@ export const PLAN_CONFIG = {
   enterprise: {
     name: 'Enterprise',
     price: null, // Contact sales
-    priceId: null,
+    monthlyPriceId: null,
+    annualPriceId: null,
     productId: null,
     mailboxLimit: Infinity,
     features: {
@@ -173,7 +176,7 @@ export function SubscriptionProvider({ children }: { children: ReactNode }) {
       throw new Error('Please sign in to upgrade');
     }
 
-    const priceId = PLAN_CONFIG[plan].priceId;
+    const priceId = PLAN_CONFIG[plan].monthlyPriceId;
     if (!priceId) {
       // Enterprise - contact sales
       window.open('mailto:sales@wibookly.com?subject=Enterprise%20Plan%20Inquiry', '_blank');
