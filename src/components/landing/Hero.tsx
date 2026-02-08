@@ -26,7 +26,7 @@ export function Hero({ onGetStartedClick }: HeroProps) {
       <div className="container mx-auto px-6 relative z-10">
         <div className="max-w-5xl mx-auto text-center">
           <h1
-            className="text-5xl md:text-7xl lg:text-8xl font-bold tracking-tight leading-[1.08] text-foreground"
+            className="text-4xl md:text-5xl lg:text-6xl font-bold tracking-tight leading-[1.08] text-foreground"
             style={{ fontFamily: "'Playfair Display', Georgia, serif" }}
           >
             Stop writing emails.
@@ -58,7 +58,7 @@ export function Hero({ onGetStartedClick }: HeroProps) {
                 <GmailIcon />
               </div>
               <div className="w-12 h-12 rounded-full bg-card/80 border border-border/50 flex items-center justify-center shadow-sm overflow-hidden backdrop-blur-sm">
-                <img src={outlookLogo} alt="Outlook" className="w-8 h-8 object-contain" />
+                <img src={outlookLogo} alt="Outlook" className="w-11 h-11 object-contain" />
               </div>
             </div>
           </div>

@@ -44,7 +44,7 @@ export function Features() {
           <div className="inline-flex items-center px-4 py-1.5 rounded-full bg-card/60 border border-border/40 mb-6 animate-fade-in backdrop-blur-sm">
             <span className="text-sm font-medium text-accent">Features</span>
           </div>
-          <h2 className="text-3xl md:text-4xl lg:text-5xl font-bold tracking-tight animate-fade-in" style={{ animationDelay: '100ms' }}>
+          <h2 className="text-3xl md:text-4xl lg:text-5xl font-bold tracking-tight animate-fade-in" style={{ fontFamily: "'Playfair Display', Georgia, serif", animationDelay: '100ms' }}>
             Everything you need
           </h2>
           <p className="mt-5 text-lg text-muted-foreground max-w-xl mx-auto animate-fade-in" style={{ animationDelay: '200ms' }}>
