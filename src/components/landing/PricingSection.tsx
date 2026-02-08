@@ -49,6 +49,7 @@ const plans = [
     id: 'enterprise',
     name: 'Enterprise',
     price: null,
+    priceLabel: 'Custom Pricing',
     description: 'For teams and organizations with advanced needs',
     icon: Crown,
     features: [
@@ -63,7 +64,6 @@ const plans = [
       'SLA guarantee',
     ],
     notIncluded: [],
-    showGetStarted: true,
   },
 ];
 
@@ -75,14 +75,14 @@ export function PricingSection() {
   };
 
   return (
-    <section id="pricing" className="py-24 md:py-32">
+    <section id="pricing" className="py-24 md:py-32 bg-[image:var(--gradient-subtle)]">
       <div className="container mx-auto px-6">
         <div className="text-center mb-16">
           <h2
             className="text-3xl md:text-4xl lg:text-5xl font-bold tracking-tight"
             style={{ fontFamily: "'Georgia', 'Times New Roman', serif" }}
           >
-            Simple, transparent pricing
+            Simple, <span className="text-primary">transparent</span> pricing
           </h2>
           <p className="mt-5 text-lg text-muted-foreground max-w-xl mx-auto">
             Choose the plan that fits your needs. Upgrade or downgrade anytime.
@@ -121,7 +121,7 @@ export function PricingSection() {
                         <span className="text-muted-foreground">/month</span>
                       </div>
                     ) : (
-                      <div className="text-2xl font-semibold text-foreground">Contact Sales</div>
+                      <div className="text-2xl font-semibold text-primary">{plan.priceLabel}</div>
                     )}
                   </div>
 
@@ -149,7 +149,7 @@ export function PricingSection() {
                     size="lg"
                     onClick={handleGetStarted}
                   >
-                    {plan.price === null ? 'Get Started' : 'Get Started'}
+                    Get Started
                   </Button>
                 </CardFooter>
               </Card>

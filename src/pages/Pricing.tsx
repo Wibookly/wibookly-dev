@@ -83,7 +83,7 @@ export default function Pricing() {
             <Link to="/" className="flex items-center group">
               <img 
                 src={wibooklyLogo} 
-                alt="WeBookly" 
+                alt="Wibookly" 
                 className="h-10 w-auto transition-transform duration-300 group-hover:scale-105" 
               />
             </Link>
@@ -227,7 +227,7 @@ export default function Pricing() {
       {/* Footer */}
       <footer className="border-t border-border py-8 bg-card">
         <div className="container mx-auto px-6 text-center text-sm text-muted-foreground">
-          © {new Date().getFullYear()} WeBookly. All rights reserved.
+          © {new Date().getFullYear()} Wibookly. All rights reserved.
         </div>
       </footer>
     </div>

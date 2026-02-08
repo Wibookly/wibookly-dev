@@ -13,7 +13,7 @@ export function Header({ onSignInClick }: HeaderProps) {
         <Link to="/" className="flex items-center">
           <img 
             src={wibooklyLogo} 
-            alt="WeBookly" 
+            alt="Wibookly" 
             className="h-20 w-auto" 
           />
         </Link>
