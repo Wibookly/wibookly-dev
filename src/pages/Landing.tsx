@@ -23,8 +23,8 @@ export default function Landing() {
       <Header onSignInClick={handleSignIn} />
       <main>
         <Hero onGetStartedClick={handleGetStarted} />
-        <ToolComparison />
         <HowItWorks />
+        <ToolComparison />
         <Features />
         <Security />
       </main>

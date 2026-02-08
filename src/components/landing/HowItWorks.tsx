@@ -4,8 +4,8 @@ const steps = [
   {
     icon: Mail,
     step: '01',
-    title: 'Connect Outlook',
-    description: 'Securely connect your Microsoft Outlook account with OAuth. We never see your password.',
+    title: 'Connect Your Emails',
+    description: 'Securely connect your Microsoft Outlook or Gmail account with OAuth. We never see your password.',
     iconColor: 'text-primary',
     iconBg: 'bg-primary/15',
   },
@@ -13,15 +13,15 @@ const steps = [
     icon: FolderOpen,
     step: '02',
     title: 'Customize Categories',
-    description: 'Create custom categories and rules to automatically sort incoming emails.',
+    description: 'Create custom categories and rules to automatically sort and organize all your incoming emails.',
     iconColor: 'text-accent-foreground',
     iconBg: 'bg-accent/20',
   },
   {
     icon: Sparkles,
     step: '03',
-    title: 'Review AI Drafts',
-    description: 'Let AI generate draft replies for each category. Review and send when ready.',
+    title: 'Set Up Your AI Intelligence',
+    description: 'Configure AI to generate smart draft replies, auto-respond, and manage your calendar seamlessly.',
     iconColor: 'text-success',
     iconBg: 'bg-success/15',
   }
@@ -29,17 +29,17 @@ const steps = [
 
 export function HowItWorks() {
   return (
-    <section id="how-it-works" className="py-24 md:py-36">
+    <section id="how-it-works" className="py-16 md:py-24">
       <div className="container mx-auto px-6">
-        <div className="text-center mb-20">
+        <div className="text-center mb-16">
           <span className="inline-block px-4 py-1.5 rounded-full bg-card/70 text-primary text-sm font-medium mb-4 border border-primary/20 shadow-sm animate-fade-in">
             Simple Setup
           </span>
           <h2 className="text-3xl md:text-4xl lg:text-5xl font-semibold tracking-tight animate-fade-in text-foreground" style={{ animationDelay: '100ms' }}>
-            How It Works
+            Get started in 3 easy steps
           </h2>
           <p className="mt-4 text-muted-foreground max-w-xl mx-auto animate-fade-in" style={{ animationDelay: '200ms' }}>
-            Three simple steps to transform your email workflow
+            Set up Wibookly in minutes and transform your email workflow
           </p>
         </div>
 
