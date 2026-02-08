@@ -12,7 +12,7 @@ export function AppLayout() {
 
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-background">
+      <div className="min-h-screen flex items-center justify-center ocean-bg">
         <Loader2 className="w-6 h-6 animate-spin text-muted-foreground" />
       </div>
     );
@@ -24,13 +24,8 @@ export function AppLayout() {
 
   return (
     <div className="min-h-screen flex flex-col lg:flex-row ocean-bg">
-      {/* Mobile Header */}
       <MobileHeader onMenuClick={() => setMobileMenuOpen(true)} />
-      
-      {/* Mobile Sidebar (Sheet) */}
       <MobileSidebar open={mobileMenuOpen} onClose={() => setMobileMenuOpen(false)} />
-      
-      {/* Desktop Sidebar */}
       <AppSidebar />
       
       <div className="flex-1 flex flex-col min-h-0">

@@ -35,10 +35,13 @@ const features = [
 
 export function Features() {
   return (
-    <section id="features" className="py-24 md:py-32">
-      <div className="container mx-auto px-6">
+    <section id="features" className="relative py-24 md:py-32">
+      {/* Organic blob */}
+      <div className="blob-decoration blob-teal w-72 h-72 bottom-10 left-10" />
+
+      <div className="container mx-auto px-6 relative z-10">
         <div className="text-center mb-16">
-          <div className="inline-flex items-center px-4 py-1.5 rounded-full bg-accent/10 border border-accent/20 mb-6 animate-fade-in">
+          <div className="inline-flex items-center px-4 py-1.5 rounded-full bg-card/60 border border-border/40 mb-6 animate-fade-in backdrop-blur-sm">
             <span className="text-sm font-medium text-accent">Features</span>
           </div>
           <h2 className="text-3xl md:text-4xl lg:text-5xl font-bold tracking-tight animate-fade-in" style={{ animationDelay: '100ms' }}>
@@ -53,10 +56,10 @@ export function Features() {
           {features.map((feature, index) => (
             <div
               key={feature.title}
-              className="group p-8 rounded-2xl bg-card border border-border shadow-sm hover:shadow-md hover:-translate-y-1 transition-all duration-300 animate-fade-in"
+              className="group floating-card p-8 animate-fade-in"
               style={{ animationDelay: `${300 + index * 80}ms` }}
             >
-              <div className="mb-5 inline-flex items-center justify-center w-12 h-12 rounded-xl bg-primary/10 group-hover:bg-primary/15 transition-colors">
+              <div className="mb-5 inline-flex items-center justify-center w-12 h-12 rounded-2xl bg-primary/10 group-hover:bg-primary/15 transition-colors">
                 <feature.icon className="w-6 h-6 text-primary" />
               </div>
               <h3 className="text-lg font-semibold mb-2 text-foreground">{feature.title}</h3>

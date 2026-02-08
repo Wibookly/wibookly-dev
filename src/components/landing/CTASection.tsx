@@ -7,8 +7,11 @@ interface CTASectionProps {
 
 export function CTASection({ onGetStartedClick }: CTASectionProps) {
   return (
-    <section className="py-24 md:py-32">
-      <div className="container mx-auto px-6">
+    <section className="relative py-24 md:py-32">
+      <div className="blob-decoration blob-blue w-64 h-64 top-0 right-10" />
+      <div className="blob-decoration blob-green w-48 h-48 bottom-0 left-10" />
+
+      <div className="container mx-auto px-6 relative z-10">
         <div className="max-w-3xl mx-auto text-center">
           <h2 className="text-3xl md:text-4xl lg:text-5xl font-bold tracking-tight animate-fade-in">
             Ready to take control of your inbox?
@@ -20,7 +23,7 @@ export function CTASection({ onGetStartedClick }: CTASectionProps) {
             <Button 
               variant="gradient" 
               size="xl" 
-              className="group"
+              className="group rounded-full"
               onClick={onGetStartedClick}
             >
               Get Started Free

@@ -6,7 +6,6 @@ import { Loader2 } from 'lucide-react';
 import wibooklyLogo from '@/assets/wibookly-logo.png';
 import outlookLogo from '@/assets/outlook-logo.png';
 
-// Google icon component
 const GoogleIcon = () => (
   <svg viewBox="0 0 24 24" className="w-8 h-8" aria-hidden="true">
     <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4" />
@@ -16,7 +15,6 @@ const GoogleIcon = () => (
   </svg>
 );
 
-// Outlook icon component using imported logo
 const OutlookIcon = ({ logo }: { logo: string }) => (
   <img src={logo} alt="Outlook" className="w-8 h-8 object-contain" />
 );
@@ -54,7 +52,6 @@ const testimonials = [
   },
 ];
 
-
 export default function Auth() {
   const { user, loading, signInWithCognito } = useAuth();
   const navigate = useNavigate();
@@ -71,7 +68,6 @@ export default function Auth() {
     }
   }, [user, navigate]);
 
-  // Rotate testimonials
   useEffect(() => {
     const interval = setInterval(() => {
       setFadeState('out');
@@ -89,7 +85,7 @@ export default function Auth() {
 
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-background">
+      <div className="min-h-screen flex items-center justify-center ocean-bg">
         <Loader2 className="w-6 h-6 animate-spin text-muted-foreground" />
       </div>
     );
@@ -101,7 +97,6 @@ export default function Auth() {
     <div className="min-h-screen flex ocean-bg">
       {/* Left — Sign-in/Sign-up form */}
       <div className="flex-1 flex flex-col justify-between p-8 md:p-12 lg:p-16">
-        {/* Top: Logo + Back link */}
         <div className="flex items-center justify-between">
           <Link to="/" className="flex items-center">
             <img src={wibooklyLogo} alt="Wibookly" className="h-32 w-auto" />
@@ -114,7 +109,6 @@ export default function Auth() {
           </Link>
         </div>
 
-        {/* Middle: Form — centered */}
         <div className="max-w-md w-full mx-auto flex flex-col items-center text-center">
           <h1
             className="text-3xl md:text-4xl font-bold tracking-tight text-foreground leading-tight"
@@ -145,7 +139,7 @@ export default function Auth() {
             <Button
               variant="outline"
               size="lg"
-              className="w-full justify-center gap-3 h-14 text-base rounded-xl border-border bg-secondary/50 hover:bg-secondary transition-colors"
+              className="w-full justify-center gap-3 h-14 text-base rounded-2xl border-border/50 bg-card/60 hover:bg-card/80 backdrop-blur-sm transition-all"
               onClick={() => signInWithCognito('google')}
             >
               <GoogleIcon />
@@ -155,7 +149,7 @@ export default function Auth() {
             <Button
               variant="outline"
               size="lg"
-              className="w-full justify-center gap-3 h-14 text-base rounded-xl border-border bg-secondary/50 hover:bg-secondary transition-colors"
+              className="w-full justify-center gap-3 h-14 text-base rounded-2xl border-border/50 bg-card/60 hover:bg-card/80 backdrop-blur-sm transition-all"
               onClick={() => signInWithCognito('microsoft')}
             >
               <OutlookIcon logo={outlookLogo} />
@@ -163,7 +157,6 @@ export default function Auth() {
             </Button>
           </div>
 
-          {/* Toggle between Sign Up / Sign In */}
           <p className="mt-6 text-sm text-muted-foreground">
             {isSignUp ? (
               <>
@@ -192,7 +185,7 @@ export default function Auth() {
         {/* Bottom: Compliance badges */}
         <div className="mt-12 flex flex-col items-center">
           <div className="flex items-center gap-10 mb-5">
-            {/* CASA — Shield with checkmark */}
+            {/* CASA */}
             <div className="flex flex-col items-center text-center">
               <div className="w-12 h-12 flex items-center justify-center mb-1.5">
                 <svg viewBox="0 0 40 40" className="w-10 h-10" fill="none">
@@ -203,8 +196,7 @@ export default function Auth() {
               <span className="text-xs font-semibold text-foreground">CASA</span>
               <span className="text-[10px] text-muted-foreground">Tier 3 Certified</span>
             </div>
-
-            {/* GDPR — Lock with EU stars circle */}
+            {/* GDPR */}
             <div className="flex flex-col items-center text-center">
               <div className="w-12 h-12 flex items-center justify-center mb-1.5">
                 <svg viewBox="0 0 40 40" className="w-10 h-10" fill="none">
@@ -222,8 +214,7 @@ export default function Auth() {
               <span className="text-xs font-semibold text-foreground">GDPR</span>
               <span className="text-[10px] text-muted-foreground">Aligned</span>
             </div>
-
-            {/* CCPA — California state outline */}
+            {/* CCPA */}
             <div className="flex flex-col items-center text-center">
               <div className="w-12 h-12 flex items-center justify-center mb-1.5">
                 <svg viewBox="0 0 40 40" className="w-10 h-10" fill="none">
@@ -234,8 +225,7 @@ export default function Auth() {
               <span className="text-xs font-semibold text-foreground">CCPA</span>
               <span className="text-[10px] text-muted-foreground">Compliant</span>
             </div>
-
-            {/* SOC 2 — Shield with checkmark */}
+            {/* SOC 2 */}
             <div className="flex flex-col items-center text-center">
               <div className="w-12 h-12 flex items-center justify-center mb-1.5">
                 <svg viewBox="0 0 40 40" className="w-10 h-10" fill="none">
@@ -255,12 +245,13 @@ export default function Auth() {
         </div>
       </div>
 
-      {/* Right — Rotating testimonials + gradient (hidden on mobile) */}
-      <div
-        className="hidden lg:flex flex-1 items-center justify-center p-12 bg-foreground/5"
-      >
+      {/* Right — Rotating testimonials (hidden on mobile) */}
+      <div className="hidden lg:flex flex-1 items-center justify-center p-12 relative">
+        {/* Subtle overlay for depth */}
+        <div className="absolute inset-0 bg-foreground/[0.03] backdrop-blur-[1px]" />
+        
         <div
-          className={`max-w-md bg-card/90 backdrop-blur-sm rounded-2xl shadow-lg border border-border p-10 transition-opacity duration-400 ${
+          className={`relative z-10 max-w-md glass-panel p-10 transition-opacity duration-400 ${
             fadeState === 'in' ? 'opacity-100' : 'opacity-0'
           }`}
         >
@@ -283,7 +274,6 @@ export default function Auth() {
             </div>
           </div>
 
-          {/* Dots indicator */}
           <div className="flex items-center justify-center gap-2 mt-6">
             {testimonials.map((_, i) => (
               <div

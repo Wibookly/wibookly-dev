@@ -1,6 +1,5 @@
 import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Check, Zap, Sparkles, Crown } from 'lucide-react';
 
 const plans = [
@@ -75,8 +74,10 @@ export function PricingSection() {
   };
 
   return (
-    <section id="pricing" className="py-24 md:py-32">
-      <div className="container mx-auto px-6">
+    <section id="pricing" className="relative py-24 md:py-32">
+      <div className="blob-decoration blob-teal w-72 h-72 top-20 -left-20" />
+
+      <div className="container mx-auto px-6 relative z-10">
         <div className="text-center mb-16">
           <h2
             className="text-3xl md:text-4xl lg:text-5xl font-bold tracking-tight"
@@ -93,27 +94,27 @@ export function PricingSection() {
           {plans.map((plan) => {
             const Icon = plan.icon;
             return (
-              <Card
+              <div
                 key={plan.id}
-                className={`relative overflow-hidden bg-card border ${
+                className={`relative overflow-hidden flex flex-col ${
                   plan.popular
-                    ? 'border-primary ring-2 ring-primary/20 shadow-lg md:scale-105'
-                    : 'border-border shadow-sm'
-                } rounded-2xl transition-all duration-300 hover:shadow-md`}
+                    ? 'floating-card ring-2 ring-primary/20 md:scale-105'
+                    : 'floating-card-alt'
+                } p-0`}
               >
                 {plan.popular && (
-                  <div className="absolute top-0 right-0 bg-[image:var(--gradient-primary)] text-primary-foreground px-4 py-1 text-xs font-semibold rounded-bl-xl">
+                  <div className="absolute top-0 right-0 bg-[image:var(--gradient-primary)] text-primary-foreground px-4 py-1 text-xs font-semibold rounded-bl-2xl">
                     Most Popular
                   </div>
                 )}
-                <CardHeader className="pb-4">
-                  <div className="w-12 h-12 rounded-xl bg-primary/10 flex items-center justify-center mb-4">
+                <div className="p-6 pb-4">
+                  <div className="w-12 h-12 rounded-2xl bg-primary/10 flex items-center justify-center mb-4">
                     <Icon className="w-6 h-6 text-primary" />
                   </div>
-                  <CardTitle className="text-2xl">{plan.name}</CardTitle>
-                  <CardDescription>{plan.description}</CardDescription>
-                </CardHeader>
-                <CardContent className="pb-6">
+                  <h3 className="text-2xl font-semibold text-foreground">{plan.name}</h3>
+                  <p className="text-sm text-muted-foreground mt-1">{plan.description}</p>
+                </div>
+                <div className="px-6 pb-6 flex-1">
                   <div className="mb-6">
                     {plan.price !== null ? (
                       <div className="flex items-baseline gap-1">
@@ -141,18 +142,18 @@ export function PricingSection() {
                       </li>
                     ))}
                   </ul>
-                </CardContent>
-                <CardFooter>
+                </div>
+                <div className="px-6 pb-6">
                   <Button
-                    className="w-full"
+                    className="w-full rounded-xl"
                     variant={plan.popular ? 'gradient' : 'outline'}
                     size="lg"
                     onClick={handleGetStarted}
                   >
                     Get Started
                   </Button>
-                </CardFooter>
-              </Card>
+                </div>
+              </div>
             );
           })}
         </div>

@@ -18,10 +18,13 @@ interface HeroProps {
 
 export function Hero({ onGetStartedClick }: HeroProps) {
   return (
-    <section className="pt-32 pb-24 md:pt-40 md:pb-32 overflow-hidden">
-      <div className="container mx-auto px-6">
+    <section className="relative pt-32 pb-24 md:pt-40 md:pb-32 overflow-hidden">
+      {/* Organic blob decorations */}
+      <div className="blob-decoration blob-green w-96 h-96 -top-20 -left-32" />
+      <div className="blob-decoration blob-blue w-80 h-80 top-20 -right-20" />
+
+      <div className="container mx-auto px-6 relative z-10">
         <div className="max-w-5xl mx-auto text-center">
-          {/* Headline — elegant serif */}
           <h1
             className="text-5xl md:text-7xl lg:text-8xl font-bold tracking-tight leading-[1.08] text-foreground"
             style={{ fontFamily: "'Playfair Display', Georgia, serif" }}
@@ -31,12 +34,10 @@ export function Hero({ onGetStartedClick }: HeroProps) {
             Start closing deals.
           </h1>
 
-          {/* Sub-headline */}
           <p className="mt-8 text-lg md:text-xl text-muted-foreground max-w-2xl mx-auto leading-relaxed">
             Wibookly reads, categorizes, drafts, and sends your emails — so you can focus on what really matters.
           </p>
 
-          {/* CTA Button — large green/blue gradient pill with arrow circle */}
           <div className="mt-10 flex justify-center">
             <button
               onClick={onGetStartedClick}
@@ -49,14 +50,13 @@ export function Hero({ onGetStartedClick }: HeroProps) {
             </button>
           </div>
 
-          {/* Provider line — Outlook same size as Gmail */}
           <div className="mt-8 flex items-center justify-center gap-3 text-sm text-muted-foreground">
             <span>Wibookly sits on top of</span>
             <div className="flex items-center gap-2">
-              <div className="w-11 h-11 rounded-full bg-card border border-border flex items-center justify-center shadow-sm">
+              <div className="w-11 h-11 rounded-full bg-card/80 border border-border/50 flex items-center justify-center shadow-sm backdrop-blur-sm">
                 <GmailIcon />
               </div>
-              <div className="w-11 h-11 rounded-full bg-card border border-border flex items-center justify-center shadow-sm overflow-hidden">
+              <div className="w-11 h-11 rounded-full bg-card/80 border border-border/50 flex items-center justify-center shadow-sm overflow-hidden backdrop-blur-sm">
                 <img src={outlookLogo} alt="Outlook" className="w-7 h-7 object-contain" />
               </div>
             </div>
