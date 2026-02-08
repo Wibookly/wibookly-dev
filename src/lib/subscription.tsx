@@ -8,8 +8,9 @@ export const PLAN_CONFIG = {
     name: 'Starter',
     price: 20,
     monthlyPriceId: 'price_1Sog5tAESvm0s6Eqlef0MlRD',
-    annualPriceId: null as string | null, // TODO: Create annual Stripe price
+    annualPriceId: 'price_1SyhKmAESvm0s6EqSrGFVM1r',
     productId: 'prod_TmEZSmRDQaRFxJ',
+    annualProductId: 'prod_TwaVWQOaCR4SlF',
     mailboxLimit: 1,
     features: {
       aiAutoDrafts: true,
@@ -23,8 +24,9 @@ export const PLAN_CONFIG = {
     name: 'Pro',
     price: 50,
     monthlyPriceId: 'price_1Sog6BAESvm0s6EqGMDf8sch',
-    annualPriceId: null as string | null, // TODO: Create annual Stripe price
+    annualPriceId: 'price_1SyhLUAESvm0s6Eq371kAWuh',
     productId: 'prod_TmEZZY5hzUCPhe',
+    annualProductId: 'prod_TwaWPSYXMPb8Xq',
     mailboxLimit: 6,
     features: {
       aiAutoDrafts: true,
@@ -40,6 +42,7 @@ export const PLAN_CONFIG = {
     monthlyPriceId: null,
     annualPriceId: null,
     productId: null,
+    annualProductId: null,
     mailboxLimit: Infinity,
     features: {
       aiAutoDrafts: true,
@@ -68,7 +71,7 @@ interface SubscriptionContextType extends SubscriptionState {
   hasFeature: (feature: keyof typeof PLAN_CONFIG.starter.features) => boolean;
   getMailboxLimit: () => number;
   getUpgradePlan: () => PlanType | null;
-  startCheckout: (plan: PlanType) => Promise<void>;
+  startCheckout: (plan: PlanType, billingInterval?: 'monthly' | 'annual') => Promise<void>;
   openCustomerPortal: () => Promise<void>;
 }
 
@@ -121,9 +124,18 @@ export function SubscriptionProvider({ children }: { children: ReactNode }) {
 
       if (!error && data && !data.error) {
         let detectedPlan: PlanType = 'starter';
-        if (data.product_id === PLAN_CONFIG.pro.productId) {
+        const productId = data.product_id;
+        if (
+          productId === PLAN_CONFIG.pro.productId ||
+          productId === PLAN_CONFIG.pro.annualProductId
+        ) {
           detectedPlan = 'pro';
-        } else if (data.subscribed && data.product_id) {
+        } else if (
+          productId === PLAN_CONFIG.starter.productId ||
+          productId === PLAN_CONFIG.starter.annualProductId
+        ) {
+          detectedPlan = 'starter';
+        } else if (data.subscribed && productId) {
           detectedPlan = 'pro';
         }
 
@@ -169,12 +181,16 @@ export function SubscriptionProvider({ children }: { children: ReactNode }) {
     return null;
   }, [state.plan]);
 
-  const startCheckout = useCallback(async (plan: PlanType) => {
+  const startCheckout = useCallback(async (plan: PlanType, billingInterval: 'monthly' | 'annual' = 'monthly') => {
     if (!session?.access_token) {
       throw new Error('Please sign in to upgrade');
     }
 
-    const priceId = PLAN_CONFIG[plan].monthlyPriceId;
+    const planConfig = PLAN_CONFIG[plan];
+    const priceId = billingInterval === 'annual' 
+      ? planConfig.annualPriceId 
+      : planConfig.monthlyPriceId;
+    
     if (!priceId) {
       window.open('mailto:sales@wibookly.com?subject=Enterprise%20Plan%20Inquiry', '_blank');
       return;
