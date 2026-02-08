@@ -3,15 +3,15 @@ import wibooklyLogo from '@/assets/wibookly-logo.png';
 
 export function Footer() {
   return (
-    <footer className="py-12 border-t border-border/20">
+    <footer className="py-12 border-t border-border/10">
       <div className="container mx-auto px-6">
-        <div className="max-w-5xl mx-auto">
-          <div className="flex flex-col md:flex-row items-center justify-between gap-8">
-            <Link to="/" className="flex items-center group">
-              <img 
-                src={wibooklyLogo} 
-                alt="Wibookly" 
-                className="h-24 w-auto transition-transform duration-300 group-hover:scale-105"
+        <div className="max-w-3xl mx-auto">
+          <div className="flex flex-col items-center gap-6">
+            <Link to="/" className="flex items-center">
+              <img
+                src={wibooklyLogo}
+                alt="Wibookly"
+                className="h-20 w-auto"
               />
             </Link>
 
@@ -25,9 +25,6 @@ export function Footer() {
               <Link to="/pricing" className="hover:text-foreground transition-colors">
                 Pricing
               </Link>
-              <Link to="/terms" className="hover:text-foreground transition-colors">
-                Terms
-              </Link>
               <Link to="/privacy" className="hover:text-foreground transition-colors">
                 Privacy
               </Link>
@@ -35,11 +32,11 @@ export function Footer() {
                 Contact
               </a>
             </nav>
-          </div>
 
-          <div className="mt-8 pt-6 border-t border-border/10 text-center">
-            <p className="text-sm text-muted-foreground/60">
-              © {new Date().getFullYear()} Wibookly. All rights reserved.
+            <p className="text-sm text-muted-foreground/50 text-center">
+              © {new Date().getFullYear()} Wibookly — AI-powered email intelligence
+              <br />
+              Privacy-first · No credit card required
             </p>
           </div>
         </div>
