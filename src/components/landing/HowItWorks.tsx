@@ -4,7 +4,7 @@ import outlookLogo from '@/assets/outlook-logo.png';
 
 // Gmail icon (compact)
 const GmailSmall = () => (
-  <svg viewBox="0 0 48 48" className="w-9 h-9" aria-hidden="true">
+  <svg viewBox="0 0 48 48" className="w-8 h-8" aria-hidden="true">
     <path fill="#4caf50" d="M45,16.2l-5,2.75l-5,4.75L35,40h7c1.657,0,3-1.343,3-3V16.2z" />
     <path fill="#1e88e5" d="M3,16.2l3.614,1.71L13,23.7V40H6c-1.657,0-3-1.343-3-3V16.2z" />
     <polygon fill="#e53935" points="35,11.2 24,19.45 13,11.2 12,17 13,23.7 24,31.95 35,23.7 36,17" />
@@ -45,11 +45,11 @@ export function HowItWorks() {
                   <GmailSmall />
                 </div>
                 <div className="w-14 h-14 rounded-xl bg-secondary flex items-center justify-center shadow-sm overflow-hidden">
-                  <img src={outlookLogo} alt="Outlook" className="w-10 h-10 object-contain" />
+                  <img src={outlookLogo} alt="Outlook" className="w-8 h-8 object-contain" />
                 </div>
                 <ArrowRight className="w-5 h-5 text-muted-foreground mx-1" />
-                <div className="w-16 h-16 rounded-xl bg-secondary flex items-center justify-center shadow-sm">
-                  <img src={wibooklyLogo} alt="Wibookly" className="h-12 w-auto" />
+                <div className="w-20 h-20 rounded-xl bg-secondary flex items-center justify-center shadow-sm">
+                  <img src={wibooklyLogo} alt="Wibookly" className="h-14 w-auto" />
                 </div>
               </div>
             </div>

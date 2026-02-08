@@ -9,7 +9,7 @@ interface MobileHeaderProps {
 export function MobileHeader({ onMenuClick }: MobileHeaderProps) {
   return (
     <header className="lg:hidden flex items-center justify-between px-4 py-3 border-b border-border bg-card">
-      <img src={wibooklyLogo} alt="Wibookly" className="h-8 w-auto" />
+      <img src={wibooklyLogo} alt="Wibookly" className="h-12 w-auto" />
       <Button variant="ghost" size="icon" onClick={onMenuClick}>
         <Menu className="h-5 w-5" />
       </Button>
