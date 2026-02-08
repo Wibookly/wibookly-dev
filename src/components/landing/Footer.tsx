@@ -3,42 +3,32 @@ import wibooklyLogo from '@/assets/wibookly-logo.png';
 
 export function Footer() {
   return (
-    <footer className="py-12 border-t border-border/10">
+    <footer className="py-16 border-t border-border">
       <div className="container mx-auto px-6">
-        <div className="max-w-3xl mx-auto">
-          <div className="flex flex-col items-center gap-6">
-            <Link to="/" className="flex items-center">
-              <img
-                src={wibooklyLogo}
-                alt="Wibookly"
-                className="h-20 w-auto"
-              />
+        <div className="flex flex-col md:flex-row items-center justify-between gap-8">
+          <Link to="/" className="flex items-center group">
+            <img 
+              src={wibooklyLogo} 
+              alt="Wibookly" 
+              className="h-32 w-auto transition-transform duration-300 group-hover:scale-105"
+            />
+          </Link>
+
+          <nav className="flex items-center gap-8 text-sm text-muted-foreground">
+            <Link to="/terms" className="hover:text-foreground transition-colors">
+              Terms
             </Link>
+            <Link to="/privacy" className="hover:text-foreground transition-colors">
+              Privacy
+            </Link>
+            <a href="mailto:hello@mailflow.app" className="hover:text-foreground transition-colors">
+              Contact
+            </a>
+          </nav>
 
-            <nav className="flex flex-wrap items-center justify-center gap-6 text-sm text-muted-foreground">
-              <a href="#how-it-works" className="hover:text-foreground transition-colors">
-                How It Works
-              </a>
-              <a href="#features" className="hover:text-foreground transition-colors">
-                Features
-              </a>
-              <Link to="/pricing" className="hover:text-foreground transition-colors">
-                Pricing
-              </Link>
-              <Link to="/privacy" className="hover:text-foreground transition-colors">
-                Privacy
-              </Link>
-              <a href="mailto:hello@wibookly.ai" className="hover:text-foreground transition-colors">
-                Contact
-              </a>
-            </nav>
-
-            <p className="text-sm text-muted-foreground/50 text-center">
-              © {new Date().getFullYear()} Wibookly — AI-powered email intelligence
-              <br />
-              Privacy-first · No credit card required
-            </p>
-          </div>
+          <p className="text-sm text-muted-foreground">
+            © {new Date().getFullYear()} Webookly. All rights reserved.
+          </p>
         </div>
       </div>
     </footer>
