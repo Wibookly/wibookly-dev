@@ -43,7 +43,7 @@ export function Hero({ onGetStartedClick }: HeroProps) {
               onClick={onGetStartedClick}
               className="group flex items-center gap-4 rounded-full bg-[image:var(--gradient-primary)] text-primary-foreground pl-8 pr-2 py-2 text-lg font-medium shadow-lg hover:shadow-xl transition-all duration-300 hover:-translate-y-0.5"
             >
-              Get started for free
+              Get started
               <span className="flex items-center justify-center w-10 h-10 rounded-full bg-primary-foreground text-primary transition-transform duration-300 group-hover:translate-x-0.5 group-hover:-translate-y-0.5">
                 <ArrowUpRight className="w-5 h-5" />
               </span>
