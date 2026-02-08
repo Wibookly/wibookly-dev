@@ -1,8 +1,8 @@
-import { useEffect } from 'react';
-import { useNavigate, Link } from 'react-router-dom';
+import { useEffect, useState } from 'react';
+import { useNavigate, Link, useSearchParams } from 'react-router-dom';
 import { useAuth } from '@/lib/auth';
 import { Button } from '@/components/ui/button';
-import { Loader2, ArrowLeft, ShieldCheck, Lock, CheckCircle2 } from 'lucide-react';
+import { Loader2, ShieldCheck, Lock, CheckCircle2 } from 'lucide-react';
 import wibooklyLogo from '@/assets/wibookly-logo.png';
 import outlookLogo from '@/assets/outlook-logo.png';
 
@@ -21,6 +21,39 @@ const OutlookIcon = ({ logo }: { logo: string }) => (
   <img src={logo} alt="Outlook" className="w-5 h-5 object-contain" />
 );
 
+const testimonials = [
+  {
+    quote: "I'm impressed by how good the generated replies are. It's just like myself. And I hardly ever need to edit them. I'm saving hours a week on email.",
+    name: "Sarah Mitchell",
+    title: "VP of Sales, TechCorp",
+    initial: "S",
+  },
+  {
+    quote: "Wibookly has completely transformed how our team handles email. We went from spending 3 hours a day on email to just 30 minutes.",
+    name: "James Chen",
+    title: "CTO, StartupFlow",
+    initial: "J",
+  },
+  {
+    quote: "The AI categorization is incredibly accurate. It knows exactly which emails need my attention and which ones can be handled automatically.",
+    name: "Maria Rodriguez",
+    title: "Head of Operations, ScaleUp Inc",
+    initial: "M",
+  },
+  {
+    quote: "We rolled out Wibookly across our entire sales team. Response times dropped by 60% and customer satisfaction went through the roof.",
+    name: "David Park",
+    title: "Director of Sales, CloudBase",
+    initial: "D",
+  },
+  {
+    quote: "As a founder, every minute counts. Wibookly gives me back hours each week that I can spend on what actually matters — building the product.",
+    name: "Emily Watson",
+    title: "CEO & Founder, NexaAI",
+    initial: "E",
+  },
+];
+
 const complianceBadges = [
   { label: 'CASA', sublabel: 'Tier 3 Certified' },
   { label: 'GDPR', sublabel: 'Aligned' },
@@ -31,12 +64,34 @@ const complianceBadges = [
 export default function Auth() {
   const { user, loading, signInWithCognito } = useAuth();
   const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
+  const mode = searchParams.get('mode') || 'signin';
+  const isSignUp = mode === 'signup';
+
+  const [currentTestimonial, setCurrentTestimonial] = useState(0);
+  const [fadeState, setFadeState] = useState<'in' | 'out'>('in');
 
   useEffect(() => {
     if (user) {
       navigate('/integrations', { replace: true });
     }
   }, [user, navigate]);
+
+  // Rotate testimonials
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setFadeState('out');
+      setTimeout(() => {
+        setCurrentTestimonial((prev) => (prev + 1) % testimonials.length);
+        setFadeState('in');
+      }, 400);
+    }, 6000);
+    return () => clearInterval(interval);
+  }, []);
+
+  const toggleMode = () => {
+    setSearchParams({ mode: isSignUp ? 'signin' : 'signup' });
+  };
 
   if (loading) {
     return (
@@ -46,14 +101,16 @@ export default function Auth() {
     );
   }
 
+  const testimonial = testimonials[currentTestimonial];
+
   return (
     <div className="min-h-screen flex">
-      {/* Left — Sign-in form */}
+      {/* Left — Sign-in/Sign-up form */}
       <div className="flex-1 flex flex-col justify-between p-8 md:p-12 lg:p-16 bg-background">
-        {/* Top: Logo + Sign in link */}
+        {/* Top: Logo + Back link */}
         <div className="flex items-center justify-between">
           <Link to="/" className="flex items-center">
-            <img src={wibooklyLogo} alt="Wibookly" className="h-12 w-auto" />
+            <img src={wibooklyLogo} alt="Wibookly" className="h-16 w-auto" />
           </Link>
           <Link
             to="/"
@@ -63,21 +120,34 @@ export default function Auth() {
           </Link>
         </div>
 
-        {/* Middle: Form */}
-        <div className="max-w-md w-full mx-auto lg:mx-0">
+        {/* Middle: Form — centered */}
+        <div className="max-w-md w-full mx-auto flex flex-col items-center text-center">
           <h1
             className="text-3xl md:text-4xl font-bold tracking-tight text-foreground leading-tight"
             style={{ fontFamily: "'Playfair Display', Georgia, serif" }}
           >
-            Sign up with your
-            <br />
-            <span className="text-primary">work email</span>
+            {isSignUp ? (
+              <>
+                Sign up with your
+                <br />
+                <span className="text-primary">work email</span>
+              </>
+            ) : (
+              <>
+                Welcome back to
+                <br />
+                <span className="text-primary">Wibookly</span>
+              </>
+            )}
           </h1>
           <p className="mt-4 text-muted-foreground">
-            Use your <span className="font-semibold text-foreground">work email</span> to get started with Wibookly.
+            {isSignUp
+              ? <>Use your <span className="font-semibold text-foreground">work email</span> to get started with Wibookly.</>
+              : <>Sign in to continue managing your inbox with AI.</>
+            }
           </p>
 
-          <div className="mt-8 space-y-3">
+          <div className="mt-8 space-y-3 w-full">
             <Button
               variant="outline"
               size="lg"
@@ -98,10 +168,35 @@ export default function Auth() {
               Continue with Outlook
             </Button>
           </div>
+
+          {/* Toggle between Sign Up / Sign In */}
+          <p className="mt-6 text-sm text-muted-foreground">
+            {isSignUp ? (
+              <>
+                Already have an account?{' '}
+                <button
+                  onClick={toggleMode}
+                  className="text-primary font-semibold hover:underline"
+                >
+                  Sign in
+                </button>
+              </>
+            ) : (
+              <>
+                Don't have an account?{' '}
+                <button
+                  onClick={toggleMode}
+                  className="text-primary font-semibold hover:underline"
+                >
+                  Sign up
+                </button>
+              </>
+            )}
+          </p>
         </div>
 
         {/* Bottom: Compliance badges */}
-        <div className="mt-12">
+        <div className="mt-12 flex flex-col items-center">
           <div className="flex items-center gap-6 mb-4">
             {complianceBadges.map((badge) => (
               <div key={badge.label} className="flex flex-col items-center text-center">
@@ -119,7 +214,7 @@ export default function Auth() {
               </div>
             ))}
           </div>
-          <p className="text-xs text-muted-foreground leading-relaxed max-w-md">
+          <p className="text-xs text-muted-foreground leading-relaxed max-w-md text-center">
             Wibookly has undergone a SOC 2® Type 1 examination and complies with GDPR, CCPA, and CASA Tier 3 requirements. By signing up, you agree to the Wibookly{' '}
             <Link to="/privacy" className="text-primary hover:underline">Privacy Policy</Link> and{' '}
             <Link to="/terms" className="text-primary hover:underline">Terms of Service</Link>.
@@ -127,14 +222,18 @@ export default function Auth() {
         </div>
       </div>
 
-      {/* Right — Testimonial + gradient (hidden on mobile) */}
+      {/* Right — Rotating testimonials + gradient (hidden on mobile) */}
       <div
         className="hidden lg:flex flex-1 items-center justify-center p-12"
         style={{
           background: 'linear-gradient(135deg, hsl(150 40% 92%) 0%, hsl(180 40% 88%) 30%, hsl(210 50% 90%) 60%, hsl(170 35% 85%) 100%)',
         }}
       >
-        <div className="max-w-md bg-card/90 backdrop-blur-sm rounded-2xl shadow-lg border border-border p-10">
+        <div
+          className={`max-w-md bg-card/90 backdrop-blur-sm rounded-2xl shadow-lg border border-border p-10 transition-opacity duration-400 ${
+            fadeState === 'in' ? 'opacity-100' : 'opacity-0'
+          }`}
+        >
           <div className="text-4xl text-primary/30 mb-4" style={{ fontFamily: "'Playfair Display', Georgia, serif" }}>
             "
           </div>
@@ -142,16 +241,28 @@ export default function Auth() {
             className="text-xl md:text-2xl font-medium text-foreground leading-relaxed mb-8"
             style={{ fontFamily: "'Playfair Display', Georgia, serif" }}
           >
-            I'm impressed by how good the generated replies are. It's just like myself. And I hardly ever need to edit them. I'm saving hours a week on email.
+            {testimonial.quote}
           </p>
           <div className="flex items-center gap-4">
             <div className="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center">
-              <span className="text-lg font-bold text-primary">S</span>
+              <span className="text-lg font-bold text-primary">{testimonial.initial}</span>
             </div>
             <div>
-              <div className="font-semibold text-foreground">Sarah Mitchell</div>
-              <div className="text-sm text-muted-foreground">VP of Sales, TechCorp</div>
+              <div className="font-semibold text-foreground">{testimonial.name}</div>
+              <div className="text-sm text-muted-foreground">{testimonial.title}</div>
             </div>
+          </div>
+
+          {/* Dots indicator */}
+          <div className="flex items-center justify-center gap-2 mt-6">
+            {testimonials.map((_, i) => (
+              <div
+                key={i}
+                className={`w-2 h-2 rounded-full transition-all duration-300 ${
+                  i === currentTestimonial ? 'bg-primary w-4' : 'bg-primary/20'
+                }`}
+              />
+            ))}
           </div>
         </div>
       </div>
