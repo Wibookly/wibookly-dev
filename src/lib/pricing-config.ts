@@ -1,15 +1,14 @@
 import { Zap, Sparkles, Crown, type LucideIcon } from 'lucide-react';
 
-// Volume discount tiers for annual billing
-export const ANNUAL_DISCOUNT_TIERS = [
-  { min: 1, max: 14, discount: 0.15, label: '1–14 users' },
+// Enterprise volume discount tiers (6+ users, based on Pro per-seat price)
+export const ENTERPRISE_VOLUME_TIERS = [
+  { min: 6, max: 14, discount: 0.15, label: '6–14 users' },
   { min: 15, max: 49, discount: 0.18, label: '15–49 users' },
   { min: 50, max: 99, discount: 0.20, label: '50–99 users' },
   { min: 100, max: Infinity, discount: 0.25, label: '100+ users' },
 ] as const;
 
-// Monthly volume discount (enterprise only)
-export const MONTHLY_ENTERPRISE_DISCOUNT = 0.15; // 15% off for 100+ users
+export const ENTERPRISE_BASE_PRICE = 50; // Per-seat base price (same as Pro)
 
 export type BillingInterval = 'monthly' | 'annual';
 
@@ -21,6 +20,7 @@ export interface PricingPlan {
   icon: LucideIcon;
   popular?: boolean;
   priceLabel?: string;
+  perUser?: boolean;
   features: string[];
   notIncluded: string[];
   showAnnualDiscount?: boolean;
@@ -57,14 +57,15 @@ export const PRICING_PLANS: PricingPlan[] = [
     id: 'pro',
     name: 'Pro',
     monthlyPrice: 50,
-    description: 'For professionals who need powerful automation and insights',
+    description: 'For professionals and small teams who need powerful automation',
     icon: Sparkles,
     popular: true,
+    perUser: true,
     showAnnualDiscount: true,
     features: [
-      'Up to 6 connected accounts',
-      '30 auto drafts daily',
-      '240 AI messages daily',
+      'Up to 5 team members',
+      '30 auto drafts daily per user',
+      '240 AI messages daily per user',
       'Chat with 3 years of email history',
       'Advanced AI intelligence',
       'AI Auto Drafts',
@@ -86,17 +87,14 @@ export const PRICING_PLANS: PricingPlan[] = [
     id: 'enterprise',
     name: 'Enterprise',
     monthlyPrice: null,
-    priceLabel: 'Custom Pricing',
-    description: 'For teams and organizations with advanced needs',
+    priceLabel: 'Volume Pricing',
+    description: 'For growing teams of 6+ users with volume discounts',
     icon: Crown,
     showAnnualDiscount: false,
     features: [
-      'Unlimited connected accounts',
       'Everything in Pro',
+      'Starting from 6 users',
       'Admin dashboard',
-      'Increased auto draft daily limits',
-      'Increased AI message daily limits',
-      'Increased AI chat daily limits',
       'Advanced reporting',
       'Team management',
       'License assignment',
@@ -108,17 +106,18 @@ export const PRICING_PLANS: PricingPlan[] = [
 ];
 
 /**
- * Get the annual discount percentage for a given user count.
+ * Get the enterprise per-seat price for a given user count.
  */
-export function getAnnualDiscount(userCount: number): number {
-  const tier = ANNUAL_DISCOUNT_TIERS.find(
+export function getEnterprisePerSeatPrice(userCount: number): number {
+  const tier = ENTERPRISE_VOLUME_TIERS.find(
     (t) => userCount >= t.min && userCount <= t.max
   );
-  return tier?.discount ?? 0.15;
+  const discount = tier?.discount ?? 0.15;
+  return Math.round(ENTERPRISE_BASE_PRICE * (1 - discount) * 100) / 100;
 }
 
 /**
- * Calculate the discounted annual price per month (using the base 1-14 user tier by default).
+ * Calculate the discounted annual price per month.
  */
 export function getAnnualPricePerMonth(monthlyPrice: number, discountPercent: number = 0.15): number {
   return Math.round(monthlyPrice * (1 - discountPercent) * 100) / 100;
