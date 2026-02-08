@@ -7,7 +7,7 @@ interface CTASectionProps {
 
 export function CTASection({ onGetStartedClick }: CTASectionProps) {
   return (
-    <section className="py-24 md:py-32 bg-[image:var(--gradient-cta)]">
+    <section className="py-24 md:py-32">
       <div className="container mx-auto px-6">
         <div className="max-w-3xl mx-auto text-center">
           <h2 className="text-3xl md:text-4xl lg:text-5xl font-bold tracking-tight animate-fade-in">

@@ -98,9 +98,9 @@ export default function Auth() {
   const testimonial = testimonials[currentTestimonial];
 
   return (
-    <div className="min-h-screen flex">
+    <div className="min-h-screen flex ocean-bg">
       {/* Left — Sign-in/Sign-up form */}
-      <div className="flex-1 flex flex-col justify-between p-8 md:p-12 lg:p-16 bg-background">
+      <div className="flex-1 flex flex-col justify-between p-8 md:p-12 lg:p-16">
         {/* Top: Logo + Back link */}
         <div className="flex items-center justify-between">
           <Link to="/" className="flex items-center">
@@ -257,10 +257,7 @@ export default function Auth() {
 
       {/* Right — Rotating testimonials + gradient (hidden on mobile) */}
       <div
-        className="hidden lg:flex flex-1 items-center justify-center p-12"
-        style={{
-          background: 'linear-gradient(135deg, hsl(150 40% 92%) 0%, hsl(180 40% 88%) 30%, hsl(210 50% 90%) 60%, hsl(170 35% 85%) 100%)',
-        }}
+        className="hidden lg:flex flex-1 items-center justify-center p-12 bg-foreground/5"
       >
         <div
           className={`max-w-md bg-card/90 backdrop-blur-sm rounded-2xl shadow-lg border border-border p-10 transition-opacity duration-400 ${

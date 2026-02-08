@@ -9,7 +9,7 @@ interface HeaderProps {
 export function Header({ onSignInClick }: HeaderProps) {
   return (
     <header className="fixed top-0 left-0 right-0 z-50 flex justify-center pt-4 px-4">
-      <div className="flex items-center gap-8 h-16 px-10 rounded-full bg-card border border-border shadow-sm min-w-[480px]">
+      <div className="flex items-center gap-8 h-16 px-10 rounded-full bg-card/90 backdrop-blur-md border border-border/40 shadow-sm min-w-[480px]">
         <Link to="/" className="flex items-center">
           <img 
             src={wibooklyLogo} 

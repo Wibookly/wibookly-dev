@@ -18,7 +18,7 @@ interface HeroProps {
 
 export function Hero({ onGetStartedClick }: HeroProps) {
   return (
-    <section className="pt-32 pb-24 md:pt-40 md:pb-32 bg-secondary overflow-hidden">
+    <section className="pt-32 pb-24 md:pt-40 md:pb-32 overflow-hidden">
       <div className="container mx-auto px-6">
         <div className="max-w-5xl mx-auto text-center">
           {/* Headline — elegant serif */}

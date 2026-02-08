@@ -75,7 +75,7 @@ export function PricingSection() {
   };
 
   return (
-    <section id="pricing" className="py-24 md:py-32 bg-[image:var(--gradient-subtle)]">
+    <section id="pricing" className="py-24 md:py-32">
       <div className="container mx-auto px-6">
         <div className="text-center mb-16">
           <h2

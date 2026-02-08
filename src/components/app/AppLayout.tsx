@@ -23,7 +23,7 @@ export function AppLayout() {
   }
 
   return (
-    <div className="min-h-screen flex flex-col lg:flex-row bg-secondary">
+    <div className="min-h-screen flex flex-col lg:flex-row ocean-bg">
       {/* Mobile Header */}
       <MobileHeader onMenuClick={() => setMobileMenuOpen(true)} />
       
