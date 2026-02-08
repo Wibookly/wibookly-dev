@@ -1,6 +1,7 @@
 import { useNavigate } from 'react-router-dom';
 import { Header } from '@/components/landing/Header';
 import { Hero } from '@/components/landing/Hero';
+import { ToolComparison } from '@/components/landing/ToolComparison';
 import { HowItWorks } from '@/components/landing/HowItWorks';
 import { Features } from '@/components/landing/Features';
 import { Security } from '@/components/landing/Security';
@@ -18,10 +19,11 @@ export default function Landing() {
   };
 
   return (
-    <div className="min-h-screen bg-[image:var(--gradient-hero)]">
+    <div className="min-h-screen bg-background">
       <Header onSignInClick={handleSignIn} />
       <main>
         <Hero onGetStartedClick={handleGetStarted} />
+        <ToolComparison />
         <HowItWorks />
         <Features />
         <Security />
