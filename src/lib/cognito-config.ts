@@ -5,11 +5,11 @@
  * The PKCE flow does not require a client secret on the frontend.
  */
 export const COGNITO_CONFIG = {
-  /** Full Cognito hosted-UI domain */
-  domain: 'https://webookly-auth-dev.auth.us-west-2.amazoncognito.com',
+  /** Full Cognito custom domain (Managed Login) */
+  domain: 'https://auth.wibookly.ai',
 
-  /** Cognito App Client ID (public) */
-  clientId: '7n6n6ohj1kvuc36op6fooe4da',
+  /** Cognito App Client ID (public SPA client, no secret) */
+  clientId: '3k0v6stp6l5abmgsg6ja5rcauo',
 
   /** OAuth scopes */
   scopes: 'openid email profile',
@@ -34,16 +34,13 @@ export const COGNITO_CONFIG = {
    * - Microsoft Entra ID is added as an OIDC provider → name must
    *   match exactly what you entered when creating the provider in
    *   the Cognito console.
-   *
-   * If "Continue with Microsoft" doesn't redirect correctly, update
-   * the `microsoft` value below to match your Cognito OIDC provider name.
    */
   identityProviders: {
     google: 'Google',
     microsoft: 'MicrosoftEntraID',
   },
 
-  /** OAuth endpoints (derived from domain) */
+  /** OAuth endpoints (derived from custom domain) */
   get authorizeEndpoint() {
     return `${this.domain}/oauth2/authorize`;
   },
