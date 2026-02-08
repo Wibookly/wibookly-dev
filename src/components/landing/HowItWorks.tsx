@@ -1,10 +1,10 @@
-import { ArrowRight, FolderOpen, Mail, MessageSquare, Reply, Send, Sparkles, Tag, Zap } from 'lucide-react';
+import { ArrowDown, FolderOpen, Mail, MessageSquare, Reply, Send, Sparkles, Tag, Zap } from 'lucide-react';
 import wibooklyLogo from '@/assets/wibookly-logo.png';
 import outlookLogo from '@/assets/outlook-logo.png';
 
 // Gmail icon
 const GmailIcon = () => (
-  <svg viewBox="0 0 48 48" className="w-10 h-10" aria-hidden="true">
+  <svg viewBox="0 0 48 48" className="w-12 h-12" aria-hidden="true">
     <path fill="#4caf50" d="M45,16.2l-5,2.75l-5,4.75L35,40h7c1.657,0,3-1.343,3-3V16.2z" />
     <path fill="#1e88e5" d="M3,16.2l3.614,1.71L13,23.7V40H6c-1.657,0-3-1.343-3-3V16.2z" />
     <polygon fill="#e53935" points="35,11.2 24,19.45 13,11.2 12,17 13,23.7 24,31.95 35,23.7 36,17" />
@@ -42,22 +42,25 @@ export function HowItWorks() {
               <span className="inline-flex items-center px-4 py-1.5 rounded-full bg-primary/10 text-primary text-xs font-semibold mb-6">
                 Takes 1 min
               </span>
-              <div className="flex items-center gap-4 flex-1 justify-center">
-                <div className="w-16 h-16 rounded-2xl bg-secondary flex items-center justify-center shadow-sm">
+              {/* Gmail + Outlook on top */}
+              <div className="flex items-center gap-5 mb-4">
+                <div className="w-18 h-18 rounded-2xl bg-secondary flex items-center justify-center shadow-sm p-3">
                   <GmailIcon />
                 </div>
-                <div className="w-16 h-16 rounded-2xl bg-secondary flex items-center justify-center shadow-sm overflow-hidden">
-                  <img src={outlookLogo} alt="Outlook" className="w-10 h-10 object-contain" />
+                <div className="w-18 h-18 rounded-2xl bg-secondary flex items-center justify-center shadow-sm p-3 overflow-hidden">
+                  <img src={outlookLogo} alt="Outlook" className="w-12 h-12 object-contain" />
                 </div>
-                <ArrowRight className="w-5 h-5 text-muted-foreground" />
-                <div className="w-16 h-16 rounded-2xl bg-secondary flex items-center justify-center shadow-sm">
-                  <img src={wibooklyLogo} alt="Wibookly" className="h-12 w-auto" />
-                </div>
+              </div>
+              {/* Arrow down */}
+              <ArrowDown className="w-5 h-5 text-muted-foreground my-2" />
+              {/* Wibookly at bottom */}
+              <div className="w-20 h-20 rounded-2xl bg-secondary flex items-center justify-center shadow-sm mt-2">
+                <img src={wibooklyLogo} alt="Wibookly" className="h-14 w-auto" />
               </div>
             </div>
           </div>
 
-          {/* Card 2 — Wibookly onboards itself */}
+          {/* Card 2 — Wibookly onboards itself (circular hub) */}
           <div className="flex flex-col">
             <div className="mb-5">
               <h3 className="text-xl font-semibold text-foreground mb-2">Wibookly onboards itself</h3>
@@ -69,22 +72,37 @@ export function HowItWorks() {
               <span className="inline-flex items-center px-4 py-1.5 rounded-full bg-primary/10 text-primary text-xs font-semibold mb-6">
                 Takes 5 min
               </span>
-              <div className="relative flex items-center justify-center w-full flex-1 min-h-[120px]">
-                <div className="w-16 h-16 rounded-2xl bg-secondary flex items-center justify-center shadow-sm z-10">
-                  <img src={wibooklyLogo} alt="Wibookly" className="h-12 w-auto" />
+              {/* Circular hub layout */}
+              <div className="relative w-[200px] h-[200px] flex items-center justify-center">
+                {/* Connecting lines (SVG) */}
+                <svg className="absolute inset-0 w-full h-full" viewBox="0 0 200 200" fill="none">
+                  {/* Lines from center to each icon */}
+                  <line x1="100" y1="100" x2="55" y2="35" stroke="hsl(var(--border))" strokeWidth="1.5" strokeDasharray="4 3" />
+                  <line x1="100" y1="100" x2="145" y2="35" stroke="hsl(var(--border))" strokeWidth="1.5" strokeDasharray="4 3" />
+                  <line x1="100" y1="100" x2="55" y2="165" stroke="hsl(var(--border))" strokeWidth="1.5" strokeDasharray="4 3" />
+                  <line x1="100" y1="100" x2="145" y2="165" stroke="hsl(var(--border))" strokeWidth="1.5" strokeDasharray="4 3" />
+                </svg>
+
+                {/* Center — Wibookly */}
+                <div className="w-20 h-20 rounded-2xl bg-secondary flex items-center justify-center shadow-sm z-10">
+                  <img src={wibooklyLogo} alt="Wibookly" className="h-14 w-auto" />
                 </div>
-                {/* Floating icons */}
-                <div className="absolute top-0 left-[20%] w-12 h-12 rounded-xl bg-primary/10 flex items-center justify-center">
-                  <Tag className="w-5 h-5 text-primary" />
+
+                {/* Top-left — Tag */}
+                <div className="absolute top-0 left-[15%] w-14 h-14 rounded-xl bg-primary/10 flex items-center justify-center">
+                  <Tag className="w-6 h-6 text-primary" />
                 </div>
-                <div className="absolute top-0 right-[20%] w-12 h-12 rounded-xl bg-accent/10 flex items-center justify-center">
-                  <FolderOpen className="w-5 h-5 text-accent" />
+                {/* Top-right — FolderOpen */}
+                <div className="absolute top-0 right-[15%] w-14 h-14 rounded-xl bg-accent/10 flex items-center justify-center">
+                  <FolderOpen className="w-6 h-6 text-accent" />
                 </div>
-                <div className="absolute bottom-0 left-[25%] w-12 h-12 rounded-xl bg-primary/10 flex items-center justify-center">
-                  <Mail className="w-5 h-5 text-primary" />
+                {/* Bottom-left — Mail */}
+                <div className="absolute bottom-0 left-[15%] w-14 h-14 rounded-xl bg-primary/10 flex items-center justify-center">
+                  <Mail className="w-6 h-6 text-primary" />
                 </div>
-                <div className="absolute bottom-0 right-[25%] w-12 h-12 rounded-xl bg-accent/10 flex items-center justify-center">
-                  <Sparkles className="w-5 h-5 text-accent" />
+                {/* Bottom-right — Sparkles */}
+                <div className="absolute bottom-0 right-[15%] w-14 h-14 rounded-xl bg-accent/10 flex items-center justify-center">
+                  <Sparkles className="w-6 h-6 text-accent" />
                 </div>
               </div>
             </div>
