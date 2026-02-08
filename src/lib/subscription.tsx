@@ -27,7 +27,7 @@ export const PLAN_CONFIG = {
     annualPriceId: 'price_1SyhLUAESvm0s6Eq371kAWuh',
     productId: 'prod_TmEZZY5hzUCPhe',
     annualProductId: 'prod_TwaWPSYXMPb8Xq',
-    mailboxLimit: 6,
+    mailboxLimit: 5,
     features: {
       aiAutoDrafts: true,
       aiAutoReply: true,

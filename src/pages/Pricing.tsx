@@ -4,8 +4,9 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Check } from 'lucide-react';
 import wibooklyLogo from '@/assets/wibookly-logo.png';
-import { PRICING_PLANS, ANNUAL_DISCOUNT_TIERS, getAnnualPricePerMonth, type BillingInterval } from '@/lib/pricing-config';
+import { PRICING_PLANS, getAnnualPricePerMonth, type BillingInterval } from '@/lib/pricing-config';
 import { BillingToggle } from '@/components/landing/BillingToggle';
+import { EnterprisePricing } from '@/components/landing/EnterprisePricing';
 
 export default function Pricing() {
   const navigate = useNavigate();
@@ -96,13 +97,17 @@ export default function Pricing() {
                   </CardHeader>
                   <CardContent className="pb-6">
                     <div className="mb-6">
-                      {displayPrice !== null ? (
+                      {plan.id === 'enterprise' ? (
+                        <EnterprisePricing />
+                      ) : displayPrice !== null ? (
                         <div>
                           <div className="flex items-baseline gap-1">
                             <span className="text-4xl font-bold text-foreground">
                               ${displayPrice}
                             </span>
-                            <span className="text-muted-foreground">/month</span>
+                            <span className="text-muted-foreground">
+                              {plan.perUser ? '/user/month' : '/month'}
+                            </span>
                           </div>
                           {showDiscount && plan.monthlyPrice && (
                             <div className="mt-1.5 flex items-center gap-2">
@@ -120,11 +125,7 @@ export default function Pricing() {
                             </p>
                           )}
                         </div>
-                      ) : (
-                        <div className="text-2xl font-semibold text-foreground">
-                          Contact Sales
-                        </div>
-                      )}
+                      ) : null}
                     </div>
 
                     <ul className="space-y-3">
@@ -157,49 +158,6 @@ export default function Pricing() {
                 </Card>
               );
             })}
-          </div>
-
-          {/* Volume Discount Section */}
-          <div className="mt-20 max-w-3xl mx-auto">
-            <div className="bg-card border border-border rounded-2xl p-8">
-              <h2 className="text-2xl font-bold mb-6 text-center text-foreground">
-                {billingInterval === 'annual' ? 'Annual Discounts by Team Size' : 'Volume Discounts'}
-              </h2>
-              {billingInterval === 'annual' ? (
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                  {ANNUAL_DISCOUNT_TIERS.map((tier) => (
-                    <div
-                      key={tier.label}
-                      className="text-center p-4 rounded-xl bg-primary/5 border border-primary/10"
-                    >
-                      <p className="text-sm text-muted-foreground mb-1">{tier.label}</p>
-                      <p className="text-2xl font-bold text-primary">
-                        {Math.round(tier.discount * 100)}%
-                      </p>
-                      <p className="text-xs text-muted-foreground">off</p>
-                    </div>
-                  ))}
-                </div>
-              ) : (
-                <p className="text-center text-muted-foreground">
-                  Standard pricing applies.
-                  <br />
-                  Volume discounts available for organizations with 100+ users (15% off).
-                </p>
-              )}
-              <div className="mt-6 pt-6 border-t border-border text-center">
-                <p className="text-sm text-muted-foreground">
-                  <strong className="text-foreground">Enterprise (100+ users):</strong> Custom pricing,
-                  priority support, and flexible billing.{' '}
-                  <a
-                    href="mailto:sales@wibookly.com?subject=Enterprise%20Plan%20Inquiry"
-                    className="text-primary hover:underline"
-                  >
-                    Contact sales for a tailored plan.
-                  </a>
-                </p>
-              </div>
-            </div>
           </div>
 
           {/* FAQ Section */}

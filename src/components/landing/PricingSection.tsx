@@ -4,7 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Check } from 'lucide-react';
 import { PRICING_PLANS, getAnnualPricePerMonth, type BillingInterval } from '@/lib/pricing-config';
 import { BillingToggle } from './BillingToggle';
-import { VolumeDiscountInfo } from './VolumeDiscountInfo';
+import { EnterprisePricing } from './EnterprisePricing';
 
 export function PricingSection() {
   const navigate = useNavigate();
@@ -64,13 +64,17 @@ export function PricingSection() {
                 </div>
                 <div className="px-6 pb-6 flex-1">
                   <div className="mb-6">
-                    {displayPrice !== null ? (
+                    {plan.id === 'enterprise' ? (
+                      <EnterprisePricing />
+                    ) : displayPrice !== null ? (
                       <div>
                         <div className="flex items-baseline gap-1">
                           <span className="text-4xl font-bold text-foreground">
                             ${displayPrice}
                           </span>
-                          <span className="text-muted-foreground">/month</span>
+                          <span className="text-muted-foreground">
+                            {plan.perUser ? '/user/month' : '/month'}
+                          </span>
                         </div>
                         {showDiscount && plan.monthlyPrice && (
                           <div className="mt-1.5 flex items-center gap-2">
@@ -88,11 +92,7 @@ export function PricingSection() {
                           </p>
                         )}
                       </div>
-                    ) : (
-                      <div className="text-2xl font-semibold text-primary">
-                        {plan.priceLabel}
-                      </div>
-                    )}
+                    ) : null}
                   </div>
 
                   <ul className="space-y-3">
@@ -126,8 +126,6 @@ export function PricingSection() {
             );
           })}
         </div>
-
-        <VolumeDiscountInfo interval={billingInterval} />
       </div>
     </section>
   );
