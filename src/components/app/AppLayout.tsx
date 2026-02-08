@@ -23,7 +23,7 @@ export function AppLayout() {
   }
 
   return (
-    <div className="min-h-screen flex flex-col lg:flex-row">
+    <div className="min-h-screen flex flex-col lg:flex-row bg-secondary">
       {/* Mobile Header */}
       <MobileHeader onMenuClick={() => setMobileMenuOpen(true)} />
       
@@ -34,7 +34,7 @@ export function AppLayout() {
       <AppSidebar />
       
       <div className="flex-1 flex flex-col min-h-0">
-        <main className="flex-1 overflow-auto" style={{ background: 'var(--gradient-hero)' }}>
+        <main className="flex-1 overflow-auto p-4 lg:p-6">
           <Outlet />
         </main>
       </div>

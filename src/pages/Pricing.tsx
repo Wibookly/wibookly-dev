@@ -11,9 +11,6 @@ const plans = [
     price: 20,
     description: 'Perfect for individuals getting started with email automation',
     icon: Zap,
-    iconColor: 'text-blue-500',
-    bgGradient: 'from-blue-500/10 to-cyan-500/10',
-    borderColor: 'border-blue-500/20',
     features: [
       '1 connected mailbox',
       'AI Auto Drafts',
@@ -35,9 +32,6 @@ const plans = [
     price: 50,
     description: 'For professionals who need powerful automation and insights',
     icon: Sparkles,
-    iconColor: 'text-primary',
-    bgGradient: 'from-primary/20 to-accent/20',
-    borderColor: 'border-primary/30',
     popular: true,
     features: [
       'Up to 4 connected mailboxes',
@@ -58,9 +52,6 @@ const plans = [
     price: null,
     description: 'For teams and organizations with advanced needs',
     icon: Crown,
-    iconColor: 'text-amber-500',
-    bgGradient: 'from-amber-500/10 to-orange-500/10',
-    borderColor: 'border-amber-500/20',
     features: [
       'Unlimited connected mailboxes',
       'Everything in Professional',
@@ -84,24 +75,24 @@ export default function Pricing() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-primary/25 via-background to-accent/20">
+    <div className="min-h-screen bg-[image:var(--gradient-hero)]">
       {/* Header */}
-      <header className="fixed top-0 left-0 right-0 z-50 backdrop-blur-md bg-background/5">
-        <div className="container mx-auto px-6">
-          <div className="flex items-center justify-between h-16">
+      <header className="fixed top-0 left-0 right-0 z-50">
+        <div className="container mx-auto px-6 py-4">
+          <div className="flex items-center justify-between h-14 px-6 rounded-2xl bg-card/80 backdrop-blur-lg border border-border/50 shadow-sm">
             <Link to="/" className="flex items-center group">
               <img 
                 src={wibooklyLogo} 
-                alt="Wibookly" 
-                className="h-40 w-auto transition-transform duration-300 group-hover:scale-105" 
+                alt="WeBookly" 
+                className="h-10 w-auto transition-transform duration-300 group-hover:scale-105" 
               />
             </Link>
 
             <nav className="hidden md:flex items-center gap-8">
-              <Link to="/#how-it-works" className="text-sm font-medium text-foreground/80 hover:text-foreground transition-colors">
+              <Link to="/#how-it-works" className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors">
                 How It Works
               </Link>
-              <Link to="/#features" className="text-sm font-medium text-foreground/80 hover:text-foreground transition-colors">
+              <Link to="/#features" className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors">
                 Features
               </Link>
               <Link to="/pricing" className="text-sm font-medium text-foreground transition-colors">
@@ -113,14 +104,13 @@ export default function Pricing() {
               <Button 
                 variant="ghost" 
                 size="sm" 
-                className="text-foreground hover:bg-foreground/10"
                 onClick={handleGetStarted}
               >
                 Sign In
               </Button>
               <Button 
+                variant="gradient"
                 size="sm" 
-                className="bg-card text-foreground hover:bg-card/90 border-0"
                 onClick={handleGetStarted}
               >
                 Get Started
@@ -131,7 +121,7 @@ export default function Pricing() {
       </header>
 
       {/* Main Content */}
-      <main className="pt-32 pb-20 px-6">
+      <main className="pt-36 pb-20 px-6">
         <div className="container mx-auto max-w-6xl">
           {/* Back Link */}
           <Link 
@@ -144,7 +134,7 @@ export default function Pricing() {
 
           {/* Header */}
           <div className="text-center mb-16">
-            <h1 className="text-4xl md:text-5xl font-bold tracking-tight mb-4">
+            <h1 className="text-4xl md:text-5xl font-bold tracking-tight mb-4 text-foreground">
               Simple, transparent pricing
             </h1>
             <p className="text-xl text-muted-foreground max-w-2xl mx-auto">
@@ -159,19 +149,19 @@ export default function Pricing() {
               return (
                 <Card 
                   key={plan.id}
-                  className={`relative overflow-hidden bg-gradient-to-br ${plan.bgGradient} ${plan.borderColor} border-2 ${plan.popular ? 'ring-2 ring-primary shadow-xl scale-105' : ''}`}
+                  className={`relative overflow-hidden bg-card border ${plan.popular ? 'border-primary ring-2 ring-primary/20 shadow-lg scale-105' : 'border-border shadow-sm'} rounded-2xl transition-all duration-300 hover:shadow-md`}
                 >
                   {plan.popular && (
-                    <div className="absolute top-0 right-0 bg-primary text-primary-foreground px-3 py-1 text-xs font-semibold rounded-bl-lg">
+                    <div className="absolute top-0 right-0 bg-[image:var(--gradient-primary)] text-white px-4 py-1 text-xs font-semibold rounded-bl-xl">
                       Most Popular
                     </div>
                   )}
                   <CardHeader className="pb-4">
-                    <div className={`w-12 h-12 rounded-xl bg-background/80 flex items-center justify-center mb-4`}>
-                      <Icon className={`w-6 h-6 ${plan.iconColor}`} />
+                    <div className="w-12 h-12 rounded-xl bg-primary/10 flex items-center justify-center mb-4">
+                      <Icon className="w-6 h-6 text-primary" />
                     </div>
                     <CardTitle className="text-2xl">{plan.name}</CardTitle>
-                    <CardDescription className="text-foreground/70">
+                    <CardDescription>
                       {plan.description}
                     </CardDescription>
                   </CardHeader>
@@ -179,7 +169,7 @@ export default function Pricing() {
                     <div className="mb-6">
                       {plan.price !== null ? (
                         <div className="flex items-baseline gap-1">
-                          <span className="text-4xl font-bold">${plan.price}</span>
+                          <span className="text-4xl font-bold text-foreground">${plan.price}</span>
                           <span className="text-muted-foreground">/month</span>
                         </div>
                       ) : (
@@ -192,12 +182,12 @@ export default function Pricing() {
                     <ul className="space-y-3">
                       {plan.features.map((feature, index) => (
                         <li key={index} className="flex items-start gap-3">
-                          <Check className="w-5 h-5 text-success mt-0.5 flex-shrink-0" />
-                          <span className="text-sm">{feature}</span>
+                          <Check className="w-5 h-5 text-primary mt-0.5 flex-shrink-0" />
+                          <span className="text-sm text-foreground">{feature}</span>
                         </li>
                       ))}
                       {plan.notIncluded.map((feature, index) => (
-                        <li key={`not-${index}`} className="flex items-start gap-3 opacity-50">
+                        <li key={`not-${index}`} className="flex items-start gap-3 opacity-40">
                           <div className="w-5 h-5 mt-0.5 flex-shrink-0 flex items-center justify-center">
                             <div className="w-1.5 h-0.5 bg-muted-foreground rounded" />
                           </div>
@@ -208,8 +198,8 @@ export default function Pricing() {
                   </CardContent>
                   <CardFooter>
                     <Button 
-                      className={`w-full ${plan.popular ? 'bg-primary hover:bg-primary/90' : ''}`}
-                      variant={plan.popular ? 'default' : 'outline'}
+                      className="w-full"
+                      variant={plan.popular ? 'gradient' : 'outline'}
                       size="lg"
                       onClick={handleGetStarted}
                     >
@@ -223,11 +213,11 @@ export default function Pricing() {
 
           {/* FAQ Section */}
           <div className="mt-20 text-center">
-            <h2 className="text-2xl font-bold mb-4">Questions?</h2>
+            <h2 className="text-2xl font-bold mb-4 text-foreground">Questions?</h2>
             <p className="text-muted-foreground mb-6">
               Need help choosing? Contact us at{' '}
-              <a href="mailto:support@wibookly.com" className="text-primary hover:underline">
-                support@wibookly.com
+              <a href="mailto:support@wibookly.ai" className="text-primary hover:underline">
+                support@wibookly.ai
               </a>
             </p>
           </div>
@@ -235,9 +225,9 @@ export default function Pricing() {
       </main>
 
       {/* Footer */}
-      <footer className="border-t border-border/50 py-8 bg-background/50">
+      <footer className="border-t border-border py-8 bg-card">
         <div className="container mx-auto px-6 text-center text-sm text-muted-foreground">
-          © {new Date().getFullYear()} Wibookly. All rights reserved.
+          © {new Date().getFullYear()} WeBookly. All rights reserved.
         </div>
       </footer>
     </div>

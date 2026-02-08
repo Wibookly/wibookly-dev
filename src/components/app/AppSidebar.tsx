@@ -46,27 +46,23 @@ interface NavSectionProps {
   icon: React.ElementType;
   children: React.ReactNode;
   defaultOpen?: boolean;
-  colorClass?: string;
 }
 
-function NavSection({ title, icon: Icon, children, defaultOpen = false, colorClass = 'text-primary' }: NavSectionProps) {
+function NavSection({ title, icon: Icon, children, defaultOpen = false }: NavSectionProps) {
   const [isOpen, setIsOpen] = useState(defaultOpen);
   
   return (
     <Collapsible open={isOpen} onOpenChange={setIsOpen}>
-      <CollapsibleTrigger className="flex items-center justify-between w-full px-3 py-2.5 rounded-lg text-sm font-semibold hover:bg-secondary/50 transition-colors group">
+      <CollapsibleTrigger className="flex items-center justify-between w-full px-3 py-2.5 rounded-lg text-sm font-semibold hover:bg-secondary transition-colors group">
         <div className="flex items-center gap-3">
-          <div className={cn("p-1.5 rounded-md bg-secondary/80", colorClass)}>
-            <Icon className="w-4 h-4" />
+          <div className="p-1.5 rounded-lg bg-secondary">
+            <Icon className="w-4 h-4 text-foreground" />
           </div>
-          <span className={cn(
-            "text-foreground relative pb-1",
-            isOpen && "after:content-[''] after:absolute after:bottom-0 after:left-0 after:w-full after:h-0.5 after:bg-blue-500 after:rounded-full"
-          )}>{title}</span>
+          <span className="text-foreground">{title}</span>
         </div>
-        <ChevronDown className={cn("w-4 h-4 text-muted-foreground transition-transform group-hover:text-foreground", isOpen && "rotate-180")} />
+        <ChevronDown className={cn("w-4 h-4 text-muted-foreground transition-transform duration-200", isOpen && "rotate-180")} />
       </CollapsibleTrigger>
-      <CollapsibleContent className="pl-4 space-y-0.5 mt-1 ml-3 border-l-2 border-border/50">
+      <CollapsibleContent className="pl-4 space-y-0.5 mt-1 ml-3 border-l-2 border-border">
         {children}
       </CollapsibleContent>
     </Collapsible>
@@ -89,17 +85,14 @@ function NavItem({ href, icon: Icon, children, showUpgradeBadge }: NavItemProps)
     <NavLink
       to={href}
       className={cn(
-        'flex items-center gap-3 px-3 py-2 rounded-md text-sm font-medium transition-colors relative',
+        'flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-all duration-200 relative',
         isActive
           ? 'bg-primary/10 text-primary'
-          : 'text-muted-foreground hover:text-foreground hover:bg-secondary/50'
+          : 'text-muted-foreground hover:text-foreground hover:bg-secondary'
       )}
     >
       <Icon className="w-4 h-4" />
-      <span className={cn(
-        "relative pb-1 flex-1",
-        isActive && "after:content-[''] after:absolute after:bottom-0 after:left-0 after:w-full after:h-0.5 after:bg-green-500 after:rounded-full"
-      )}>{children}</span>
+      <span className="flex-1">{children}</span>
       {showUpgradeBadge && <UpgradeBadge />}
     </NavLink>
   );
@@ -125,32 +118,33 @@ export function AppSidebar() {
   }, [organization?.id]);
 
   return (
-    <aside className="hidden lg:flex w-80 h-screen bg-card border-r border-border flex-col">
-      <div className="p-4 border-b border-border flex flex-col items-center">
-        <img src={wibooklyLogo} alt="Wibookly" className="h-40 w-auto" />
+    <aside className="hidden lg:flex w-72 h-screen bg-card border-r border-border flex-col">
+      {/* Logo */}
+      <div className="p-5 border-b border-border">
+        <img src={wibooklyLogo} alt="WeBookly" className="h-10 w-auto" />
       </div>
 
       {/* Active Email Selector */}
-      <div className="p-3 border-b border-border">
-        <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-2">Connected Emails</h3>
+      <div className="px-4 py-3 border-b border-border">
+        <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">Connected Emails</h3>
         {loading ? (
-          <div className="h-10 bg-muted/50 animate-pulse rounded-md" />
+          <div className="h-10 bg-secondary animate-pulse rounded-lg" />
         ) : connections.length > 0 ? (
           <DropdownMenu>
             <DropdownMenuTrigger className="w-full">
-              <div className="flex items-center justify-between gap-2 px-3 py-2 bg-primary/10 hover:bg-primary/20 rounded-md transition-colors cursor-pointer min-w-0">
+              <div className="flex items-center justify-between gap-2 px-3 py-2.5 bg-secondary hover:bg-secondary/80 rounded-lg transition-colors cursor-pointer min-w-0">
                 <div className="flex items-center gap-2 min-w-0 flex-1">
                   {activeConnection && (
                     <ProviderIcon provider={activeConnection.provider} className="w-4 h-4 flex-shrink-0" />
                   )}
-                  <span className="text-xs font-medium text-primary truncate">
+                  <span className="text-xs font-medium text-foreground truncate">
                     {activeConnection?.email || 'Select email'}
                   </span>
                 </div>
-                <ChevronDown className="w-3 h-3 text-primary flex-shrink-0" />
+                <ChevronDown className="w-3 h-3 text-muted-foreground flex-shrink-0" />
               </div>
             </DropdownMenuTrigger>
-            <DropdownMenuContent align="start" className="w-[220px]">
+            <DropdownMenuContent align="start" className="w-[220px] bg-card">
               {connections.map((connection) => (
                 <DropdownMenuItem
                   key={connection.id}
@@ -167,57 +161,57 @@ export function AppSidebar() {
             </DropdownMenuContent>
           </DropdownMenu>
         ) : (
-          <div className="px-3 py-2 text-xs text-muted-foreground bg-muted/30 rounded-md">
+          <div className="px-3 py-2 text-xs text-muted-foreground bg-secondary rounded-lg">
             No emails connected
           </div>
         )}
       </div>
 
-      {/* Scrollable middle section containing nav */}
+      {/* Scrollable nav */}
       <div className="flex-1 overflow-y-auto min-h-0">
-
-        <nav className="p-3 pt-0 space-y-2">
+        <nav className="p-3 space-y-1.5">
           {/* Account Provisioning */}
-          <NavSection title="Account Provisioning" icon={UserPlus} defaultOpen colorClass="text-blue-500">
+          <NavSection title="Account Provisioning" icon={UserPlus} defaultOpen>
             <NavItem href="/integrations" icon={Link2}>Email & Calendar Connections</NavItem>
           </NavSection>
 
           {/* Email & Calendar Settings */}
-          <NavSection title="Email & Calendar Settings" icon={Cog} defaultOpen colorClass="text-indigo-500">
+          <NavSection title="Email & Calendar" icon={Cog} defaultOpen>
             <NavItem href="/integrations?tab=settings" icon={Clock}>Availability & Calendar</NavItem>
             <NavItem href="/categories" icon={Tag}>Email Categories</NavItem>
           </NavSection>
 
           {/* AI Settings */}
-          <NavSection title="AI Settings" icon={Sparkles} defaultOpen colorClass="text-purple-500">
+          <NavSection title="AI Settings" icon={Sparkles} defaultOpen>
             <NavItem href="/email-draft" icon={Sparkles}>AI Draft Settings</NavItem>
             <NavItem href="/email-draft?tab=auto-reply" icon={MessageSquare} showUpgradeBadge={needsUpgradeForAutoReply}>AI Auto Reply</NavItem>
             <NavItem href="/email-draft?tab=labels" icon={Palette}>AI Label Colors</NavItem>
           </NavSection>
 
           {/* AI Assistant */}
-          <NavSection title="AI Assistant" icon={Bot} defaultOpen colorClass="text-cyan-500">
+          <NavSection title="AI Assistant" icon={Bot} defaultOpen>
             <NavItem href="/ai-daily-brief" icon={Sun}>My Daily Brief</NavItem>
             <NavItem href="/ai-chat" icon={MessageSquare}>AI Chat</NavItem>
           </NavSection>
 
           {/* Settings */}
-          <NavSection title="Settings" icon={Settings} defaultOpen colorClass="text-slate-500">
+          <NavSection title="Settings" icon={Settings} defaultOpen>
             <NavItem href="/settings?section=profile" icon={User}>My Profile</NavItem>
             <NavItem href="/settings?section=signature" icon={PenTool}>My Signature</NavItem>
           </NavSection>
 
           {/* Reports */}
-          <NavSection title="Reports" icon={BarChart3} defaultOpen colorClass="text-emerald-500">
+          <NavSection title="Reports" icon={BarChart3} defaultOpen>
             <NavItem href="/ai-activity" icon={BarChart3} showUpgradeBadge={needsUpgradeForAnalytics}>AI Activity</NavItem>
           </NavSection>
         </nav>
       </div>
 
+      {/* Sign Out */}
       <div className="p-3 border-t border-border">
         <button
           onClick={signOut}
-          className="flex items-center gap-3 w-full px-3 py-2 rounded-md text-sm font-medium text-muted-foreground hover:text-foreground hover:bg-secondary/50 transition-colors"
+          className="flex items-center gap-3 w-full px-3 py-2.5 rounded-lg text-sm font-medium text-muted-foreground hover:text-foreground hover:bg-secondary transition-colors"
         >
           <LogOut className="w-4 h-4" />
           Sign Out

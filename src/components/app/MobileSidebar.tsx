@@ -32,22 +32,22 @@ export function MobileSidebar({ open, onClose }: MobileSidebarProps) {
 
   return (
     <Sheet open={open} onOpenChange={onClose}>
-      <SheetContent side="left" className="w-72 p-0 flex flex-col">
+      <SheetContent side="left" className="w-72 p-0 flex flex-col bg-card">
         <SheetHeader className="p-4 border-b border-border">
           <div className="flex items-center justify-between">
-            <img src={wibooklyLogo} alt="Wibookly" className="h-10 w-auto" />
+            <img src={wibooklyLogo} alt="WeBookly" className="h-8 w-auto" />
           </div>
         </SheetHeader>
 
         {/* Connected Emails Section */}
-        <div className="p-3 border-b border-border">
-          <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-2">Emails</h3>
+        <div className="px-4 py-3 border-b border-border">
+          <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">Emails</h3>
           {connectedEmails.length > 0 ? (
             <div className="space-y-1.5">
               {connectedEmails.map((connection) => (
                 <div
                   key={connection.email}
-                  className="flex items-center gap-2 px-2 py-1.5 bg-primary/10 rounded-md min-w-0"
+                  className="flex items-center gap-2 px-3 py-2 bg-secondary rounded-lg min-w-0"
                 >
                   {connection.provider === 'google' ? (
                     <svg className="w-3.5 h-3.5 flex-shrink-0" viewBox="0 0 48 48" fill="none">
@@ -63,7 +63,7 @@ export function MobileSidebar({ open, onClose }: MobileSidebarProps) {
                       <path d="M16 18C12.686 18 10 20.686 10 24C10 27.314 12.686 30 16 30C19.314 30 22 27.314 22 24C22 20.686 19.314 18 16 18ZM16 27C14.343 27 13 25.657 13 24C13 22.343 14.343 21 16 21C17.657 21 19 22.343 19 24C19 25.657 17.657 27 16 27Z" fill="white"/>
                     </svg>
                   )}
-                  <span className="text-[10px] font-medium text-primary truncate min-w-0">{connection.email}</span>
+                  <span className="text-xs font-medium text-foreground truncate min-w-0">{connection.email}</span>
                 </div>
               ))}
             </div>
@@ -86,10 +86,10 @@ export function MobileSidebar({ open, onClose }: MobileSidebarProps) {
                 to={item.href}
                 onClick={handleNavClick}
                 className={cn(
-                  'flex items-center gap-3 px-3 py-2.5 rounded-md text-sm font-medium transition-colors',
+                  'flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all duration-200',
                   isActive
-                    ? 'bg-primary text-primary-foreground'
-                    : 'text-muted-foreground hover:text-foreground hover:bg-secondary/50'
+                    ? 'bg-primary/10 text-primary'
+                    : 'text-muted-foreground hover:text-foreground hover:bg-secondary'
                 )}
               >
                 <item.icon className="w-4 h-4" />
@@ -105,7 +105,7 @@ export function MobileSidebar({ open, onClose }: MobileSidebarProps) {
               signOut();
               onClose();
             }}
-            className="flex items-center gap-3 w-full px-3 py-2.5 rounded-md text-sm font-medium text-muted-foreground hover:text-foreground hover:bg-secondary/50 transition-colors"
+            className="flex items-center gap-3 w-full px-3 py-2.5 rounded-lg text-sm font-medium text-muted-foreground hover:text-foreground hover:bg-secondary transition-colors"
           >
             <LogOut className="w-4 h-4" />
             Sign Out

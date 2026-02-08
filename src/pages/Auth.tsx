@@ -44,7 +44,7 @@ export default function Auth() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-primary/25 via-background to-accent/20 flex flex-col">
+    <div className="min-h-screen bg-[image:var(--gradient-hero)] flex flex-col">
       <header className="p-6">
         <Link
           to="/"
@@ -56,42 +56,47 @@ export default function Auth() {
       </header>
 
       <main className="flex-1 flex items-center justify-center p-6">
-        <div className="w-full max-w-sm bg-card/80 backdrop-blur-sm p-8 rounded-2xl shadow-lg border border-border/50">
-          <div className="text-center mb-8">
-            <img src={wibooklyLogo} alt="Wibookly" className="h-40 w-auto mx-auto mb-6" />
-            <h1 className="text-3xl font-bold tracking-tight text-primary">
-              Welcome
-            </h1>
-            <p className="mt-2 text-lg text-foreground">
-              Sign in to continue
+        <div className="w-full max-w-md">
+          <div className="bg-card rounded-2xl shadow-lg border border-border p-10">
+            <div className="text-center mb-10">
+              <img src={wibooklyLogo} alt="WeBookly" className="h-12 w-auto mx-auto mb-8" />
+              <h1 className="text-3xl font-bold tracking-tight text-foreground">
+                Welcome back
+              </h1>
+              <p className="mt-2 text-muted-foreground">
+                Sign in to continue to WeBookly
+              </p>
+            </div>
+
+            <div className="space-y-3">
+              <Button
+                variant="outline"
+                size="lg"
+                className="w-full justify-start gap-3 h-13 text-base rounded-xl"
+                onClick={() => signInWithCognito('google')}
+              >
+                <GoogleIcon />
+                <span className="flex-1 text-left">Continue with Google</span>
+              </Button>
+
+              <Button
+                variant="outline"
+                size="lg"
+                className="w-full justify-start gap-3 h-13 text-base rounded-xl"
+                onClick={() => signInWithCognito('microsoft')}
+              >
+                <MicrosoftIcon />
+                <span className="flex-1 text-left">Continue with Microsoft</span>
+              </Button>
+            </div>
+
+            <p className="mt-10 text-center text-xs text-muted-foreground leading-relaxed">
+              By continuing, you agree to our{' '}
+              <Link to="/terms" className="text-primary hover:underline">Terms of Service</Link>
+              {' '}and{' '}
+              <Link to="/privacy" className="text-primary hover:underline">Privacy Policy</Link>.
             </p>
           </div>
-
-          <div className="space-y-3">
-            <Button
-              variant="outline"
-              size="lg"
-              className="w-full justify-start gap-3 h-14 text-base"
-              onClick={() => signInWithCognito('google')}
-            >
-              <GoogleIcon />
-              <span className="flex-1 text-left">Continue with Google</span>
-            </Button>
-
-            <Button
-              variant="outline"
-              size="lg"
-              className="w-full justify-start gap-3 h-14 text-base"
-              onClick={() => signInWithCognito('microsoft')}
-            >
-              <MicrosoftIcon />
-              <span className="flex-1 text-left">Continue with Microsoft</span>
-            </Button>
-          </div>
-
-          <p className="mt-8 text-center text-xs text-muted-foreground">
-            By continuing, you agree to our Terms of Service and Privacy Policy.
-          </p>
         </div>
       </main>
     </div>

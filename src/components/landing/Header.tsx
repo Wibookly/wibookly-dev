@@ -8,28 +8,28 @@ interface HeaderProps {
 
 export function Header({ onSignInClick }: HeaderProps) {
   return (
-    <header className="fixed top-0 left-0 right-0 z-50 backdrop-blur-md bg-background/5">
-      <div className="container mx-auto px-6">
-        <div className="flex items-center justify-between h-16">
+    <header className="fixed top-0 left-0 right-0 z-50">
+      <div className="container mx-auto px-6 py-4">
+        <div className="flex items-center justify-between h-14 px-6 rounded-2xl bg-card/80 backdrop-blur-lg border border-border/50 shadow-sm">
           <Link to="/" className="flex items-center group">
             <img 
               src={wibooklyLogo} 
-              alt="Wibookly" 
-              className="h-40 w-auto transition-transform duration-300 group-hover:scale-105" 
+              alt="WeBookly" 
+              className="h-10 w-auto transition-transform duration-300 group-hover:scale-105" 
             />
           </Link>
 
           <nav className="hidden md:flex items-center gap-8">
-            <a href="#how-it-works" className="text-sm font-medium text-foreground/80 hover:text-foreground transition-colors">
+            <a href="#how-it-works" className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors">
               How It Works
             </a>
-            <a href="#features" className="text-sm font-medium text-foreground/80 hover:text-foreground transition-colors">
+            <a href="#features" className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors">
               Features
             </a>
-            <a href="#security" className="text-sm font-medium text-foreground/80 hover:text-foreground transition-colors">
+            <a href="#security" className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors">
               Security
             </a>
-            <Link to="/pricing" className="text-sm font-medium text-foreground/80 hover:text-foreground transition-colors">
+            <Link to="/pricing" className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors">
               Pricing
             </Link>
           </nav>
@@ -38,14 +38,13 @@ export function Header({ onSignInClick }: HeaderProps) {
             <Button 
               variant="ghost" 
               size="sm" 
-              className="text-foreground hover:bg-foreground/10"
               onClick={onSignInClick}
             >
               Sign In
             </Button>
             <Button 
+              variant="gradient"
               size="sm" 
-              className="bg-card text-foreground hover:bg-card/90 border-0"
               onClick={onSignInClick}
             >
               Get Started
