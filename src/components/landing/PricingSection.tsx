@@ -119,8 +119,17 @@ export function PricingSection() {
                     size="lg"
                     onClick={handleGetStarted}
                   >
-                    {plan.monthlyPrice === null ? 'Contact Sales' : 'Get Started'}
+                    {plan.id === 'starter'
+                      ? 'Start your free trial'
+                      : plan.id === 'pro'
+                        ? 'Try Pro – full power unlocked'
+                        : 'Get Started'}
                   </Button>
+                  {(plan.id === 'starter' || plan.id === 'pro') && (
+                    <p className="text-xs text-muted-foreground text-center mt-2">
+                      Your 3-day free trial included – cancel anytime
+                    </p>
+                  )}
                 </div>
               </div>
             );

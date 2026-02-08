@@ -15,19 +15,9 @@ export function EnterprisePricing() {
         </span>
         <span className="text-muted-foreground">/user/mo</span>
       </div>
-      <p className="text-xs text-muted-foreground mt-1.5 mb-3">
-        6+ users · Based on Pro pricing
+      <p className="text-xs text-muted-foreground mt-1.5">
+        6+ users · Volume discounts available
       </p>
-      <div className="space-y-1.5 rounded-lg bg-primary/5 p-3">
-        {ENTERPRISE_VOLUME_TIERS.map((tier) => (
-          <div key={tier.label} className="flex justify-between text-xs">
-            <span className="text-muted-foreground">{tier.label}</span>
-            <span className="font-semibold text-primary">
-              {formatPrice(ENTERPRISE_BASE_PRICE * (1 - tier.discount))}/user
-            </span>
-          </div>
-        ))}
-      </div>
     </div>
   );
 }
