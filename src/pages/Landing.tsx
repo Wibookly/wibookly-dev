@@ -19,7 +19,7 @@ export default function Landing() {
   };
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen bg-[image:var(--gradient-hero)]">
       <Header onSignInClick={handleSignIn} />
       <main>
         <Hero onGetStartedClick={handleGetStarted} />
