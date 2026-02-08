@@ -1,4 +1,4 @@
-import { Mail, MessageSquare, Calendar, Inbox, Sparkles } from 'lucide-react';
+import { Mail, MessageSquare, Calendar, Inbox, Sparkles, ArrowRight } from 'lucide-react';
 import wibooklyLogo from '@/assets/logo-icon.png';
 
 const competitors = [
@@ -61,14 +61,31 @@ const wibooklyFeatures = [
 
 export function ToolComparison() {
   return (
-    <section className="py-16 md:py-24">
+    <section className="py-20 md:py-32">
       <div className="container mx-auto px-6">
         <div className="max-w-5xl mx-auto">
-          <div className="rounded-3xl bg-card/50 backdrop-blur-sm border border-card/60 p-6 md:p-10 lg:p-14 shadow-xl">
+          {/* Section Header */}
+          <div className="text-center mb-14 animate-fade-in">
+            <span className="inline-block px-4 py-1.5 rounded-full bg-card/70 text-primary text-sm font-medium mb-4 border border-primary/20 shadow-sm">
+              Why Wibookly?
+            </span>
+            <h2 className="text-3xl md:text-4xl lg:text-5xl font-semibold tracking-tight text-foreground leading-tight">
+              Replace 4 tools with one
+              <br />
+              <span className="text-primary">intelligent assistant.</span>
+            </h2>
+            <p className="mt-5 text-lg md:text-xl text-muted-foreground max-w-2xl mx-auto leading-relaxed">
+              Stop paying for multiple subscriptions. Wibookly consolidates your email workflow into one powerful platform.
+            </p>
+          </div>
+
+          {/* Comparison Card */}
+          <div className="rounded-3xl bg-card/50 backdrop-blur-sm border border-card/60 p-6 md:p-10 lg:p-14 shadow-xl animate-fade-in" style={{ animationDelay: '200ms' }}>
             <div className="grid grid-cols-1 lg:grid-cols-[1fr_auto_1fr] gap-8 lg:gap-6 items-center">
               
               {/* Left: Competitors */}
               <div className="space-y-4">
+                <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider mb-4 px-2">Other tools</h3>
                 {competitors.map((comp) => (
                   <div
                     key={comp.name}
@@ -107,16 +124,18 @@ export function ToolComparison() {
 
               {/* Right: Wibookly */}
               <div className="space-y-5">
-                <div className="flex items-center justify-center mb-6">
-                  <div className="w-24 h-24 rounded-3xl bg-primary/10 border-2 border-primary/20 flex items-center justify-center shadow-lg">
-                    <img src={wibooklyLogo} alt="Wibookly" className="w-14 h-14 object-contain" />
+                <div className="flex flex-col items-center mb-6">
+                  <div className="w-28 h-28 rounded-3xl bg-gradient-to-br from-primary/20 to-success/20 border-2 border-primary/30 flex items-center justify-center shadow-lg mb-3">
+                    <img src={wibooklyLogo} alt="Wibookly" className="w-16 h-16 object-contain" />
                   </div>
+                  <h3 className="text-lg font-bold text-foreground">Wibookly</h3>
+                  <p className="text-sm text-muted-foreground">All-in-one email assistant</p>
                 </div>
 
-                <div className="space-y-4">
+                <div className="space-y-3">
                   {wibooklyFeatures.map((feature) => (
-                    <div key={feature.title} className="flex items-start gap-3 p-3 rounded-xl bg-card/50 border border-border/30">
-                      <div className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center shrink-0 mt-0.5">
+                    <div key={feature.title} className="flex items-start gap-3 p-3 rounded-xl bg-gradient-to-r from-primary/5 to-success/5 border border-primary/15">
+                      <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-primary/20 to-success/20 flex items-center justify-center shrink-0 mt-0.5">
                         <Sparkles className="w-4 h-4 text-primary" />
                       </div>
                       <div>
@@ -137,6 +156,14 @@ export function ToolComparison() {
                   </span>
                 </div>
               </div>
+            </div>
+          </div>
+
+          {/* Save callout */}
+          <div className="mt-8 text-center animate-fade-in" style={{ animationDelay: '400ms' }}>
+            <div className="inline-flex items-center gap-2 px-6 py-3 rounded-full bg-success/10 border border-success/20 shadow-sm">
+              <ArrowRight className="w-5 h-5 text-success" />
+              <span className="text-base font-semibold text-success">Save over $65/month with Wibookly</span>
             </div>
           </div>
         </div>
