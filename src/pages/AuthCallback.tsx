@@ -48,6 +48,11 @@ export default function AuthCallback() {
       sessionStorage.removeItem('cognito_code_verifier');
 
       // ── Step 2: Exchange authorization code for Cognito tokens ───────
+      // The redirect_uri MUST exactly match the one used during /authorize.
+      // Use the current origin so it works across all configured domains
+      // (preview, wibookly-dev.lovable.app, app.wibookly.ai).
+      const currentRedirectUri = `${window.location.origin}/auth/callback`;
+
       const tokenResponse = await fetch(COGNITO_CONFIG.tokenEndpoint, {
         method: 'POST',
         headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
@@ -55,7 +60,7 @@ export default function AuthCallback() {
           grant_type: 'authorization_code',
           client_id: COGNITO_CONFIG.clientId,
           code,
-          redirect_uri: COGNITO_CONFIG.redirectUri,
+          redirect_uri: currentRedirectUri,
           code_verifier: codeVerifier,
         }),
       });
