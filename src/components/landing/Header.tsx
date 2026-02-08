@@ -15,7 +15,7 @@ export function Header({ onSignInClick }: HeaderProps) {
           <img 
             src={wibooklyLogo} 
             alt="Wibookly" 
-            className="h-40 w-auto" 
+            className="h-[7.5rem] w-auto" 
           />
         </Link>
 
