@@ -4,28 +4,31 @@ interface HeroProps {
   onGetStartedClick: () => void;
 }
 
-// Gmail icon
+// Official Gmail logo SVG
 const GmailIcon = () => (
-  <svg viewBox="0 0 24 24" className="w-7 h-7" aria-hidden="true">
-    <path d="M22 6c0-1.1-.9-2-2-2H4c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V6z" fill="#F6F6F6"/>
-    <path d="M2 6l10 7 10-7" fill="none" stroke="#D94F4F" strokeWidth="1.5"/>
-    <path d="M22 6l-10 7L2 6" fill="none"/>
-    <path d="M2 6v12l7-7" fill="#E66060"/>
-    <path d="M22 6v12l-7-7" fill="#E66060"/>
-    <path d="M2 18l7-7 3 2 3-2 7 7" fill="#D94F4F"/>
-    <path d="M2 6l10 7 10-7v12H2z" fill="none" stroke="#D94F4F" strokeWidth="0"/>
-    <rect x="1" y="4" width="22" height="16" rx="2" fill="none" stroke="#D94F4F" strokeWidth="1.2"/>
-    <path d="M2 5l10 7.5L22 5" stroke="#D94F4F" strokeWidth="1.2" fill="none"/>
+  <svg viewBox="0 0 48 48" className="w-7 h-7" aria-hidden="true">
+    <path fill="#4caf50" d="M45,16.2l-5,2.75l-5,4.75L35,40h7c1.657,0,3-1.343,3-3V16.2z" />
+    <path fill="#1e88e5" d="M3,16.2l3.614,1.71L13,23.7V40H6c-1.657,0-3-1.343-3-3V16.2z" />
+    <polygon fill="#e53935" points="35,11.2 24,19.45 13,11.2 12,17 13,23.7 24,31.95 35,23.7 36,17" />
+    <path fill="#c62828" d="M3,12.298V16.2l10,7.5V11.2L9.876,8.859C9.132,8.301,8.228,8,7.298,8h0C4.924,8,3,9.924,3,12.298z" />
+    <path fill="#fbc02d" d="M45,12.298V16.2l-10,7.5V11.2l3.124-2.341C38.868,8.301,39.772,8,40.702,8h0 C43.076,8,45,9.924,45,12.298z" />
   </svg>
 );
 
-// Outlook icon
+// Official Outlook logo SVG
 const OutlookIcon = () => (
-  <svg viewBox="0 0 24 24" className="w-7 h-7" aria-hidden="true">
-    <rect x="7" y="2" width="15" height="20" rx="1.5" fill="#1A73E8" opacity="0.15"/>
-    <rect x="7" y="2" width="15" height="20" rx="1.5" fill="none" stroke="#1A73E8" strokeWidth="1"/>
-    <rect x="2" y="5" width="12" height="14" rx="1" fill="#0078D4"/>
-    <ellipse cx="8" cy="12" rx="3.5" ry="4" fill="none" stroke="white" strokeWidth="1.5"/>
+  <svg viewBox="0 0 48 48" className="w-7 h-7" aria-hidden="true">
+    <path fill="#1976d2" d="M28,13h14.533C43.343,13,44,13.657,44,14.467v19.066C44,34.343,43.343,35,42.533,35H28V13z" />
+    <rect fill="#1565c0" x="28" y="17" width="16" height="16" />
+    <polygon fill="#1565c0" points="28,17 44,17 44,13.533" />
+    <polygon fill="#1e88e5" points="28,35 44,35 44,31" />
+    <rect fill="#42a5f5" x="32" y="21" width="8" height="2" />
+    <rect fill="#42a5f5" x="32" y="25" width="8" height="2" />
+    <rect fill="#42a5f5" x="32" y="29" width="5" height="2" />
+    <path fill="#1565c0" d="M28,35V13L4,17.452V30.548L28,35z" />
+    <path fill="#1976d2" d="M28,35V13L4,17.452V30.548L28,35z" opacity="0.05" />
+    <ellipse fill="#fff" cx="14.5" cy="24" rx="5.5" ry="6.5" />
+    <ellipse fill="#1565c0" cx="14.5" cy="24" rx="4" ry="5" />
   </svg>
 );
 
@@ -46,17 +49,17 @@ export function Hero({ onGetStartedClick }: HeroProps) {
 
           {/* Sub-headline */}
           <p className="mt-8 text-lg md:text-xl text-muted-foreground max-w-2xl mx-auto leading-relaxed">
-            WeBookly organizes your inbox, drafts responses and reacts to your emails with AI workflows.
+            Your AI email assistant that organizes, drafts, and sends — so you can focus on what matters.
           </p>
 
-          {/* CTA Button — large dark pill with arrow circle */}
+          {/* CTA Button — large blue/green pill with arrow circle */}
           <div className="mt-10 flex justify-center">
             <button
               onClick={onGetStartedClick}
-              className="group flex items-center gap-4 rounded-full bg-foreground text-background pl-8 pr-2 py-2 text-lg font-medium shadow-lg hover:shadow-xl transition-all duration-300 hover:-translate-y-0.5"
+              className="group flex items-center gap-4 rounded-full bg-[image:var(--gradient-primary)] text-primary-foreground pl-8 pr-2 py-2 text-lg font-medium shadow-lg hover:shadow-xl transition-all duration-300 hover:-translate-y-0.5"
             >
               Get started for free
-              <span className="flex items-center justify-center w-10 h-10 rounded-full bg-background text-foreground transition-transform duration-300 group-hover:translate-x-0.5 group-hover:-translate-y-0.5">
+              <span className="flex items-center justify-center w-10 h-10 rounded-full bg-primary-foreground text-primary transition-transform duration-300 group-hover:translate-x-0.5 group-hover:-translate-y-0.5">
                 <ArrowUpRight className="w-5 h-5" />
               </span>
             </button>
