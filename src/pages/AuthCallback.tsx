@@ -21,9 +21,22 @@ export default function AuthCallback() {
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    const code = searchParams.get('code');
-    const errorParam = searchParams.get('error');
-    const errorDescription = searchParams.get('error_description');
+    // Primary: use React Router's searchParams
+    let code = searchParams.get('code');
+    let errorParam = searchParams.get('error');
+    let errorDescription = searchParams.get('error_description');
+
+    // Fallback: parse directly from window.location in case React Router
+    // hasn't captured the query string (e.g. after a full-page redirect).
+    if (!code && !errorParam) {
+      const raw = new URLSearchParams(window.location.search);
+      code = raw.get('code');
+      errorParam = raw.get('error');
+      errorDescription = raw.get('error_description');
+    }
+
+    console.log('[AuthCallback] url:', window.location.href);
+    console.log('[AuthCallback] code present:', !!code);
 
     if (errorParam) {
       setError(errorDescription || errorParam);
@@ -36,6 +49,7 @@ export default function AuthCallback() {
     }
 
     handleCallback(code);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const handleCallback = async (code: string) => {
