@@ -37,11 +37,11 @@ export const PLAN_CONFIG = {
     },
   },
   enterprise: {
-    name: 'Enterprise',
-    price: null, // Contact sales
-    monthlyPriceId: null,
+    name: 'Business',
+    price: 42.50,
+    monthlyPriceId: 'price_1SyhgUAESvm0s6Eq8WbV6wWE',
     annualPriceId: null,
-    productId: null,
+    productId: 'prod_TwasTFG45ScxCd',
     annualProductId: null,
     mailboxLimit: Infinity,
     features: {
