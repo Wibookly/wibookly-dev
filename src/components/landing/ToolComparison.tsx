@@ -7,24 +7,32 @@ const competitors = [
     name: 'Fyxer.ai',
     price: '$30',
     description: 'Email organizer',
+    color: 'text-primary',
+    bg: 'bg-primary/10',
   },
   {
     icon: MessageSquare,
     name: 'Chat GPT',
     price: '$20',
     description: 'Answers general questions',
+    color: 'text-success',
+    bg: 'bg-success/10',
   },
   {
     icon: Calendar,
     name: 'Calendly',
     price: '$10',
     description: 'Scheduling tool',
+    color: 'text-primary',
+    bg: 'bg-primary/10',
   },
   {
     icon: Inbox,
     name: 'Superhuman',
     price: '$30',
     description: 'Productivity-focused email inbox',
+    color: 'text-warning',
+    bg: 'bg-warning/10',
   },
 ];
 
@@ -56,7 +64,7 @@ export function ToolComparison() {
     <section className="py-16 md:py-24">
       <div className="container mx-auto px-6">
         <div className="max-w-5xl mx-auto">
-          <div className="rounded-3xl border border-border bg-card/60 backdrop-blur-sm p-6 md:p-10 lg:p-14">
+          <div className="rounded-3xl bg-card/50 backdrop-blur-sm border border-card/60 p-6 md:p-10 lg:p-14 shadow-xl">
             <div className="grid grid-cols-1 lg:grid-cols-[1fr_auto_1fr] gap-8 lg:gap-6 items-center">
               
               {/* Left: Competitors */}
@@ -64,25 +72,27 @@ export function ToolComparison() {
                 {competitors.map((comp) => (
                   <div
                     key={comp.name}
-                    className="flex items-center justify-between p-4 rounded-xl border border-border bg-background/60"
+                    className="flex items-center justify-between p-4 rounded-2xl border border-border/40 bg-card/70 shadow-sm hover:shadow-md transition-shadow"
                   >
                     <div className="flex items-center gap-3">
-                      <comp.icon className="w-5 h-5 text-muted-foreground" />
+                      <div className={`w-10 h-10 rounded-xl ${comp.bg} flex items-center justify-center`}>
+                        <comp.icon className={`w-5 h-5 ${comp.color}`} />
+                      </div>
                       <div>
-                        <p className="font-medium text-foreground text-sm">{comp.name}</p>
+                        <p className="font-semibold text-foreground text-sm">{comp.name}</p>
                         <p className="text-xs text-muted-foreground">{comp.description}</p>
                       </div>
                     </div>
-                    <span className="text-sm font-semibold text-foreground bg-secondary px-3 py-1 rounded-full">
+                    <span className="text-sm font-bold text-foreground bg-secondary px-3 py-1.5 rounded-full">
                       {comp.price}
                     </span>
                   </div>
                 ))}
 
-                <div className="flex items-center gap-3 pt-2">
+                <div className="flex items-center gap-3 pt-3 px-2">
                   <span className="text-sm text-muted-foreground">In total</span>
-                  <span className="border-b border-dashed border-border flex-1" />
-                  <span className="text-2xl md:text-3xl font-bold text-foreground">
+                  <span className="border-b-2 border-dashed border-border flex-1" />
+                  <span className="text-3xl md:text-4xl font-bold text-foreground">
                     $90<span className="text-base font-normal text-muted-foreground">/month</span>
                   </span>
                 </div>
@@ -90,35 +100,39 @@ export function ToolComparison() {
 
               {/* Center: VS */}
               <div className="flex items-center justify-center">
-                <span className="text-lg font-semibold text-muted-foreground px-4">vs</span>
+                <div className="w-14 h-14 rounded-full bg-card border-2 border-border shadow-md flex items-center justify-center">
+                  <span className="text-lg font-bold text-muted-foreground">vs</span>
+                </div>
               </div>
 
               {/* Right: Wibookly */}
-              <div className="space-y-4">
+              <div className="space-y-5">
                 <div className="flex items-center justify-center mb-6">
-                  <div className="w-20 h-20 rounded-2xl bg-primary/10 border border-primary/20 flex items-center justify-center shadow-sm">
-                    <img src={wibooklyLogo} alt="Wibookly" className="w-12 h-12 object-contain" />
+                  <div className="w-24 h-24 rounded-3xl bg-primary/10 border-2 border-primary/20 flex items-center justify-center shadow-lg">
+                    <img src={wibooklyLogo} alt="Wibookly" className="w-14 h-14 object-contain" />
                   </div>
                 </div>
 
-                <div className="space-y-3">
+                <div className="space-y-4">
                   {wibooklyFeatures.map((feature) => (
-                    <div key={feature.title} className="flex items-start gap-3">
-                      <Sparkles className="w-4 h-4 text-primary mt-0.5 shrink-0" />
+                    <div key={feature.title} className="flex items-start gap-3 p-3 rounded-xl bg-card/50 border border-border/30">
+                      <div className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center shrink-0 mt-0.5">
+                        <Sparkles className="w-4 h-4 text-primary" />
+                      </div>
                       <div>
                         <p className="text-sm font-medium text-foreground">{feature.title}</p>
-                        <p className="text-xs text-muted-foreground">
-                          Replaces <feature.replacesIcon className="w-3 h-3 inline mx-0.5" /> {feature.replaces}
+                        <p className="text-xs text-muted-foreground mt-0.5">
+                          Replaces <feature.replacesIcon className="w-3 h-3 inline mx-0.5 text-primary" /> {feature.replaces}
                         </p>
                       </div>
                     </div>
                   ))}
                 </div>
 
-                <div className="flex items-center gap-3 pt-2">
+                <div className="flex items-center gap-3 pt-3 px-2">
                   <span className="text-sm text-muted-foreground">In total</span>
-                  <span className="border-b border-dashed border-border flex-1" />
-                  <span className="text-2xl md:text-3xl font-bold text-primary">
+                  <span className="border-b-2 border-dashed border-primary/30 flex-1" />
+                  <span className="text-3xl md:text-4xl font-bold text-primary">
                     $25<span className="text-base font-normal text-muted-foreground">/month</span>
                   </span>
                 </div>

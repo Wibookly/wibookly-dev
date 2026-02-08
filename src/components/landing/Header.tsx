@@ -8,32 +8,47 @@ interface HeaderProps {
 
 export function Header({ onSignInClick }: HeaderProps) {
   return (
-    <header className="w-full pt-6 pb-4 z-50">
+    <header className="fixed top-0 left-0 right-0 z-50 backdrop-blur-md bg-background/5">
       <div className="container mx-auto px-6">
-        <div className="flex items-center justify-between max-w-4xl mx-auto bg-card/80 backdrop-blur-sm rounded-full px-6 py-2 border border-border/50 shadow-sm">
+        <div className="flex items-center justify-between h-16">
           <Link to="/" className="flex items-center group">
             <img 
               src={wibooklyLogo} 
               alt="Wibookly" 
-              className="h-28 w-auto transition-transform duration-300 group-hover:scale-105" 
+              className="h-40 w-auto transition-transform duration-300 group-hover:scale-105" 
             />
           </Link>
 
-          <div className="flex items-center gap-2">
+          <nav className="hidden md:flex items-center gap-8">
+            <a href="#how-it-works" className="text-sm font-medium text-foreground/80 hover:text-foreground transition-colors">
+              How It Works
+            </a>
+            <a href="#features" className="text-sm font-medium text-foreground/80 hover:text-foreground transition-colors">
+              Features
+            </a>
+            <a href="#security" className="text-sm font-medium text-foreground/80 hover:text-foreground transition-colors">
+              Security
+            </a>
+            <Link to="/pricing" className="text-sm font-medium text-foreground/80 hover:text-foreground transition-colors">
+              Pricing
+            </Link>
+          </nav>
+
+          <div className="flex items-center gap-3">
             <Button 
               variant="ghost" 
               size="sm" 
-              className="text-foreground/80 hover:text-foreground hover:bg-transparent font-medium"
+              className="text-foreground hover:bg-foreground/10"
               onClick={onSignInClick}
             >
               Log In
             </Button>
             <Button 
               size="sm" 
-              className="rounded-full px-5 font-medium"
+              className="bg-card text-foreground hover:bg-card/90 border-0 rounded-full px-5 font-medium shadow-md"
               onClick={onSignInClick}
             >
-              Get started
+              Get Started
             </Button>
           </div>
         </div>
