@@ -18,21 +18,15 @@ export default function Landing() {
   };
 
   return (
-    <div className="min-h-screen">
-      {/* Superhuman-style gradient hero section */}
-      <div className="bg-[image:var(--gradient-hero)] min-h-screen">
-        <Header onSignInClick={handleSignIn} />
-        <main>
-          <Hero onGetStartedClick={handleGetStarted} />
-        </main>
-      </div>
-      {/* Content sections with solid background */}
-      <div className="bg-background">
+    <div className="min-h-screen bg-[image:var(--gradient-hero)]">
+      <Header onSignInClick={handleSignIn} />
+      <main>
+        <Hero onGetStartedClick={handleGetStarted} />
         <HowItWorks />
         <Features />
         <Security />
-        <Footer />
-      </div>
+      </main>
+      <Footer />
     </div>
   );
 }
