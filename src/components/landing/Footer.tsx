@@ -10,7 +10,7 @@ export function Footer() {
             <img 
               src={wibooklyLogo} 
               alt="Wibookly" 
-              className="h-28 w-auto transition-transform duration-300 group-hover:scale-105"
+              className="h-20 w-auto transition-transform duration-300 group-hover:scale-105"
             />
           </Link>
 
