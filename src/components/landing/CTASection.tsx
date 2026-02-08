@@ -14,7 +14,7 @@ export function CTASection({ onGetStartedClick }: CTASectionProps) {
             Ready to take control of your inbox?
           </h2>
           <p className="mt-6 text-lg text-muted-foreground max-w-xl mx-auto leading-relaxed animate-fade-in" style={{ animationDelay: '100ms' }}>
-            Join thousands of professionals who save hours every week with WeBookly's intelligent email management.
+            Join thousands of professionals who save hours every week with Wibookly's intelligent email management.
           </p>
           <div className="mt-10 flex flex-col sm:flex-row items-center justify-center gap-4 animate-fade-in" style={{ animationDelay: '200ms' }}>
             <Button 

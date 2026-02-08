@@ -9,7 +9,7 @@ export function Footer() {
           <Link to="/" className="flex items-center group">
             <img 
               src={wibooklyLogo} 
-              alt="WeBookly" 
+              alt="Wibookly" 
               className="h-10 w-auto transition-transform duration-300 group-hover:scale-105"
             />
           </Link>
@@ -27,7 +27,7 @@ export function Footer() {
           </nav>
 
           <p className="text-sm text-muted-foreground">
-            © {new Date().getFullYear()} WeBookly. All rights reserved.
+            © {new Date().getFullYear()} Wibookly. All rights reserved.
           </p>
         </div>
       </div>

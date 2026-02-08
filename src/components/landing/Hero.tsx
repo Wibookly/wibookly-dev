@@ -26,17 +26,17 @@ export function Hero({ onGetStartedClick }: HeroProps) {
             className="text-5xl md:text-7xl lg:text-8xl font-bold tracking-tight leading-[1.08] text-foreground"
             style={{ fontFamily: "'Georgia', 'Times New Roman', serif" }}
           >
-            Emails so good,
+            Inbox zero,
             <br />
-            you just press send!
+            every single day.
           </h1>
 
           {/* Sub-headline */}
           <p className="mt-8 text-lg md:text-xl text-muted-foreground max-w-2xl mx-auto leading-relaxed">
-            Your AI email assistant that organizes, drafts, and sends — so you can focus on what matters.
+            Wibookly reads, categorizes, drafts, and sends your emails — so you can focus on what really matters.
           </p>
 
-          {/* CTA Button — large blue/green pill with arrow circle */}
+          {/* CTA Button — large green/blue gradient pill with arrow circle */}
           <div className="mt-10 flex justify-center">
             <button
               onClick={onGetStartedClick}
@@ -51,12 +51,12 @@ export function Hero({ onGetStartedClick }: HeroProps) {
 
           {/* Provider line */}
           <div className="mt-8 flex items-center justify-center gap-3 text-sm text-muted-foreground">
-            <span>WeBookly sits on top of</span>
+            <span>Wibookly sits on top of</span>
             <div className="flex items-center gap-2">
-              <div className="w-9 h-9 rounded-full bg-card border border-border flex items-center justify-center shadow-sm">
+              <div className="w-10 h-10 rounded-full bg-card border border-border flex items-center justify-center shadow-sm">
                 <GmailIcon />
               </div>
-              <div className="w-9 h-9 rounded-full bg-card border border-border flex items-center justify-center shadow-sm overflow-hidden">
+              <div className="w-10 h-10 rounded-full bg-card border border-border flex items-center justify-center shadow-sm overflow-hidden">
                 <img src={outlookLogo} alt="Outlook" className="w-7 h-7 object-contain" />
               </div>
             </div>

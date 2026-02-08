@@ -59,12 +59,12 @@ export default function Auth() {
         <div className="w-full max-w-md">
           <div className="bg-card rounded-2xl shadow-lg border border-border p-10">
             <div className="text-center mb-10">
-              <img src={wibooklyLogo} alt="WeBookly" className="h-12 w-auto mx-auto mb-8" />
+              <img src={wibooklyLogo} alt="Wibookly" className="h-12 w-auto mx-auto mb-8" />
               <h1 className="text-3xl font-bold tracking-tight text-foreground">
                 Welcome back
               </h1>
               <p className="mt-2 text-muted-foreground">
-                Sign in to continue to WeBookly
+                Sign in to continue to Wibookly
               </p>
             </div>
 
