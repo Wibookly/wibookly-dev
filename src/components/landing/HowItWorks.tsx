@@ -1,77 +1,106 @@
-import { Mail, FolderOpen, Sparkles, ArrowRight } from 'lucide-react';
+import { ArrowRight, Clock } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import mockupIntegrations from '@/assets/mockup-integrations.png';
+import mockupCategories from '@/assets/mockup-categories.png';
+import mockupAiDraft from '@/assets/mockup-ai-draft.png';
 
 const steps = [
   {
-    icon: Mail,
     step: '01',
-    title: 'Connect Your Emails',
+    title: 'Connect your email',
     description: 'Securely connect your Microsoft Outlook or Gmail account with OAuth. We never see your password.',
-    iconColor: 'text-primary',
-    iconBg: 'bg-primary/15',
+    badge: 'Takes 1 min',
+    image: mockupIntegrations,
   },
   {
-    icon: FolderOpen,
     step: '02',
     title: 'Customize Categories',
     description: 'Create custom categories and rules to automatically sort and organize all your incoming emails.',
-    iconColor: 'text-accent-foreground',
-    iconBg: 'bg-accent/20',
+    badge: 'Takes 5 min',
+    image: mockupCategories,
   },
   {
-    icon: Sparkles,
     step: '03',
-    title: 'Set Up Your AI Intelligence',
+    title: 'Review and send',
     description: 'Configure AI to generate smart draft replies, auto-respond, and manage your calendar seamlessly.',
-    iconColor: 'text-success',
-    iconBg: 'bg-success/15',
-  }
+    badge: 'Save 2h a day',
+    image: mockupAiDraft,
+  },
 ];
 
-export function HowItWorks() {
-  return (
-    <section id="how-it-works" className="py-16 md:py-24">
-      <div className="container mx-auto px-6">
-        <div className="text-center mb-16">
-          <span className="inline-block px-4 py-1.5 rounded-full bg-card/70 text-primary text-sm font-medium mb-4 border border-primary/20 shadow-sm animate-fade-in">
-            Simple Setup
-          </span>
-          <h2 className="text-3xl md:text-4xl lg:text-5xl font-semibold tracking-tight animate-fade-in text-foreground" style={{ animationDelay: '100ms' }}>
-            Get started in 3 easy steps
-          </h2>
-          <p className="mt-4 text-muted-foreground max-w-xl mx-auto animate-fade-in" style={{ animationDelay: '200ms' }}>
-            Set up Wibookly in minutes and transform your email workflow
-          </p>
-        </div>
+interface HowItWorksProps {
+  onGetStartedClick?: () => void;
+}
 
-        <div className="grid md:grid-cols-3 gap-8 max-w-5xl mx-auto">
-          {steps.map((step, index) => (
-            <div
-              key={step.title}
-              className="relative group animate-fade-in"
-              style={{ animationDelay: `${300 + index * 100}ms` }}
-            >
-              {/* Connector line */}
-              {index < steps.length - 1 && (
-                <div className="hidden md:block absolute top-14 left-[60%] w-full h-0.5 bg-gradient-to-r from-primary/30 to-transparent">
-                  <ArrowRight className="absolute -right-4 top-1/2 -translate-y-1/2 w-4 h-4 text-primary/30" />
-                </div>
-              )}
-              
-              <div className="relative bg-card/60 backdrop-blur-sm rounded-3xl p-8 border border-card/80 shadow-md hover:shadow-lg transition-all duration-300 group-hover:-translate-y-1">
-                {/* Step number badge */}
-                <div className="absolute -top-3 -right-3 w-10 h-10 rounded-full bg-primary text-primary-foreground flex items-center justify-center text-sm font-bold shadow-md">
-                  {step.step}
-                </div>
-                
-                <div className={`flex items-center justify-center w-16 h-16 rounded-2xl ${step.iconBg} mb-6 group-hover:scale-110 transition-transform`}>
-                  <step.icon className={`w-8 h-8 ${step.iconColor}`} />
-                </div>
-                
-                <h3 className="text-xl font-semibold mb-3 text-foreground">{step.title}</h3>
-                <p className="text-muted-foreground leading-relaxed">{step.description}</p>
+export function HowItWorks({ onGetStartedClick }: HowItWorksProps) {
+  return (
+    <section id="how-it-works" className="py-20 md:py-32">
+      <div className="container mx-auto px-6">
+        <div className="max-w-5xl mx-auto">
+          {/* Section Header */}
+          <div className="text-center mb-16">
+            <span className="inline-block px-4 py-1.5 rounded-full bg-card/70 text-primary text-sm font-medium mb-4 border border-primary/20 shadow-sm animate-fade-in">
+              Simple Setup
+            </span>
+            <h2 className="text-3xl md:text-4xl lg:text-5xl font-bold tracking-tight animate-fade-in text-foreground leading-tight" style={{ animationDelay: '100ms' }}>
+              Reclaim <span className="text-primary">90%</span> of your
+              <br />
+              email time
+            </h2>
+            <p className="mt-5 text-lg text-muted-foreground max-w-2xl mx-auto animate-fade-in leading-relaxed" style={{ animationDelay: '200ms' }}>
+              Watch how Wibookly transforms a chaotic inbox into an organized, productive workspace
+            </p>
+            {onGetStartedClick && (
+              <div className="mt-6 animate-fade-in" style={{ animationDelay: '250ms' }}>
+                <Button
+                  size="lg"
+                  className="group rounded-full px-8 py-6 text-base font-semibold shadow-lg"
+                  onClick={onGetStartedClick}
+                >
+                  Get Started for Free
+                  <ArrowRight className="ml-2 h-4 w-4 transition-transform group-hover:translate-x-1" />
+                </Button>
               </div>
-            </div>
-          ))}
+            )}
+          </div>
+
+          {/* Step Cards */}
+          <div className="space-y-8">
+            {steps.map((step, index) => (
+              <div
+                key={step.step}
+                className="rounded-3xl bg-card/50 backdrop-blur-sm border border-border/30 shadow-lg overflow-hidden animate-fade-in hover:shadow-xl transition-shadow"
+                style={{ animationDelay: `${300 + index * 100}ms` }}
+              >
+                <div className="grid md:grid-cols-2 gap-0">
+                  {/* Text Content */}
+                  <div className="p-8 md:p-10 flex flex-col justify-center">
+                    <div className="flex items-center gap-3 mb-4">
+                      <span className="w-9 h-9 rounded-full bg-primary text-primary-foreground flex items-center justify-center text-sm font-bold shadow-md">
+                        {step.step}
+                      </span>
+                      <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-success/10 border border-success/20 text-xs font-medium text-success">
+                        <Clock className="w-3 h-3" />
+                        {step.badge}
+                      </span>
+                    </div>
+                    <h3 className="text-2xl font-bold text-foreground mb-3">{step.title}</h3>
+                    <p className="text-muted-foreground leading-relaxed">{step.description}</p>
+                  </div>
+
+                  {/* Image */}
+                  <div className="bg-gradient-to-br from-primary/5 to-success/5 p-6 flex items-center justify-center">
+                    <img
+                      src={step.image}
+                      alt={step.title}
+                      className="w-full rounded-xl shadow-md"
+                      loading="lazy"
+                    />
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
         </div>
       </div>
     </section>

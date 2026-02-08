@@ -1,80 +1,109 @@
-import { Layers, Filter, Wand2, Zap, Shield, Clock } from 'lucide-react';
+import { ArrowRight } from 'lucide-react';
+import mockupAiDraft from '@/assets/mockup-ai-draft.png';
+import mockupCategories from '@/assets/mockup-categories.png';
+import mockupActivity from '@/assets/mockup-activity.png';
+import mockupInbox from '@/assets/mockup-inbox.png';
 
 const features = [
   {
-    icon: Layers,
-    title: 'Smart Categories',
-    description: 'Automatically organize emails into custom categories based on sender, domain, or keywords.',
-    iconColor: 'text-primary',
-    iconBg: 'bg-primary/15',
+    badge: 'AI Drafts',
+    title: 'Write less, achieve more',
+    subtitle: 'AI-powered email drafts',
+    description: 'Get intelligent draft responses for each category. Wibookly learns your tone and style to craft perfect replies — you just review and send.',
+    image: mockupAiDraft,
   },
   {
-    icon: Filter,
-    title: 'Rule-Based Sorting',
-    description: 'Create powerful rules to route emails exactly where they belong. No manual sorting required.',
-    iconColor: 'text-accent-foreground',
-    iconBg: 'bg-accent/20',
+    badge: 'Smart Categories',
+    title: 'Organize without effort',
+    subtitle: 'Automatic email sorting',
+    description: 'Automatically categorize every incoming email by sender, domain, or keywords. Your inbox stays clean without lifting a finger.',
+    image: mockupCategories,
   },
   {
-    icon: Wand2,
-    title: 'AI Draft Replies',
-    description: "Get intelligent draft responses for each category. Edit, approve, and send — you're always in control.",
-    iconColor: 'text-success',
-    iconBg: 'bg-success/15',
+    badge: 'AI Dashboard',
+    title: 'See everything at a glance',
+    subtitle: 'AI Activity Dashboard',
+    description: 'Track every AI action in real-time — drafts created, emails sorted, calendar events scheduled. Full transparency into what your assistant does.',
+    image: mockupActivity,
   },
   {
-    icon: Zap,
-    title: 'Lightning Fast',
-    description: 'Process hundreds of emails in seconds. Built for speed and efficiency from the ground up.',
-    iconColor: 'text-warning',
-    iconBg: 'bg-warning/15',
+    badge: 'Smart Inbox',
+    title: 'Focus on what matters',
+    subtitle: 'Priority-first inbox',
+    description: 'Surface the emails that need your attention first. Low-priority messages are sorted away so you can focus on high-impact work.',
+    image: mockupInbox,
   },
-  {
-    icon: Shield,
-    title: 'Privacy First',
-    description: 'Your data stays yours. We use enterprise-grade encryption and never sell your information.',
-    iconColor: 'text-primary',
-    iconBg: 'bg-primary/15',
-  },
-  {
-    icon: Clock,
-    title: 'Save Hours Weekly',
-    description: 'Reduce email time by up to 50%. Focus on what matters most to you and your business.',
-    iconColor: 'text-success',
-    iconBg: 'bg-success/15',
-  }
 ];
 
 export function Features() {
   return (
-    <section id="features" className="py-24 md:py-36">
+    <section id="features" className="py-20 md:py-32">
       <div className="container mx-auto px-6">
-        <div className="text-center mb-20">
-          <span className="inline-block px-4 py-1.5 rounded-full bg-card/70 text-primary text-sm font-medium mb-4 border border-primary/20 shadow-sm animate-fade-in">
-            Features
-          </span>
-          <h2 className="text-3xl md:text-4xl lg:text-5xl font-semibold tracking-tight animate-fade-in text-foreground" style={{ animationDelay: '100ms' }}>
-            Everything you need
-          </h2>
-          <p className="mt-4 text-muted-foreground max-w-xl mx-auto animate-fade-in" style={{ animationDelay: '200ms' }}>
-            Powerful tools to manage your inbox efficiently
-          </p>
-        </div>
+        <div className="max-w-6xl mx-auto">
+          {/* Section header */}
+          <div className="text-center mb-20">
+            <span className="inline-block px-4 py-1.5 rounded-full bg-card/70 text-primary text-sm font-medium mb-4 border border-primary/20 shadow-sm animate-fade-in">
+              Features
+            </span>
+            <h2 className="text-3xl md:text-4xl lg:text-5xl font-bold tracking-tight animate-fade-in text-foreground" style={{ animationDelay: '100ms' }}>
+              Everything you need
+            </h2>
+            <p className="mt-4 text-lg text-muted-foreground max-w-xl mx-auto animate-fade-in" style={{ animationDelay: '200ms' }}>
+              Powerful tools to manage your inbox efficiently
+            </p>
+          </div>
 
-        <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6 max-w-6xl mx-auto">
-          {features.map((feature, index) => (
-            <div
-              key={feature.title}
-              className="group p-8 rounded-3xl border border-card/80 bg-card/50 backdrop-blur-sm shadow-md hover:shadow-lg hover:-translate-y-1 transition-all duration-300 animate-fade-in"
-              style={{ animationDelay: `${300 + index * 100}ms` }}
-            >
-              <div className={`mb-5 inline-flex items-center justify-center w-14 h-14 rounded-2xl ${feature.iconBg} group-hover:scale-110 transition-transform`}>
-                <feature.icon className={`w-7 h-7 ${feature.iconColor}`} />
-              </div>
-              <h3 className="text-lg font-semibold mb-2 text-foreground">{feature.title}</h3>
-              <p className="text-muted-foreground leading-relaxed">{feature.description}</p>
-            </div>
-          ))}
+          {/* Alternating feature blocks */}
+          <div className="space-y-16 md:space-y-24">
+            {features.map((feature, index) => {
+              const isReversed = index % 2 === 1;
+              return (
+                <div
+                  key={feature.badge}
+                  className="animate-fade-in"
+                  style={{ animationDelay: `${300 + index * 100}ms` }}
+                >
+                  <div className={`grid md:grid-cols-2 gap-10 md:gap-14 items-center ${isReversed ? 'md:direction-rtl' : ''}`}>
+                    {/* Text */}
+                    <div className={`space-y-5 ${isReversed ? 'md:order-2' : ''}`}>
+                      <span className="inline-block px-3 py-1 rounded-full bg-primary/10 border border-primary/20 text-xs font-semibold text-primary uppercase tracking-wider">
+                        {feature.badge}
+                      </span>
+                      <h3 className="text-2xl md:text-3xl font-bold text-foreground leading-tight">
+                        {feature.title}
+                      </h3>
+                      <p className="text-sm font-medium text-primary">{feature.subtitle}</p>
+                      <p className="text-muted-foreground leading-relaxed">
+                        {feature.description}
+                      </p>
+                      <a
+                        href="#"
+                        className="inline-flex items-center gap-2 text-sm font-semibold text-primary hover:text-primary/80 transition-colors group"
+                      >
+                        Try it free
+                        <ArrowRight className="w-4 h-4 transition-transform group-hover:translate-x-1" />
+                      </a>
+                    </div>
+
+                    {/* Image */}
+                    <div className={`${isReversed ? 'md:order-1' : ''}`}>
+                      <div className="relative">
+                        <div className="absolute inset-0 -m-3 rounded-3xl bg-gradient-to-br from-primary/10 via-transparent to-success/10 blur-xl" />
+                        <div className="relative rounded-2xl border border-border/30 shadow-xl overflow-hidden bg-card/40 backdrop-blur-sm p-2">
+                          <img
+                            src={feature.image}
+                            alt={feature.subtitle}
+                            className="w-full rounded-xl"
+                            loading="lazy"
+                          />
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
         </div>
       </div>
     </section>
