@@ -3,7 +3,7 @@ import outlookLogo from '@/assets/outlook-logo.png';
 
 // Official Gmail logo SVG
 const GmailIcon = () => (
-  <svg viewBox="0 0 48 48" className="w-7 h-7" aria-hidden="true">
+  <svg viewBox="0 0 48 48" className="w-8 h-8" aria-hidden="true">
     <path fill="#4caf50" d="M45,16.2l-5,2.75l-5,4.75L35,40h7c1.657,0,3-1.343,3-3V16.2z" />
     <path fill="#1e88e5" d="M3,16.2l3.614,1.71L13,23.7V40H6c-1.657,0-3-1.343-3-3V16.2z" />
     <polygon fill="#e53935" points="35,11.2 24,19.45 13,11.2 12,17 13,23.7 24,31.95 35,23.7 36,17" />
@@ -50,14 +50,15 @@ export function Hero({ onGetStartedClick }: HeroProps) {
             </button>
           </div>
 
+          {/* Provider line — Outlook same size as Gmail */}
           <div className="mt-8 flex items-center justify-center gap-3 text-sm text-muted-foreground">
             <span>Wibookly sits on top of</span>
-            <div className="flex items-center gap-2">
-              <div className="w-11 h-11 rounded-full bg-card/80 border border-border/50 flex items-center justify-center shadow-sm backdrop-blur-sm">
+            <div className="flex items-center gap-3">
+              <div className="w-12 h-12 rounded-full bg-card/80 border border-border/50 flex items-center justify-center shadow-sm backdrop-blur-sm">
                 <GmailIcon />
               </div>
-              <div className="w-11 h-11 rounded-full bg-card/80 border border-border/50 flex items-center justify-center shadow-sm overflow-hidden backdrop-blur-sm">
-                <img src={outlookLogo} alt="Outlook" className="w-7 h-7 object-contain" />
+              <div className="w-12 h-12 rounded-full bg-card/80 border border-border/50 flex items-center justify-center shadow-sm overflow-hidden backdrop-blur-sm">
+                <img src={outlookLogo} alt="Outlook" className="w-8 h-8 object-contain" />
               </div>
             </div>
           </div>

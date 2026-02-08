@@ -9,24 +9,24 @@
 
 @layer base {
   :root {
-    /* Ocean gradient base — teal-to-blue spectrum */
-    --background: 175 45% 55%;
+    /* Light ocean — soft green to soft blue */
+    --background: 178 40% 78%;
     --foreground: 210 55% 12%;
 
     /* Tinted surfaces — NO pure white */
-    --card: 178 35% 92%;
+    --card: 178 30% 93%;
     --card-foreground: 210 55% 12%;
 
-    --popover: 178 35% 92%;
+    --popover: 178 30% 93%;
     --popover-foreground: 210 55% 12%;
 
     --primary: 170 65% 30%;
     --primary-foreground: 0 0% 100%;
 
-    --secondary: 178 30% 85%;
+    --secondary: 178 25% 87%;
     --secondary-foreground: 210 55% 12%;
 
-    --muted: 180 25% 80%;
+    --muted: 180 20% 82%;
     --muted-foreground: 210 30% 35%;
 
     --accent: 210 70% 45%;
@@ -41,19 +41,19 @@
     --warning: 38 92% 50%;
     --warning-foreground: 210 55% 12%;
 
-    --border: 180 20% 78%;
-    --input: 180 20% 78%;
+    --border: 180 18% 80%;
+    --input: 180 18% 80%;
     --ring: 170 65% 30%;
 
     --radius: 1rem;
 
-    --sidebar-background: 178 35% 92%;
+    --sidebar-background: 178 30% 93%;
     --sidebar-foreground: 210 55% 12%;
     --sidebar-primary: 170 65% 30%;
     --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 178 30% 87%;
+    --sidebar-accent: 178 25% 89%;
     --sidebar-accent-foreground: 210 55% 12%;
-    --sidebar-border: 180 20% 82%;
+    --sidebar-border: 180 18% 84%;
     --sidebar-ring: 170 65% 30%;
 
     --chart-1: 170 65% 30%;
@@ -65,24 +65,22 @@
     --font-sans: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
     --font-mono: 'JetBrains Mono', ui-monospace, monospace;
 
-    /* Premium shadows with color tinting */
+    /* Premium shadows */
     --shadow-xs: 0 1px 2px 0 hsl(200 40% 20% / 0.04);
     --shadow-sm: 0 2px 8px -1px hsl(200 40% 20% / 0.08), 0 1px 2px -1px hsl(200 40% 20% / 0.04);
     --shadow: 0 4px 12px -2px hsl(200 40% 20% / 0.10), 0 2px 4px -2px hsl(200 40% 20% / 0.05);
     --shadow-md: 0 8px 24px -4px hsl(200 40% 20% / 0.12), 0 4px 8px -4px hsl(200 40% 20% / 0.06);
     --shadow-lg: 0 16px 40px -8px hsl(200 40% 20% / 0.16), 0 8px 16px -8px hsl(200 40% 20% / 0.08);
     --shadow-xl: 0 24px 60px -12px hsl(200 40% 20% / 0.22);
-
-    /* Floating card shadow */
     --shadow-float: 0 8px 30px -6px hsl(200 50% 25% / 0.15), 0 4px 10px -4px hsl(200 50% 25% / 0.08);
 
     /* Gradients */
     --gradient-primary: linear-gradient(135deg, hsl(170 65% 30%) 0%, hsl(210 70% 45%) 100%);
-    --gradient-hero: linear-gradient(135deg, hsl(175 45% 58%) 0%, hsl(190 50% 52%) 40%, hsl(210 55% 48%) 100%);
-    --gradient-subtle: linear-gradient(135deg, hsl(178 35% 90%) 0%, hsl(195 30% 88%) 100%);
-    --gradient-cta: linear-gradient(135deg, hsl(175 40% 60%) 0%, hsl(195 50% 55%) 50%, hsl(210 55% 52%) 100%);
-    --gradient-card: linear-gradient(145deg, hsl(178 35% 93%) 0%, hsl(190 30% 90%) 100%);
-    --gradient-card-alt: linear-gradient(145deg, hsl(195 30% 91%) 0%, hsl(178 35% 93%) 100%);
+    --gradient-hero: linear-gradient(135deg, hsl(170 40% 78%) 0%, hsl(185 38% 76%) 40%, hsl(200 36% 74%) 100%);
+    --gradient-subtle: linear-gradient(135deg, hsl(178 30% 91%) 0%, hsl(195 25% 90%) 100%);
+    --gradient-cta: linear-gradient(135deg, hsl(170 35% 76%) 0%, hsl(190 38% 74%) 50%, hsl(205 36% 72%) 100%);
+    --gradient-card: linear-gradient(145deg, hsl(178 28% 94%) 0%, hsl(190 24% 92%) 100%);
+    --gradient-card-alt: linear-gradient(145deg, hsl(195 24% 92%) 0%, hsl(178 28% 94%) 100%);
   }
 
   .dark {
@@ -150,7 +148,7 @@
   }
 }
 
-/* Animated ocean background — smooth green-to-blue spectrum */
+/* Animated ocean background — light green to light blue */
 @keyframes ocean-flow {
   0% {
     background-position: 0% 50%;
@@ -172,20 +170,20 @@
 .ocean-bg {
   background: linear-gradient(
     135deg,
-    hsl(170 50% 58%) 0%,
-    hsl(178 48% 55%) 15%,
-    hsl(185 50% 52%) 30%,
-    hsl(192 52% 50%) 45%,
-    hsl(200 55% 48%) 60%,
-    hsl(195 50% 52%) 75%,
-    hsl(182 48% 55%) 90%,
-    hsl(170 50% 58%) 100%
+    hsl(168 35% 78%) 0%,
+    hsl(174 33% 77%) 15%,
+    hsl(180 32% 76%) 30%,
+    hsl(186 33% 75%) 45%,
+    hsl(192 34% 74%) 60%,
+    hsl(186 33% 76%) 75%,
+    hsl(178 33% 77%) 90%,
+    hsl(168 35% 78%) 100%
   );
   background-size: 400% 400%;
   animation: ocean-flow 25s ease-in-out infinite;
 }
 
-/* Section divider — subtle gradient line */
+/* Section divider — visible gradient line */
 .section-divider {
   position: relative;
 }
@@ -193,16 +191,16 @@
 .section-divider::after {
   content: '';
   display: block;
-  width: 70%;
-  max-width: 500px;
+  width: 80%;
+  max-width: 600px;
   height: 1px;
   margin: 0 auto;
   background: linear-gradient(
     90deg,
     transparent 0%,
-    hsl(185 40% 55% / 0.3) 20%,
-    hsl(185 40% 55% / 0.5) 50%,
-    hsl(185 40% 55% / 0.3) 80%,
+    hsl(180 30% 60% / 0.4) 15%,
+    hsl(180 35% 55% / 0.6) 50%,
+    hsl(180 30% 60% / 0.4) 85%,
     transparent 100%
   );
 }
@@ -250,18 +248,18 @@
   position: absolute;
   border-radius: 50%;
   filter: blur(60px);
-  opacity: 0.15;
+  opacity: 0.12;
   pointer-events: none;
 }
 
 .blob-green {
-  background: hsl(170 65% 40%);
+  background: hsl(170 50% 55%);
 }
 
 .blob-blue {
-  background: hsl(210 70% 50%);
+  background: hsl(210 50% 60%);
 }
 
 .blob-teal {
-  background: hsl(190 55% 45%);
+  background: hsl(190 45% 55%);
 }
