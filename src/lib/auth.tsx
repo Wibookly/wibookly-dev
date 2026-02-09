@@ -117,12 +117,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     // 1. Generate PKCE verifier (sync)
     const codeVerifier = generateCodeVerifier();
 
-    // 2. Store verifier in localStorage + cookie (cookie survives Incognito redirects)
+    // 2. Store verifier in localStorage + cookie as backup
     savePkceVerifier(codeVerifier);
     console.log('[PKCE] generated verifier length:', codeVerifier.length);
 
     // 3. Derive challenge (async)
     const codeChallenge = await generateCodeChallenge(codeVerifier);
+
+    // 4. Encode verifier in state parameter — guaranteed to survive redirects
+    //    since Cognito echoes it back in the callback URL.
+    const statePayload = btoa(JSON.stringify({ v: codeVerifier }));
 
     const params = new URLSearchParams({
       client_id: COGNITO_CONFIG.clientId,
@@ -131,6 +135,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       redirect_uri: COGNITO_CONFIG.redirectUri,
       code_challenge_method: 'S256',
       code_challenge: codeChallenge,
+      state: statePayload,
     });
 
     if (provider === 'microsoft') {
