@@ -147,7 +147,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const signOut = async () => {
     try {
       localStorage.removeItem('cognito_tokens');
-      localStorage.removeItem('cognito_code_verifier');
+      clearPkceVerifier();
 
       await supabase.auth.signOut();
 
