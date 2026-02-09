@@ -8,21 +8,26 @@ import wibooklyLogo from '@/assets/wibookly-logo.png';
 /**
  * /auth/callback
  *
- * Handles the OAuth redirect from AWS Cognito:
- * 1. Exchange the authorization code for Cognito tokens (PKCE).
- * 2. Call the `cognito-user-bridge` edge function which finds/creates
- *    the corresponding backend user and returns a one-time token.
- * 3. Use the one-time token to establish a backend session.
- * 4. Redirect to /integrations.
+ * Handles TWO completely separate OAuth flows at the same URL:
+ *
+ * 1. **Cognito Login/Signup** — detected by PKCE code_verifier in sessionStorage.
+ *    Exchanges the code with Cognito's /oauth2/token, bridges to backend session.
+ *
+ * 2. **Connect Gmail/Outlook** — detected by `state` parameter (from oauth-init).
+ *    Forwards code + state to the oauth-exchange edge function.
+ *
+ * These flows NEVER share tokens, logic, or code paths.
  */
 export default function AuthCallback() {
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
   const [error, setError] = useState<string | null>(null);
+  const [statusMessage, setStatusMessage] = useState('Completing sign-in…');
 
   useEffect(() => {
     // Primary: use React Router's searchParams
     let code = searchParams.get('code');
+    let stateParam = searchParams.get('state');
     let errorParam = searchParams.get('error');
     let errorDescription = searchParams.get('error_description');
 
@@ -31,43 +36,65 @@ export default function AuthCallback() {
     if (!code && !errorParam) {
       const raw = new URLSearchParams(window.location.search);
       code = raw.get('code');
+      stateParam = raw.get('state');
       errorParam = raw.get('error');
       errorDescription = raw.get('error_description');
     }
 
     console.log('[AuthCallback] url:', window.location.href);
-    console.log('[AuthCallback] code present:', !!code);
+    console.log('[AuthCallback] code present:', !!code, '| state present:', !!stateParam);
 
     if (errorParam) {
+      console.error('[AuthCallback] OAuth error:', errorParam, errorDescription);
       setError(errorDescription || errorParam);
       return;
     }
 
     if (!code) {
+      console.error('[AuthCallback] No authorization code in URL');
       setError('No authorization code received from the identity provider.');
       return;
     }
 
-    handleCallback(code);
+    // ── Flow Detection ────────────────────────────────────────────
+    const codeVerifier = sessionStorage.getItem('cognito_code_verifier');
+
+    if (stateParam && !codeVerifier) {
+      // STATE present + no PKCE verifier = Connect Gmail/Outlook flow
+      console.log('[AuthCallback] Flow detected: Connect Gmail/Outlook');
+      console.log('[AuthCallback] Payload type: code (authorization_code)');
+      setStatusMessage('Connecting your mailbox…');
+      handleConnectCallback(code, stateParam);
+    } else if (codeVerifier) {
+      // PKCE verifier present = Cognito login/signup flow
+      console.log('[AuthCallback] Flow detected: Cognito login/signup');
+      console.log('[AuthCallback] Payload type: code (authorization_code)');
+      console.log('[AuthCallback] redirect_uri:', COGNITO_CONFIG.redirectUri);
+      handleCognitoCallback(code);
+    } else {
+      console.error('[AuthCallback] Cannot determine flow: no state, no PKCE verifier');
+      setError(
+        'Unable to determine authentication flow. ' +
+        'Please try again from the sign-in page or dashboard.'
+      );
+    }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  const handleCallback = async (code: string) => {
+  // ── Flow 1: Cognito Login/Signup ──────────────────────────────────
+
+  const handleCognitoCallback = async (code: string) => {
     try {
-      // ── Guard: this route is ONLY for Cognito login/signup ───────────
-      // The PKCE code verifier is set exclusively by signInWithCognito().
-      // If it's missing, this request did NOT originate from our Cognito flow.
       const codeVerifier = sessionStorage.getItem('cognito_code_verifier');
       if (!codeVerifier) {
-        throw new Error(
-          'This callback is reserved for authentication only. ' +
-          'If you were connecting Gmail or Outlook, please try again from the dashboard.'
-        );
+        throw new Error('PKCE code verifier missing. Please try signing in again.');
       }
       sessionStorage.removeItem('cognito_code_verifier');
 
-      // ── Step 1: Exchange authorization code for Cognito tokens ───────
-      // The redirect_uri MUST exactly match the one used during /authorize.
+      console.log('[AuthCallback:Cognito] Exchanging code at:', COGNITO_CONFIG.tokenEndpoint);
+      console.log('[AuthCallback:Cognito] redirect_uri:', COGNITO_CONFIG.redirectUri);
+
+      // Step 1: Exchange authorization code for Cognito tokens
       const tokenResponse = await fetch(COGNITO_CONFIG.tokenEndpoint, {
         method: 'POST',
         headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
@@ -86,43 +113,35 @@ export default function AuthCallback() {
       }
 
       const tokens = await tokenResponse.json();
+      console.log('[AuthCallback:Cognito] Token response keys:', Object.keys(tokens));
 
-      console.log('[AuthCallback] token response keys:', Object.keys(tokens));
-
-      // Extract and validate the id_token as a plain string JWT
+      // Step 2: Validate id_token
       const rawIdToken = tokens.id_token;
-      const access_token = tokens.access_token;
-      const refresh_token = tokens.refresh_token;
-
       if (!rawIdToken || typeof rawIdToken !== 'string') {
-        console.error('[AuthCallback] id_token is missing or not a string. Type:', typeof rawIdToken);
+        console.error('[AuthCallback:Cognito] id_token missing. Type:', typeof rawIdToken);
         throw new Error('No valid ID token received from identity provider.');
       }
 
-      // Ensure it's a clean string with no extra whitespace
       const id_token = rawIdToken.trim();
-
       if (id_token.split('.').length !== 3) {
-        console.error('[AuthCallback] id_token does not have 3 JWT segments');
-        throw new Error(
-          'Received an invalid token format from Cognito. Expected a JWT but got something else.'
-        );
+        console.error('[AuthCallback:Cognito] id_token not a valid JWT (segments)');
+        throw new Error('Received an invalid token format. Expected a JWT.');
       }
 
-      console.log('[AuthCallback] id_token validated: 3 segments, length:', id_token.length);
+      console.log('[AuthCallback:Cognito] id_token validated, length:', id_token.length);
 
-      // Store Cognito tokens for potential future use (e.g. AWS API calls)
+      // Store Cognito tokens
       localStorage.setItem(
         'cognito_tokens',
         JSON.stringify({
-          access_token,
+          access_token: tokens.access_token,
           id_token,
-          refresh_token,
+          refresh_token: tokens.refresh_token,
           obtained_at: Date.now(),
         })
       );
 
-      // ── Step 3: Bridge to backend session (Cognito JWKS only) ───────
+      // Step 3: Bridge to backend session
       const bridgeResponse = await fetch(
         `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/cognito-user-bridge`,
         {
@@ -138,12 +157,11 @@ export default function AuthCallback() {
       }
 
       const bridgeData = await bridgeResponse.json();
-
       if (!bridgeData.token_hash) {
         throw new Error('No session token received from bridge');
       }
 
-      // ── Step 4: Establish backend session ────────────────────────────
+      // Step 4: Establish backend session
       const { error: verifyError } = await supabase.auth.verifyOtp({
         token_hash: bridgeData.token_hash,
         type: 'magiclink',
@@ -153,13 +171,51 @@ export default function AuthCallback() {
         throw new Error(`Session verification failed: ${verifyError.message}`);
       }
 
-      // ── Step 5: Redirect to app ──────────────────────────────────────
+      console.log('[AuthCallback:Cognito] Session established, redirecting to /integrations');
       navigate('/integrations', { replace: true });
     } catch (err) {
-      console.error('Auth callback error:', err);
+      console.error('[AuthCallback:Cognito] Error:', err);
       setError(err instanceof Error ? err.message : 'Authentication failed');
     }
   };
+
+  // ── Flow 2: Connect Gmail/Outlook ─────────────────────────────────
+
+  const handleConnectCallback = async (code: string, state: string) => {
+    try {
+      console.log('[AuthCallback:Connect] Forwarding code to oauth-exchange');
+      console.log('[AuthCallback:Connect] redirect_uri used by oauth-init: https://app.wibookly.ai/auth/callback');
+
+      const response = await fetch(
+        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/oauth-exchange`,
+        {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ code, state }),
+        }
+      );
+
+      if (!response.ok) {
+        const errBody = await response.json().catch(() => ({}));
+        throw new Error(errBody.error || 'Failed to complete mailbox connection');
+      }
+
+      const data = await response.json();
+      console.log('[AuthCallback:Connect] Exchange successful:', data.provider, data.connectedEmail);
+
+      const redirectUrl = data.redirectUrl || '/integrations';
+      const connectedParam = data.provider ? `?connected=${data.provider}` : '';
+
+      navigate(`${redirectUrl}${connectedParam}`, { replace: true });
+    } catch (err) {
+      console.error('[AuthCallback:Connect] Error:', err);
+      const message = err instanceof Error ? err.message : 'Connection failed';
+      // Redirect to integrations with error so the user sees the toast
+      navigate(`/integrations?error=${encodeURIComponent(message)}`, { replace: true });
+    }
+  };
+
+  // ── Render ────────────────────────────────────────────────────────
 
   if (error) {
     return (
@@ -184,7 +240,7 @@ export default function AuthCallback() {
       <div className="text-center">
         <img src={wibooklyLogo} alt="Wibookly" className="h-24 w-auto mx-auto mb-6" />
         <Loader2 className="w-8 h-8 animate-spin text-primary mx-auto mb-4" />
-        <p className="text-muted-foreground">Completing sign-in…</p>
+        <p className="text-muted-foreground">{statusMessage}</p>
       </div>
     </div>
   );
