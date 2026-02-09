@@ -109,18 +109,45 @@ serve(async (req) => {
 
     console.log(`Successfully obtained tokens for ${provider}`);
 
-    // Fetch the user's email from the provider
-    let connectedEmail: string | null = null;
-    try {
-      if (provider === 'google') {
-        connectedEmail = await fetchGoogleEmail(tokens.access_token);
-      } else if (provider === 'outlook') {
-        connectedEmail = await fetchMicrosoftEmail(tokens.access_token);
-      }
-      console.log(`Fetched connected email: ${connectedEmail}`);
-    } catch (emailErr) {
-      console.warn('Failed to fetch user email:', emailErr);
+    // ── Validate id_token ──────────────────────────────────────────────
+    // The id_token is the ONLY token we verify for identity.
+    // We do NOT verify the access_token.
+    const idToken = tokens.id_token;
+    if (!idToken || typeof idToken !== 'string') {
+      console.error('id_token missing or not a string in token response');
+      await logConnectAttempt(supabase, userId, organizationId, provider, 'callback_error', appOrigin, 'id_token_missing');
+      return redirectWithError('Identity token missing from provider response', resolvedAppUrl, provider);
     }
+
+    // Decode the id_token JWT claims (the token was issued directly by the
+    // provider over a verified TLS channel, so we trust the payload here).
+    let idTokenClaims: Record<string, unknown>;
+    try {
+      idTokenClaims = decodeJwtPayload(idToken);
+      console.log('id_token claims decoded successfully, sub:', idTokenClaims.sub);
+    } catch (decodeErr) {
+      console.error('Failed to decode id_token:', decodeErr);
+      await logConnectAttempt(supabase, userId, organizationId, provider, 'callback_error', appOrigin, 'id_token_decode_failed');
+      return redirectWithError('Invalid identity token from provider', resolvedAppUrl, provider);
+    }
+
+    // Extract email from id_token claims (primary source of truth)
+    let connectedEmail: string | null = null;
+    connectedEmail = (idTokenClaims.email as string) || null;
+
+    // Fallback: fetch via API only if id_token didn't include email
+    if (!connectedEmail) {
+      try {
+        if (provider === 'google') {
+          connectedEmail = await fetchGoogleEmail(tokens.access_token);
+        } else if (provider === 'outlook') {
+          connectedEmail = await fetchMicrosoftEmail(tokens.access_token);
+        }
+      } catch (emailErr) {
+        console.warn('Fallback email fetch failed:', emailErr);
+      }
+    }
+    console.log(`Connected email resolved: ${connectedEmail}`);
 
     // Encrypt tokens before storing
     const encryptedAccessToken = await encryptToken(tokens.access_token, encryptionKey);
@@ -377,8 +404,24 @@ async function fetchMicrosoftEmail(accessToken: string): Promise<string | null> 
 }
 
 function getAppUrl(): string {
-  // Default app URL (fallback only)
   return 'https://jbzctydskdpzrejvpwpn.lovable.app';
+}
+
+/**
+ * Decode a JWT payload without verifying the signature.
+ * The token was received directly from the provider over a verified TLS
+ * channel (token endpoint response), so the payload is trusted.
+ */
+function decodeJwtPayload(jwt: string): Record<string, unknown> {
+  const parts = jwt.split('.');
+  if (parts.length !== 3) {
+    throw new Error('Malformed JWT: expected 3 parts');
+  }
+  // Base64-URL → Base64 → decode
+  const base64 = parts[1].replace(/-/g, '+').replace(/_/g, '/');
+  const padded = base64.padEnd(base64.length + (4 - (base64.length % 4)) % 4, '=');
+  const json = atob(padded);
+  return JSON.parse(json);
 }
 
 function resolveAppUrl(appOrigin?: unknown): string {
@@ -388,15 +431,14 @@ function resolveAppUrl(appOrigin?: unknown): string {
   try {
     const url = new URL(appOrigin);
 
-    // Prevent open redirects: allow only Lovable preview domains.
     const host = url.hostname.toLowerCase();
     const isLovableDomain = host.endsWith('.lovable.app') || host.endsWith('.lovableproject.com');
+    const isWibooklyDomain = host === 'app.wibookly.ai' || host.endsWith('.wibookly.ai');
     const isLocalhost = host === 'localhost' || host === '127.0.0.1';
 
-    if (!isLovableDomain && !isLocalhost) return fallback;
+    if (!isLovableDomain && !isWibooklyDomain && !isLocalhost) return fallback;
     if (url.protocol !== 'https:' && !isLocalhost) return fallback;
 
-    // Ensure we only keep the origin (no path/query)
     return url.origin;
   } catch {
     return fallback;
