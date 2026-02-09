@@ -1,5 +1,6 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import * as jose from "https://deno.land/x/jose@v5.2.2/index.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -7,11 +8,84 @@ const corsHeaders = {
     "authorization, x-client-info, apikey, content-type",
 };
 
+// ── Cognito configuration ────────────────────────────────────────────────
+const COGNITO_USER_POOL_ID = "us-west-2_mALN2509g";
+const COGNITO_CLIENT_ID = "3k0v6stp6l5abmgsg6ja5rcauo";
+const COGNITO_REGION = "us-west-2";
+const COGNITO_ISSUER = `https://cognito-idp.${COGNITO_REGION}.amazonaws.com/${COGNITO_USER_POOL_ID}`;
+const COGNITO_JWKS_URL = `${COGNITO_ISSUER}/.well-known/jwks.json`;
+
+// Cache the JWKS to avoid refetching on every request
+let cachedJWKS: jose.JSONWebKeySet | null = null;
+let jwksCachedAt = 0;
+const JWKS_CACHE_TTL_MS = 60 * 60 * 1000; // 1 hour
+
+async function getJWKS(): Promise<jose.JSONWebKeySet> {
+  const now = Date.now();
+  if (cachedJWKS && now - jwksCachedAt < JWKS_CACHE_TTL_MS) {
+    return cachedJWKS;
+  }
+  const response = await fetch(COGNITO_JWKS_URL);
+  if (!response.ok) {
+    throw new Error(`Failed to fetch JWKS: ${response.status}`);
+  }
+  cachedJWKS = await response.json();
+  jwksCachedAt = now;
+  return cachedJWKS!;
+}
+
+/**
+ * Verify a Cognito ID token cryptographically:
+ * 1. Fetch the JWKS from Cognito.
+ * 2. Find the matching key by `kid`.
+ * 3. Verify signature, expiration, issuer, audience, and token_use.
+ */
+async function verifyCognitoIdToken(
+  idToken: string
+): Promise<Record<string, unknown>> {
+  const jwks = await getJWKS();
+
+  // Decode the header to get the kid
+  const header = jose.decodeProtectedHeader(idToken);
+  const kid = header.kid;
+  if (!kid) {
+    throw new Error("ID token header missing 'kid'");
+  }
+
+  // Find the matching key in the JWKS
+  const key = jwks.keys.find((k: Record<string, unknown>) => k.kid === kid);
+  if (!key) {
+    throw new Error(`No matching key found in JWKS for kid: ${kid}`);
+  }
+
+  // Import the public key
+  const publicKey = await jose.importJWK(key as jose.JWK, header.alg as string);
+
+  // Verify the token (checks signature, expiration automatically)
+  const { payload } = await jose.jwtVerify(publicKey instanceof Uint8Array ? publicKey : publicKey, publicKey, {
+    issuer: COGNITO_ISSUER,
+    audience: COGNITO_CLIENT_ID,
+  });
+
+  // Additional Cognito-specific validations
+  if (payload.token_use !== "id") {
+    throw new Error(
+      `Invalid token_use: expected 'id', got '${payload.token_use}'`
+    );
+  }
+
+  if (!payload.email) {
+    throw new Error("ID token missing 'email' claim");
+  }
+
+  return payload as Record<string, unknown>;
+}
+
 /**
  * cognito-user-bridge
  *
  * Bridges AWS Cognito authentication into the backend:
- * 1. Decodes + validates the Cognito ID token (basic claim checks).
+ * 1. Cryptographically verifies the Cognito ID token (JWKS).
  * 2. Finds or creates the corresponding backend user by email.
  * 3. Creates a user profile & organization for first-time users.
  * 4. Returns a one-time `token_hash` the frontend uses to establish a session.
@@ -28,22 +102,22 @@ serve(async (req) => {
       return jsonError("Missing id_token", 400);
     }
 
-    // ── 1. Decode and validate the Cognito ID token ────────────────────
-    const claims = decodeJwtPayload(id_token);
-
-    if (!claims || !claims.email) {
-      return jsonError("Invalid ID token: missing email claim", 400);
-    }
-
-    // Basic claim validation (not cryptographic – the token came via PKCE)
-    const now = Math.floor(Date.now() / 1000);
-    if (claims.exp && claims.exp < now) {
-      return jsonError("ID token has expired", 401);
+    // ── 1. Cryptographically verify the Cognito ID token ──────────────
+    let claims: Record<string, unknown>;
+    try {
+      claims = await verifyCognitoIdToken(id_token);
+    } catch (verifyError) {
+      console.error("JWT verification failed:", verifyError);
+      const msg =
+        verifyError instanceof Error
+          ? verifyError.message
+          : "Token verification failed";
+      return jsonError(`Token verification failed: ${msg}`, 401);
     }
 
     const email = (claims.email as string).toLowerCase().trim();
     const fullName =
-      claims.name ||
+      (claims.name as string) ||
       [claims.given_name, claims.family_name].filter(Boolean).join(" ") ||
       email.split("@")[0];
     const cognitoSub = claims.sub as string;
@@ -59,16 +133,7 @@ serve(async (req) => {
       Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
     );
 
-    // Try to find existing user by email
-    const { data: userList } = await adminClient.auth.admin.listUsers({
-      page: 1,
-      perPage: 1,
-    });
-
-    let userId: string | undefined;
-
-    // Search by email (listUsers doesn't support email filter well, so query all)
-    // For production with many users, consider a direct DB query instead.
+    // Search by email
     const { data: allUsers } = await adminClient.auth.admin.listUsers({
       page: 1,
       perPage: 1000,
@@ -76,6 +141,8 @@ serve(async (req) => {
     const existingUser = allUsers?.users?.find(
       (u) => u.email?.toLowerCase() === email
     );
+
+    let userId: string;
 
     if (existingUser) {
       userId = existingUser.id;
@@ -117,7 +184,6 @@ serve(async (req) => {
       return jsonError("Failed to generate session", 500);
     }
 
-    // Extract the hashed token from the generated link
     const tokenHash = linkData.properties?.hashed_token;
     if (!tokenHash) {
       return jsonError("No token hash in generated link", 500);
@@ -152,23 +218,7 @@ function jsonError(message: string, status: number) {
   });
 }
 
-function decodeJwtPayload(token: string): Record<string, unknown> | null {
-  try {
-    const parts = token.split(".");
-    if (parts.length !== 3) return null;
-
-    // Base64-URL decode the payload (part 1)
-    const base64 = parts[1].replace(/-/g, "+").replace(/_/g, "/");
-    const padded = base64 + "=".repeat((4 - (base64.length % 4)) % 4);
-    const decoded = atob(padded);
-    return JSON.parse(decoded);
-  } catch {
-    return null;
-  }
-}
-
 function inferProvider(claims: Record<string, unknown>): string {
-  const iss = (claims.iss as string) || "";
   const identities = claims.identities as
     | Array<{ providerName?: string }>
     | undefined;
@@ -181,7 +231,7 @@ function inferProvider(claims: Record<string, unknown>): string {
     return pn;
   }
 
-  // Fallback: check the issuer
+  const iss = (claims.iss as string) || "";
   if (iss.includes("google")) return "google";
   if (iss.includes("microsoft") || iss.includes("login.microsoftonline"))
     return "microsoft";
@@ -241,7 +291,9 @@ async function bootstrapNewUser(
 
     await adminClient
       .from("categories")
-      .insert(defaultCategories.map((cat) => ({ ...cat, organization_id: orgId })));
+      .insert(
+        defaultCategories.map((cat) => ({ ...cat, organization_id: orgId }))
+      );
 
     // Create default AI settings
     await adminClient.from("ai_settings").insert({
