@@ -82,7 +82,8 @@ type ProviderId = 'google' | 'outlook';
 export default function Integrations() {
   const { organization, profile, loading: authLoading } = useAuth();
   const { activeConnection, loading: emailLoading } = useActiveEmail();
-  const { canConnectMoreMailboxes, getMailboxLimit, refreshSubscription, plan } = useSubscription();
+  const { canConnectMoreMailboxes, getMailboxLimit, refreshSubscription, plan, status, startCheckout } = useSubscription();
+  const hasActiveSub = status === 'active' || status === 'trialing';
   const { toast } = useToast();
   const { logAttempt } = useConnectAttemptLogger();
   const [connections, setConnections] = useState<Connection[]>([]);
@@ -886,12 +887,24 @@ export default function Integrations() {
                   <Button
                     size="sm"
                     disabled={!integration.available || connecting === integration.id}
-                    onClick={() => setConfirmProvider(integration.id)}
+                    onClick={() => {
+                      if (!hasActiveSub) {
+                        // No subscription — open checkout instead of OAuth
+                        startCheckout('starter');
+                      } else {
+                        setConfirmProvider(integration.id);
+                      }
+                    }}
                   >
                     {connecting === integration.id ? (
                       <>
                         <Loader2 className="mr-2 w-3 h-3 animate-spin" />
                         Connecting...
+                      </>
+                    ) : !hasActiveSub ? (
+                      <>
+                        Subscribe to Connect
+                        <ExternalLink className="ml-2 w-3 h-3" />
                       </>
                     ) : integration.available ? (
                       <>
