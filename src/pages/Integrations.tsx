@@ -892,8 +892,8 @@ export default function Integrations() {
                     disabled={!integration.available || connecting === integration.id}
                     onClick={() => {
                       if (!hasActiveSub) {
-                        // No subscription — open checkout instead of OAuth
-                        startCheckout('starter');
+                        // No subscription — open plan selection modal
+                        setShowPlanModal(true);
                       } else {
                         setConfirmProvider(integration.id);
                       }
