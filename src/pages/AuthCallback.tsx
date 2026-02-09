@@ -8,19 +8,16 @@ import wibooklyLogo from '@/assets/wibookly-logo.png';
 /**
  * /auth/callback
  *
- * Handles TWO completely separate OAuth flows at the same URL:
+ * Handles Cognito Login/Signup ONLY.
  *
- * 1. **Cognito Login/Signup** — detected by PKCE verifier in sessionStorage.
- *    The verifier is generated before redirecting to Cognito Hosted UI and is
- *    REQUIRED for the token exchange (code_challenge was sent with S256).
- *
- * 2. **Connect Gmail/Outlook** — detected by a `state` parameter prefixed
- *    with "connect:". The oauth-init edge function generates this prefix.
- *
- * Flow detection order:
- *   - PKCE verifier present → Cognito login/signup
- *   - state starts with "connect:" → Connect Gmail/Outlook
- *   - Neither → hard fail with error
+ * Flow:
+ *   1. Read `code` from URL
+ *   2. Read PKCE verifier from sessionStorage ("cognito_code_verifier")
+ *   3. HARD FAIL if verifier is missing
+ *   4. Exchange code with Cognito token endpoint including code_verifier
+ *   5. Validate id_token issuer
+ *   6. Bridge session to backend
+ *   7. Remove verifier after exchange
  */
 
 const COGNITO_ISSUER_PREFIX = `https://cognito-idp.${COGNITO_CONFIG.region}.amazonaws.com/${COGNITO_CONFIG.userPoolId}`;
@@ -42,14 +39,12 @@ export default function AuthCallback() {
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
   const [error, setError] = useState<string | null>(null);
-  const [statusMessage, setStatusMessage] = useState('Completing sign-in…');
 
   useEffect(() => {
     // Primary: use React Router's searchParams
     let code = searchParams.get('code');
     let errorParam = searchParams.get('error');
     let errorDescription = searchParams.get('error_description');
-    let stateParam = searchParams.get('state');
 
     // Fallback: parse directly from window.location in case React Router
     // hasn't captured the query string (e.g. after a full-page redirect).
@@ -58,11 +53,10 @@ export default function AuthCallback() {
       code = raw.get('code');
       errorParam = raw.get('error');
       errorDescription = raw.get('error_description');
-      stateParam = raw.get('state');
     }
 
     console.log('[AuthCallback] url:', window.location.href);
-    console.log('[AuthCallback] code present:', !!code, '| state present:', !!stateParam);
+    console.log('[AuthCallback] code present:', !!code);
 
     if (errorParam) {
       console.error('[AuthCallback] OAuth error:', errorParam, errorDescription);
@@ -76,42 +70,30 @@ export default function AuthCallback() {
       return;
     }
 
-    // ── Detect flow based on PKCE verifier or connect: state prefix ──
+    // ── PKCE verifier is REQUIRED — hard fail if missing ──
     const codeVerifier = sessionStorage.getItem('cognito_code_verifier');
 
-    if (codeVerifier) {
-      // ── Flow 1: Cognito Login/Signup ──────────────────────────────
-      console.log('[AuthCallback] Flow detected: Cognito login/signup (PKCE verifier present)');
-      setStatusMessage('Completing sign-in…');
-      handleCognitoTokenExchange(code, codeVerifier);
-    } else if (stateParam && stateParam.startsWith('connect:')) {
-      // ── Flow 2: Connect Gmail/Outlook ─────────────────────────────
-      console.log('[AuthCallback] Flow detected: Connect Gmail/Outlook (connect: state prefix)');
-      console.log('[AuthCallback] Fallback to connect flow', { state: stateParam });
-      setStatusMessage('Connecting your mailbox…');
-      // Strip the "connect:" prefix — oauth-exchange expects raw base64
-      const rawState = stateParam.slice('connect:'.length);
-      handleConnectCallback(code, rawState);
-    } else {
-      // ── Unknown flow — hard fail ──────────────────────────────────
-      console.error('[AuthCallback] Cannot determine flow: no PKCE verifier, no connect: state');
-      console.error('[AuthCallback] state param:', stateParam ? stateParam.substring(0, 40) + '…' : 'null');
+    if (!codeVerifier) {
+      console.error('[AuthCallback] PKCE verifier missing from sessionStorage');
       setError(
-        'Unable to complete authentication. ' +
-        'No PKCE verifier found for login, and no valid connect state for mailbox integration. ' +
-        'Please try again.'
+        'Authentication session expired or was lost. ' +
+        'No PKCE verifier found. Please try signing in again.'
       );
+      return;
     }
+
+    console.log('[AuthCallback] PKCE verifier found, proceeding with Cognito token exchange');
+    handleCognitoTokenExchange(code, codeVerifier);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // ── Flow 1: Cognito Token Exchange ────────────────────────────────
+  // ── Cognito Token Exchange ────────────────────────────────────────
 
   const handleCognitoTokenExchange = async (code: string, codeVerifier: string) => {
     try {
-      console.log('[AuthCallback:Cognito] Exchanging code at:', COGNITO_CONFIG.tokenEndpoint);
-      console.log('[AuthCallback:Cognito] redirect_uri:', COGNITO_CONFIG.redirectUri);
-      console.log('[AuthCallback:Cognito] PKCE verifier length:', codeVerifier.length);
+      console.log('[AuthCallback] Exchanging code at:', COGNITO_CONFIG.tokenEndpoint);
+      console.log('[AuthCallback] redirect_uri:', COGNITO_CONFIG.redirectUri);
+      console.log('[AuthCallback] PKCE verifier length:', codeVerifier.length);
 
       const tokenResponse = await fetch(COGNITO_CONFIG.tokenEndpoint, {
         method: 'POST',
@@ -121,15 +103,14 @@ export default function AuthCallback() {
           client_id: COGNITO_CONFIG.clientId,
           code,
           redirect_uri: COGNITO_CONFIG.redirectUri,
-          code_verifier: codeVerifier, // REQUIRED — Cognito was given code_challenge with S256
+          code_verifier: codeVerifier,
         }),
       });
 
       if (!tokenResponse.ok) {
         const errBody = await tokenResponse.json().catch(() => ({}));
         const errMsg = errBody.error_description || errBody.error || 'Token exchange failed';
-        console.error('[AuthCallback:Cognito] Token exchange failed:', errMsg);
-        // Remove verifier on failure too — it's single-use
+        console.error('[AuthCallback] Token exchange failed:', errMsg);
         sessionStorage.removeItem('cognito_code_verifier');
         throw new Error(errMsg);
       }
@@ -138,7 +119,7 @@ export default function AuthCallback() {
       sessionStorage.removeItem('cognito_code_verifier');
 
       const tokens = await tokenResponse.json();
-      console.log('[AuthCallback:Cognito] Token response keys:', Object.keys(tokens));
+      console.log('[AuthCallback] Token response keys:', Object.keys(tokens));
 
       // Validate id_token presence and format
       const rawIdToken = tokens.id_token;
@@ -154,7 +135,7 @@ export default function AuthCallback() {
       // Inspect issuer to confirm this is a Cognito token
       const payload = decodeJwtPayload(id_token);
       const issuer = (payload?.iss as string) || '';
-      console.log('[AuthCallback:Cognito] id_token issuer:', issuer);
+      console.log('[AuthCallback] id_token issuer:', issuer);
 
       if (!issuer.startsWith(COGNITO_ISSUER_PREFIX)) {
         throw new Error(
@@ -165,7 +146,7 @@ export default function AuthCallback() {
       // Bridge Cognito session to backend
       await handleCognitoSession(id_token, tokens);
     } catch (err) {
-      console.error('[AuthCallback:Cognito] Error:', err);
+      console.error('[AuthCallback] Error:', err);
       setError(err instanceof Error ? err.message : 'Authentication failed');
     }
   };
@@ -176,7 +157,7 @@ export default function AuthCallback() {
     id_token: string,
     tokens: { access_token?: string; refresh_token?: string }
   ) => {
-    console.log('[AuthCallback:Cognito] id_token validated, length:', id_token.length);
+    console.log('[AuthCallback] id_token validated, length:', id_token.length);
 
     // Store Cognito tokens
     localStorage.setItem(
@@ -219,43 +200,8 @@ export default function AuthCallback() {
       throw new Error(`Session verification failed: ${verifyError.message}`);
     }
 
-    console.log('[AuthCallback:Cognito] Session established, redirecting to /integrations');
+    console.log('[AuthCallback] Session established, redirecting to /integrations');
     navigate('/integrations', { replace: true });
-  };
-
-  // ── Flow 2: Connect Gmail/Outlook ─────────────────────────────────
-
-  const handleConnectCallback = async (code: string, state: string) => {
-    try {
-      console.log('[AuthCallback:Connect] Forwarding code to oauth-exchange');
-      console.log('[AuthCallback:Connect] redirect_uri: https://app.wibookly.ai/auth/callback');
-
-      const response = await fetch(
-        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/oauth-exchange`,
-        {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ code, state }),
-        }
-      );
-
-      if (!response.ok) {
-        const errBody = await response.json().catch(() => ({}));
-        throw new Error(errBody.error || 'Failed to complete mailbox connection');
-      }
-
-      const data = await response.json();
-      console.log('[AuthCallback:Connect] Exchange successful:', data.provider, data.connectedEmail);
-
-      const redirectUrl = data.redirectUrl || '/integrations';
-      const connectedParam = data.provider ? `?connected=${data.provider}` : '';
-
-      navigate(`${redirectUrl}${connectedParam}`, { replace: true });
-    } catch (err) {
-      console.error('[AuthCallback:Connect] Error:', err);
-      const message = err instanceof Error ? err.message : 'Connection failed';
-      navigate(`/integrations?error=${encodeURIComponent(message)}`, { replace: true });
-    }
   };
 
   // ── Render ────────────────────────────────────────────────────────
@@ -283,7 +229,7 @@ export default function AuthCallback() {
       <div className="text-center">
         <img src={wibooklyLogo} alt="Wibookly" className="h-24 w-auto mx-auto mb-6" />
         <Loader2 className="w-8 h-8 animate-spin text-primary mx-auto mb-4" />
-        <p className="text-muted-foreground">{statusMessage}</p>
+        <p className="text-muted-foreground">Completing sign-in…</p>
       </div>
     </div>
   );

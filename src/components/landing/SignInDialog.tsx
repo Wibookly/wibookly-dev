@@ -1,207 +1,33 @@
 import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/lib/auth';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import { useToast } from '@/hooks/use-toast';
-import { Loader2, Mail, Lock, ArrowRight, User, Building2, Briefcase, ArrowLeft, Check, HelpCircle, User2 } from 'lucide-react';
-import { z } from 'zod';
+import { Loader2, ArrowRight } from 'lucide-react';
 import logo from '@/assets/wibookly-logo.png';
-import { supabase } from '@/integrations/supabase/client';
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipTrigger,
-} from '@/components/ui/tooltip';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select';
-
-const signInSchema = z.object({
-  email: z.string().email('Please enter a valid email address'),
-  password: z.string().min(6, 'Password must be at least 6 characters')
-});
-
-const signUpSchema = signInSchema.extend({
-  fullName: z.string().min(2, 'Full name must be at least 2 characters').max(100, 'Full name is too long'),
-  workspaceName: z.string().min(2, 'Workspace name must be at least 2 characters').max(100, 'Workspace name is too long'),
-  workspaceType: z.enum(['personal', 'business']),
-  title: z.string().max(100, 'Title is too long').optional()
-});
 
 interface SignInDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
 }
 
+const GoogleIcon = () => (
+  <svg viewBox="0 0 24 24" className="w-6 h-6" aria-hidden="true">
+    <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4" />
+    <path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853" />
+    <path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" fill="#FBBC05" />
+    <path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335" />
+  </svg>
+);
+
 export function SignInDialog({ open, onOpenChange }: SignInDialogProps) {
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
-  const [fullName, setFullName] = useState('');
-  const [workspaceName, setWorkspaceName] = useState('');
-  const [workspaceType, setWorkspaceType] = useState<'personal' | 'business'>('personal');
-  const [title, setTitle] = useState('');
   const [loading, setLoading] = useState(false);
-  const [mode, setMode] = useState<'signin' | 'signup' | 'forgot-password'>('signin');
-  const [errors, setErrors] = useState<Record<string, string>>({});
-  const [resetEmailSent, setResetEmailSent] = useState(false);
-  const navigate = useNavigate();
-  const { toast } = useToast();
-  const { signUp, signIn } = useAuth();
+  const { signInWithCognito } = useAuth();
 
-  const validateForm = () => {
-    try {
-      if (mode === 'signup') {
-        signUpSchema.parse({ email, password, fullName, workspaceName, workspaceType, title: title || undefined });
-      } else if (mode === 'signin') {
-        signInSchema.parse({ email, password });
-      } else if (mode === 'forgot-password') {
-        z.string().email('Please enter a valid email address').parse(email);
-      }
-      setErrors({});
-      return true;
-    } catch (error) {
-      if (error instanceof z.ZodError) {
-        const newErrors: Record<string, string> = {};
-        error.errors.forEach((err) => {
-          if (err.path[0]) {
-            newErrors[err.path[0] as string] = err.message;
-          } else {
-            newErrors.email = err.message;
-          }
-        });
-        setErrors(newErrors);
-      }
-      return false;
-    }
-  };
-
-  const handleForgotPassword = async () => {
-    if (!validateForm()) return;
-    
+  const handleGoogleSignIn = async () => {
     setLoading(true);
-    try {
-      const { error } = await supabase.auth.resetPasswordForEmail(email, {
-        redirectTo: `${window.location.origin}/auth?mode=reset`
-      });
-      
-      if (error) throw error;
-      
-      setResetEmailSent(true);
-      toast({
-        title: 'Reset email sent',
-        description: 'Check your inbox for password reset instructions.'
-      });
-    } catch (error: unknown) {
-      const errorMessage = error instanceof Error ? error.message : 'Failed to send reset email.';
-      toast({
-        title: 'Error',
-        description: errorMessage,
-        variant: 'destructive'
-      });
-    } finally {
-      setLoading(false);
-    }
+    await signInWithCognito('google');
+    // Page will redirect — loading state stays on
   };
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    
-    if (mode === 'forgot-password') {
-      await handleForgotPassword();
-      return;
-    }
-    
-    if (!validateForm()) return;
-    setLoading(true);
-
-    try {
-      if (mode === 'signup') {
-        const { error } = await signUp(email, password, workspaceName, fullName, title || undefined);
-        if (error) {
-          if (error.message.includes('already registered')) {
-            toast({
-              title: 'Account exists',
-              description: 'This email is already registered. Please sign in instead.',
-              variant: 'destructive'
-            });
-          } else {
-            throw error;
-          }
-        } else {
-          toast({
-            title: 'Account created',
-            description: 'Welcome to Wibookly!'
-          });
-          onOpenChange(false);
-          navigate('/integrations');
-        }
-      } else {
-        const { error } = await signIn(email, password);
-        if (error) {
-          if (error.message.includes('Invalid login credentials')) {
-            toast({
-              title: 'Invalid credentials',
-              description: 'Please check your email and password.',
-              variant: 'destructive'
-            });
-          } else {
-            throw error;
-          }
-        } else {
-          onOpenChange(false);
-          navigate('/integrations');
-        }
-      }
-    } catch (error: unknown) {
-      const errorMessage = error instanceof Error ? error.message : 'Authentication failed';
-      toast({
-        title: 'Error',
-        description: errorMessage,
-        variant: 'destructive'
-      });
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  // Reset email sent success view
-  if (mode === 'forgot-password' && resetEmailSent) {
-    return (
-      <Dialog open={open} onOpenChange={onOpenChange}>
-        <DialogContent className="sm:max-w-md bg-card/95 backdrop-blur-md border-border">
-          <div className="text-center py-4">
-            <div className="w-16 h-16 rounded-full bg-primary/10 flex items-center justify-center mx-auto mb-6">
-              <Check className="w-8 h-8 text-primary" />
-            </div>
-            <DialogTitle className="text-2xl font-semibold mb-2">
-              Check your email
-            </DialogTitle>
-            <p className="text-muted-foreground mb-6">
-              We've sent password reset instructions to <span className="font-medium text-foreground">{email}</span>
-            </p>
-            <Button 
-              variant="outline" 
-              className="w-full"
-              onClick={() => {
-                setMode('signin');
-                setResetEmailSent(false);
-              }}
-            >
-              <ArrowLeft className="mr-2 h-4 w-4" />
-              Back to sign in
-            </Button>
-          </div>
-        </DialogContent>
-      </Dialog>
-    );
-  }
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -209,253 +35,31 @@ export function SignInDialog({ open, onOpenChange }: SignInDialogProps) {
         <DialogHeader className="text-center">
           <img src={logo} alt="Wibookly" className="h-32 mx-auto mb-4" />
           <DialogTitle className="text-2xl font-semibold">
-            {mode === 'signin' ? 'Welcome back' : mode === 'forgot-password' ? 'Reset Password' : 'Get started free'}
+            Welcome to Wibookly
           </DialogTitle>
           <p className="text-sm text-muted-foreground">
-            {mode === 'signin' 
-              ? 'Sign in to access your AI-powered inbox' 
-              : mode === 'forgot-password'
-              ? "Enter your email and we'll send you reset instructions"
-              : 'Create your account to organize your inbox'}
+            Sign in to access your AI-powered inbox
           </p>
         </DialogHeader>
 
-        <form onSubmit={handleSubmit} className="space-y-4 mt-4">
-          <div className="space-y-2">
-            <Label htmlFor="dialog-email">Email</Label>
-            <div className="relative">
-              <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-              <Input
-                id="dialog-email"
-                type="email"
-                placeholder="you@example.com"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                className={`pl-10 ${errors.email ? 'border-destructive' : ''}`}
-                required
-              />
-            </div>
-            {errors.email && <p className="text-xs text-destructive">{errors.email}</p>}
-          </div>
-
-          {mode !== 'forgot-password' && (
-            <div className="space-y-2">
-              <Label htmlFor="dialog-password">Password</Label>
-              <div className="relative">
-                <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                <Input
-                  id="dialog-password"
-                  type="password"
-                  placeholder="••••••••"
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  className={`pl-10 ${errors.password ? 'border-destructive' : ''}`}
-                  required
-                  minLength={6}
-                />
-              </div>
-              {errors.password && <p className="text-xs text-destructive">{errors.password}</p>}
-            </div>
-          )}
-
-          {mode === 'signup' && (
-            <>
-              <div className="space-y-2">
-                <div className="flex items-center gap-1.5">
-                  <Label htmlFor="dialog-fullName">Full Name <span className="text-destructive">*</span></Label>
-                  <Tooltip>
-                    <TooltipTrigger asChild>
-                      <HelpCircle className="w-3.5 h-3.5 text-muted-foreground cursor-help" />
-                    </TooltipTrigger>
-                    <TooltipContent side="right" className="max-w-xs bg-primary text-primary-foreground">
-                      <p className="text-sm">Your full name will be used to create your AI-generated email signature that appears at the end of emails sent on your behalf.</p>
-                    </TooltipContent>
-                  </Tooltip>
-                </div>
-                <div className="relative">
-                  <User className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                  <Input
-                    id="dialog-fullName"
-                    type="text"
-                    placeholder="John Doe"
-                    value={fullName}
-                    onChange={(e) => setFullName(e.target.value)}
-                    className={`pl-10 ${errors.fullName ? 'border-destructive' : ''}`}
-                    required
-                  />
-                </div>
-                {errors.fullName && <p className="text-xs text-destructive">{errors.fullName}</p>}
-              </div>
-
-              <div className="space-y-2">
-                <div className="flex items-center gap-1.5">
-                  <Label htmlFor="dialog-workspaceType">Workspace Type <span className="text-destructive">*</span></Label>
-                  <Tooltip>
-                    <TooltipTrigger asChild>
-                      <HelpCircle className="w-3.5 h-3.5 text-muted-foreground cursor-help" />
-                    </TooltipTrigger>
-                    <TooltipContent side="right" className="max-w-xs bg-primary text-primary-foreground">
-                      <p className="text-sm">Select 'Personal' for individual use or 'Business' for organizational accounts. Business accounts include title in email signatures.</p>
-                    </TooltipContent>
-                  </Tooltip>
-                </div>
-                <Select
-                  value={workspaceType}
-                  onValueChange={(value: 'personal' | 'business') => setWorkspaceType(value)}
-                >
-                  <SelectTrigger className="w-full">
-                    <SelectValue placeholder="Select workspace type" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="personal">
-                      <div className="flex items-center gap-2">
-                        <User2 className="w-4 h-4" />
-                        <span>Personal</span>
-                      </div>
-                    </SelectItem>
-                    <SelectItem value="business">
-                      <div className="flex items-center gap-2">
-                        <Building2 className="w-4 h-4" />
-                        <span>Business</span>
-                      </div>
-                    </SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-
-              <div className="space-y-2">
-                <div className="flex items-center gap-1.5">
-                  <Label htmlFor="dialog-workspaceName">Workspace Name <span className="text-destructive">*</span></Label>
-                  <Tooltip>
-                    <TooltipTrigger asChild>
-                      <HelpCircle className="w-3.5 h-3.5 text-muted-foreground cursor-help" />
-                    </TooltipTrigger>
-                    <TooltipContent side="right" className="max-w-xs bg-primary text-primary-foreground">
-                      <p className="text-sm">
-                        {workspaceType === 'personal' 
-                          ? 'A name to identify your personal workspace (e.g., "My Inbox", your name, etc.).'
-                          : 'Your organization or company name. Used in email signatures and AI categorization.'}
-                      </p>
-                    </TooltipContent>
-                  </Tooltip>
-                </div>
-                <div className="relative">
-                  <Building2 className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                  <Input
-                    id="dialog-workspaceName"
-                    type="text"
-                    placeholder={workspaceType === 'personal' ? 'My Personal Inbox' : 'Acme Inc.'}
-                    value={workspaceName}
-                    onChange={(e) => setWorkspaceName(e.target.value)}
-                    className={`pl-10 ${errors.workspaceName ? 'border-destructive' : ''}`}
-                    required
-                  />
-                </div>
-                {errors.workspaceName && <p className="text-xs text-destructive">{errors.workspaceName}</p>}
-              </div>
-
-              {workspaceType === 'business' && (
-                <div className="space-y-2">
-                  <div className="flex items-center gap-1.5">
-                    <Label htmlFor="dialog-title">Title <span className="text-muted-foreground text-xs">(Recommended)</span></Label>
-                    <Tooltip>
-                      <TooltipTrigger asChild>
-                        <HelpCircle className="w-3.5 h-3.5 text-muted-foreground cursor-help" />
-                      </TooltipTrigger>
-                      <TooltipContent side="right" className="max-w-xs bg-primary text-primary-foreground">
-                        <p className="text-sm">Your title helps the AI understand your role and responsibilities to better tailor email responses. It's also included in your email signature.</p>
-                      </TooltipContent>
-                    </Tooltip>
-                  </div>
-                  <div className="relative">
-                    <Briefcase className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                    <Input
-                      id="dialog-title"
-                      type="text"
-                      placeholder="e.g. Sales Manager, CEO"
-                      value={title}
-                      onChange={(e) => setTitle(e.target.value)}
-                      className={`pl-10 ${errors.title ? 'border-destructive' : ''}`}
-                    />
-                  </div>
-                  {errors.title && <p className="text-xs text-destructive">{errors.title}</p>}
-                </div>
-              )}
-            </>
-          )}
-
-          <Button type="submit" className="w-full" size="lg" disabled={loading}>
+        <div className="mt-6">
+          <Button
+            variant="outline"
+            size="lg"
+            className="w-full justify-center gap-3 h-14 text-base rounded-2xl border-border/50 bg-card/60 hover:bg-card/80 backdrop-blur-sm transition-all"
+            onClick={handleGoogleSignIn}
+            disabled={loading}
+          >
             {loading ? (
-              <Loader2 className="h-4 w-4 animate-spin" />
+              <Loader2 className="w-6 h-6 animate-spin" />
             ) : (
               <>
-                {mode === 'signin' ? 'Sign In' : mode === 'forgot-password' ? 'Send Reset Link' : 'Create Account'}
+                <GoogleIcon />
+                Continue with Google
                 <ArrowRight className="ml-2 h-4 w-4" />
               </>
             )}
           </Button>
-        </form>
-
-        <div className="mt-4 text-center text-sm space-y-2">
-          {mode === 'signin' && (
-            <>
-              <p className="text-muted-foreground">
-                Don't have an account?{' '}
-                <button
-                  type="button"
-                  onClick={() => {
-                    setMode('signup');
-                    setErrors({});
-                  }}
-                  className="text-primary hover:underline font-medium"
-                >
-                  Sign up
-                </button>
-              </p>
-              <button
-                type="button"
-                onClick={() => {
-                  setMode('forgot-password');
-                  setErrors({});
-                }}
-                className="text-muted-foreground hover:text-foreground transition-colors"
-              >
-                Forgot password?
-              </button>
-            </>
-          )}
-          
-          {mode === 'signup' && (
-            <p className="text-muted-foreground">
-              Already have an account?{' '}
-              <button
-                type="button"
-                onClick={() => {
-                  setMode('signin');
-                  setErrors({});
-                }}
-                className="text-primary hover:underline font-medium"
-              >
-                Sign in
-              </button>
-            </p>
-          )}
-          
-          {mode === 'forgot-password' && (
-            <p className="text-muted-foreground">
-              Remember your password?{' '}
-              <button
-                type="button"
-                onClick={() => {
-                  setMode('signin');
-                  setErrors({});
-                }}
-                className="text-primary hover:underline font-medium"
-              >
-                Sign in
-              </button>
-            </p>
-          )}
         </div>
       </DialogContent>
     </Dialog>

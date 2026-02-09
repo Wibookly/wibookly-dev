@@ -24,10 +24,8 @@ interface AuthContextType {
   profile: UserProfile | null;
   organization: Organization | null;
   loading: boolean;
-  signUp: (email: string, password: string, organizationName: string, fullName: string, title?: string) => Promise<{ error: Error | null }>;
-  signIn: (email: string, password: string) => Promise<{ error: Error | null }>;
+  signInWithCognito: (provider?: 'google') => Promise<void>;
   signOut: () => Promise<void>;
-  signInWithCognito: (provider?: 'google' | 'microsoft') => Promise<void>;
   setSelectedOrganization: (orgId: string) => void;
 }
 
@@ -41,7 +39,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    // Listen for backend session changes (created by the Cognito bridge)
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
       setSession(session);
       setUser(session?.user ?? null);
@@ -57,7 +54,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       }
     });
 
-    // Check for existing session on mount
     supabase.auth.getSession().then(({ data: { session } }) => {
       setSession(session);
       setUser(session?.user ?? null);
@@ -104,19 +100,23 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   /**
-   * Redirect to AWS Cognito hosted UI for authentication.
-   * Optionally specify a provider to skip the Cognito provider-selection screen.
+   * Redirect to AWS Cognito Hosted UI for Google authentication.
+   *
+   * PKCE lifecycle:
+   *   1. Generate code_verifier (random 43-char string)
+   *   2. Generate code_challenge (SHA-256 → base64url)
+   *   3. Store verifier in sessionStorage as "cognito_code_verifier"
+   *   4. Redirect to Cognito with code_challenge + S256
+   *   5. AuthCallback reads verifier, passes it in token exchange, then removes it
    */
-  const signInWithCognito = async (provider?: 'google' | 'microsoft') => {
-    console.log('[Auth] Flow: Cognito login/signup (NOT Connect Gmail)');
-    console.log('[Auth] Provider:', provider || 'none (hosted UI)');
+  const signInWithCognito = async (provider?: 'google') => {
+    console.log('[Auth] Flow: Cognito login/signup via Google');
     console.log('[Auth] redirect_uri:', COGNITO_CONFIG.redirectUri);
 
     const codeVerifier = generateCodeVerifier();
     const codeChallenge = await generateCodeChallenge(codeVerifier);
 
-    // Store PKCE verifier for the callback — AuthCallback reads this to
-    // complete the Cognito token exchange (code_challenge was sent with S256).
+    // Store PKCE verifier — AuthCallback reads this for the token exchange
     sessionStorage.setItem('cognito_code_verifier', codeVerifier);
 
     const params = new URLSearchParams({
@@ -129,10 +129,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     });
 
     if (provider) {
-      const idpName = provider === 'google'
-        ? COGNITO_CONFIG.identityProviders.google
-        : COGNITO_CONFIG.identityProviders.microsoft;
-      params.set('identity_provider', idpName);
+      params.set('identity_provider', COGNITO_CONFIG.identityProviders.google);
     }
 
     const authorizeUrl = `${COGNITO_CONFIG.authorizeEndpoint}?${params.toString()}`;
@@ -140,25 +137,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     window.location.href = authorizeUrl;
   };
 
-  // Legacy sign-up – redirects to Cognito (account creation happens there)
-  const signUp = async (_email: string, _password: string, _orgName: string, _fullName: string, _title?: string) => {
-    await signInWithCognito();
-    return { error: null };
-  };
-
-  // Legacy sign-in – redirects to Cognito
-  const signIn = async (_email: string, _password: string) => {
-    await signInWithCognito();
-    return { error: null };
-  };
-
   const signOut = async () => {
     try {
-      // Clear Cognito tokens
       localStorage.removeItem('cognito_tokens');
       sessionStorage.removeItem('cognito_code_verifier');
 
-      // Clear backend session
       await supabase.auth.signOut();
 
       setProfile(null);
@@ -166,7 +149,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setUser(null);
       setSession(null);
 
-      // Redirect to Cognito logout endpoint (clears SSO session)
       const logoutParams = new URLSearchParams({
         client_id: COGNITO_CONFIG.clientId,
         logout_uri: COGNITO_CONFIG.logoutUri,
@@ -197,7 +179,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   return (
     <AuthContext.Provider value={{
       user, session, profile, organization, loading,
-      signUp, signIn, signOut, signInWithCognito, setSelectedOrganization
+      signInWithCognito, signOut, setSelectedOrganization
     }}>
       {children}
     </AuthContext.Provider>
