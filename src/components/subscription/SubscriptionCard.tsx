@@ -1,4 +1,4 @@
-import { Check, Mail, Sparkles, Settings } from 'lucide-react';
+import { Check, Mail, Sparkles, Settings, CreditCard } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { useSubscription, PLAN_CONFIG, PlanType } from '@/lib/subscription';
@@ -13,6 +13,7 @@ export function SubscriptionCard() {
   const { toast } = useToast();
   const [loading, setLoading] = useState<string | null>(null);
 
+  const hasActiveSub = status === 'active' || status === 'trialing';
   const planConfig = PLAN_CONFIG[plan];
   const connectedCount = connections.length;
   const mailboxLimit = getMailboxLimit();
@@ -46,6 +47,47 @@ export function SubscriptionCard() {
       setLoading(null);
     }
   };
+
+  // No active subscription — show prominent "Choose a Plan" CTA
+  if (!hasActiveSub) {
+    return (
+      <Card className="border-destructive/30 bg-gradient-to-br from-card to-destructive/5">
+        <CardHeader className="pb-3">
+          <div className="flex items-center justify-between">
+            <CardTitle className="text-lg">Choose a Plan</CardTitle>
+            <PlanBadge />
+          </div>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <p className="text-sm text-muted-foreground">
+            Subscribe to a plan to connect your email and unlock AI-powered features.
+          </p>
+
+          <div className="flex gap-2">
+            <Button
+              onClick={() => handleUpgrade('starter')}
+              disabled={loading !== null}
+              variant="outline"
+              className="flex-1"
+              size="sm"
+            >
+              <CreditCard className="w-4 h-4 mr-2" />
+              {loading === 'starter' ? 'Loading...' : 'Starter — $20/mo'}
+            </Button>
+            <Button
+              onClick={() => handleUpgrade('pro')}
+              disabled={loading !== null}
+              className="flex-1"
+              size="sm"
+            >
+              <Sparkles className="w-4 h-4 mr-2" />
+              {loading === 'pro' ? 'Loading...' : 'Pro — $50/mo'}
+            </Button>
+          </div>
+        </CardContent>
+      </Card>
+    );
+  }
 
   return (
     <Card className="border-primary/20 bg-gradient-to-br from-card to-primary/5">
