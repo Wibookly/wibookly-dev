@@ -4,9 +4,10 @@ import wibooklyLogo from '@/assets/wibookly-logo.png';
 
 interface HeaderProps {
   onSignInClick: () => void;
+  onGetStartedClick: () => void;
 }
 
-export function Header({ onSignInClick }: HeaderProps) {
+export function Header({ onSignInClick, onGetStartedClick }: HeaderProps) {
   return (
     <header className="fixed top-0 left-0 right-0 z-50 flex justify-center pt-4 px-4">
       <div className="flex items-center justify-between w-full max-w-2xl h-14 px-6 rounded-full glass-panel">
@@ -33,7 +34,7 @@ export function Header({ onSignInClick }: HeaderProps) {
             variant="gradient"
             size="sm" 
             className="rounded-full px-5"
-            onClick={onSignInClick}
+            onClick={onGetStartedClick}
           >
             Get started
           </Button>
