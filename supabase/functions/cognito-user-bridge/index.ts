@@ -43,6 +43,14 @@ async function getJWKS(): Promise<jose.JSONWebKeySet> {
 async function verifyCognitoIdToken(
   idToken: string
 ): Promise<Record<string, unknown>> {
+  // ── Pre-check: ensure the value is a JWT (3 dot-separated segments) ──
+  if (typeof idToken !== 'string' || idToken.split('.').length !== 3) {
+    throw new Error(
+      'Value is not a JWT (expected 3 dot-separated segments). ' +
+      'An OAuth authorization code cannot be verified as a JWT.'
+    );
+  }
+
   const jwks = await getJWKS();
 
   // Decode the header to get the kid
@@ -61,8 +69,8 @@ async function verifyCognitoIdToken(
   // Import the public key
   const publicKey = await jose.importJWK(key as jose.JWK, header.alg as string);
 
-  // Verify the token (checks signature, expiration automatically)
-  const { payload } = await jose.jwtVerify(publicKey instanceof Uint8Array ? publicKey : publicKey, publicKey, {
+  // Verify the token — first arg MUST be the JWT string, second is the key
+  const { payload } = await jose.jwtVerify(idToken, publicKey, {
     issuer: COGNITO_ISSUER,
     audience: COGNITO_CLIENT_ID,
   });
