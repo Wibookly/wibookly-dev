@@ -6,6 +6,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { UserAvatarDropdown } from '@/components/app/UserAvatarDropdown';
 import { SubscriptionCard } from '@/components/subscription/SubscriptionCard';
 import { PlanSelectionModal } from '@/components/subscription/PlanSelectionModal';
+import { OnboardingChecklist } from '@/components/app/OnboardingChecklist';
 import { UpgradeInline } from '@/components/subscription/UpgradeBanner';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
