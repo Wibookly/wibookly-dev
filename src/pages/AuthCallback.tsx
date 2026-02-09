@@ -72,7 +72,7 @@ export default function AuthCallback() {
     }
 
     // ── PKCE verifier is REQUIRED — hard fail if missing ──
-    const codeVerifier = localStorage.getItem('cognito_code_verifier');
+    const codeVerifier = readPkceVerifier();
 
     console.log('[PKCE] callback url:', window.location.href);
     console.log('[PKCE] code present:', Boolean(code));
