@@ -121,7 +121,7 @@ export default function AuthCallback() {
       }
 
       // Exchange succeeded — remove the single-use verifier
-      localStorage.removeItem('cognito_code_verifier');
+      clearPkceVerifier();
 
       const tokens = await tokenResponse.json();
       console.log('[AuthCallback] Token response keys:', Object.keys(tokens));
