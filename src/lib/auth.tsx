@@ -24,7 +24,7 @@ interface AuthContextType {
   profile: UserProfile | null;
   organization: Organization | null;
   loading: boolean;
-  signInWithCognito: (provider?: 'google') => Promise<void>;
+  signInWithCognito: (provider?: 'google' | 'microsoft') => Promise<void>;
   signOut: () => Promise<void>;
   setSelectedOrganization: (orgId: string) => void;
 }
@@ -109,8 +109,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
    *   4. Redirect to Cognito with code_challenge + S256
    *   5. AuthCallback reads verifier, passes it in token exchange, then removes it
    */
-  const signInWithCognito = async (provider?: 'google') => {
-    console.log('[Auth] Flow: Cognito login/signup via Google');
+  const signInWithCognito = async (provider?: 'google' | 'microsoft') => {
+    console.log(`[Auth] Flow: Cognito login/signup via ${provider || 'default'}`);
     console.log('[Auth] redirect_uri:', COGNITO_CONFIG.redirectUri);
 
     const codeVerifier = generateCodeVerifier();
@@ -128,7 +128,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       code_challenge: codeChallenge,
     });
 
-    if (provider) {
+    if (provider === 'microsoft') {
+      params.set('identity_provider', COGNITO_CONFIG.identityProviders.microsoft);
+    } else if (provider) {
       params.set('identity_provider', COGNITO_CONFIG.identityProviders.google);
     }
 
