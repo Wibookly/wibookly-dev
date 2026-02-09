@@ -22,7 +22,7 @@ export default function Landing() {
 
   return (
     <div className="min-h-screen ocean-bg">
-      <Header onSignInClick={handleSignIn} />
+      <Header onSignInClick={handleSignIn} onGetStartedClick={handleGetStarted} />
       <main>
         <div className="section-divider">
           <Hero onGetStartedClick={handleGetStarted} />
