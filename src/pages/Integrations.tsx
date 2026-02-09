@@ -5,6 +5,8 @@ import { useSubscription } from '@/lib/subscription';
 import { supabase } from '@/integrations/supabase/client';
 import { UserAvatarDropdown } from '@/components/app/UserAvatarDropdown';
 import { SubscriptionCard } from '@/components/subscription/SubscriptionCard';
+import { PlanSelectionModal } from '@/components/subscription/PlanSelectionModal';
+import { OnboardingChecklist } from '@/components/app/OnboardingChecklist';
 import { UpgradeInline } from '@/components/subscription/UpgradeBanner';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
@@ -95,6 +97,7 @@ export default function Integrations() {
   const [confirmCalendarOnly, setConfirmCalendarOnly] = useState(false);
   const confirmOpen = confirmProvider !== null;
 
+  const [showPlanModal, setShowPlanModal] = useState(false);
   const [showDiagnostics, setShowDiagnostics] = useState(false);
   const [showGoogleError, setShowGoogleError] = useState(false);
   const [googleErrorMessage, setGoogleErrorMessage] = useState<string | undefined>();
@@ -523,17 +526,23 @@ export default function Integrations() {
 
   return (
     <div className="min-h-full p-4 lg:p-6">
+      <PlanSelectionModal open={showPlanModal} onOpenChange={setShowPlanModal} />
       {/* User Avatar Row */}
       <div className="mb-4 flex justify-end">
         <UserAvatarDropdown />
       </div>
+
+      {/* Onboarding Checklist */}
+      <div className="mb-6">
+        <OnboardingChecklist onOpenPlanModal={() => setShowPlanModal(true)} />
+      </div>
       
       {/* Subscription Card */}
-      <div className="mb-6">
+      <div className="mb-6" data-onboarding="subscription-card">
         <SubscriptionCard />
       </div>
 
-      <section className="animate-fade-in bg-card/80 backdrop-blur-sm rounded-xl border border-border shadow-lg p-6" aria-busy={loading ? 'true' : 'false'}>
+      <section data-onboarding="email-providers" className="animate-fade-in bg-card/80 backdrop-blur-sm rounded-xl border border-border shadow-lg p-6" aria-busy={loading ? 'true' : 'false'}>
         <header className="mb-8">
           <div className="flex items-center justify-between">
             <div>
@@ -889,8 +898,8 @@ export default function Integrations() {
                     disabled={!integration.available || connecting === integration.id}
                     onClick={() => {
                       if (!hasActiveSub) {
-                        // No subscription — open checkout instead of OAuth
-                        startCheckout('starter');
+                        // No subscription — open plan selection modal
+                        setShowPlanModal(true);
                       } else {
                         setConfirmProvider(integration.id);
                       }
