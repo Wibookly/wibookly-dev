@@ -27,16 +27,11 @@ export const COGNITO_CONFIG = {
   logoutUri: 'https://app.wibookly.ai/',
 
   /**
-   * Identity provider names as configured in your Cognito User Pool.
-   *
-   * - Google is a built-in social provider → name is always "Google".
-   * - Microsoft Entra ID is added as an OIDC provider → name must
-   *   match exactly what you entered when creating the provider in
-   *   the Cognito console.
+   * Identity provider names as configured in Cognito User Pool.
+   * Only Google is supported.
    */
   identityProviders: {
     google: 'Google',
-    microsoft: 'MicrosoftEntraID',
   },
 
   /** OAuth endpoints (derived from custom domain) */
