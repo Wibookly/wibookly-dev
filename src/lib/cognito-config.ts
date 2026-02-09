@@ -28,10 +28,11 @@ export const COGNITO_CONFIG = {
 
   /**
    * Identity provider names as configured in Cognito User Pool.
-   * Phase 1: Google only.
+   * Only Google is supported.
    */
   identityProviders: {
     google: 'Google',
+    microsoft: 'Microsoft',
   },
 
   /** OAuth endpoints (derived from custom domain) */
