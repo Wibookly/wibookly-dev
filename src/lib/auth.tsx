@@ -3,6 +3,7 @@ import { User, Session } from '@supabase/supabase-js';
 import { supabase } from '@/integrations/supabase/client';
 import { COGNITO_CONFIG } from './cognito-config';
 import { generateCodeVerifier, generateCodeChallenge } from './pkce';
+import { savePkceVerifier, clearPkceVerifier } from './pkce-storage';
 
 interface UserProfile {
   id: string;
