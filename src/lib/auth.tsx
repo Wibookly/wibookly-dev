@@ -113,15 +113,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     console.log(`[Auth] Flow: Cognito login/signup via ${provider || 'default'}`);
     console.log('[Auth] redirect_uri:', COGNITO_CONFIG.redirectUri);
 
+    // 1. Generate PKCE verifier (sync)
     const codeVerifier = generateCodeVerifier();
-    const codeChallenge = await generateCodeChallenge(codeVerifier);
 
-    console.log('[PKCE] generated verifier length:', codeVerifier?.length);
-
-    // Store PKCE verifier — AuthCallback reads this for the token exchange
+    // 2. Store verifier IMMEDIATELY — before any async work
     sessionStorage.setItem('cognito_code_verifier', codeVerifier);
+    console.log('[PKCE] generated verifier length:', codeVerifier.length);
+    console.log('[PKCE] sessionStorage set:', sessionStorage.getItem('cognito_code_verifier')?.length);
 
-    console.log('[PKCE] sessionStorage set key cognito_code_verifier:', sessionStorage.getItem('cognito_code_verifier')?.length);
+    // 3. Derive challenge (async)
+    const codeChallenge = await generateCodeChallenge(codeVerifier);
 
     const params = new URLSearchParams({
       client_id: COGNITO_CONFIG.clientId,
