@@ -3,6 +3,7 @@ import { User, Session } from '@supabase/supabase-js';
 import { supabase } from '@/integrations/supabase/client';
 import { COGNITO_CONFIG } from './cognito-config';
 import { generateCodeVerifier, generateCodeChallenge } from './pkce';
+import { savePkceVerifier, clearPkceVerifier } from './pkce-storage';
 
 interface UserProfile {
   id: string;
@@ -116,10 +117,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     // 1. Generate PKCE verifier (sync)
     const codeVerifier = generateCodeVerifier();
 
-    // 2. Store verifier IMMEDIATELY — using localStorage (survives external redirects)
-    localStorage.setItem('cognito_code_verifier', codeVerifier);
+    // 2. Store verifier in localStorage + cookie (cookie survives Incognito redirects)
+    savePkceVerifier(codeVerifier);
     console.log('[PKCE] generated verifier length:', codeVerifier.length);
-    console.log('[PKCE] localStorage set:', localStorage.getItem('cognito_code_verifier')?.length);
 
     // 3. Derive challenge (async)
     const codeChallenge = await generateCodeChallenge(codeVerifier);
@@ -147,7 +147,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const signOut = async () => {
     try {
       localStorage.removeItem('cognito_tokens');
-      localStorage.removeItem('cognito_code_verifier');
+      clearPkceVerifier();
 
       await supabase.auth.signOut();
 

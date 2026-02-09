@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { COGNITO_CONFIG } from '@/lib/cognito-config';
+import { readPkceVerifier, clearPkceVerifier } from '@/lib/pkce-storage';
 import { Loader2 } from 'lucide-react';
 import wibooklyLogo from '@/assets/wibookly-logo.png';
 
@@ -71,7 +72,7 @@ export default function AuthCallback() {
     }
 
     // ── PKCE verifier is REQUIRED — hard fail if missing ──
-    const codeVerifier = localStorage.getItem('cognito_code_verifier');
+    const codeVerifier = readPkceVerifier();
 
     console.log('[PKCE] callback url:', window.location.href);
     console.log('[PKCE] code present:', Boolean(code));
@@ -79,9 +80,9 @@ export default function AuthCallback() {
     console.log('[PKCE] verifier length:', codeVerifier?.length);
 
     if (!codeVerifier) {
-      console.error('[AuthCallback] PKCE verifier missing from localStorage');
+      console.error('[AuthCallback] PKCE verifier missing from both localStorage and cookie');
       setError(
-        'PKCE verifier missing. This means the browser localStorage value was not saved or was cleared before redirect. Please try signing in again.'
+        'PKCE verifier missing. This can happen in private/incognito browsing. Please try signing in in a regular browser window, or try again.'
       );
       return;
     }
@@ -115,12 +116,12 @@ export default function AuthCallback() {
         const errBody = await tokenResponse.json().catch(() => ({}));
         const errMsg = errBody.error_description || errBody.error || 'Token exchange failed';
         console.error('[AuthCallback] Token exchange failed:', errMsg);
-        localStorage.removeItem('cognito_code_verifier');
+        clearPkceVerifier();
         throw new Error(errMsg);
       }
 
       // Exchange succeeded — remove the single-use verifier
-      localStorage.removeItem('cognito_code_verifier');
+      clearPkceVerifier();
 
       const tokens = await tokenResponse.json();
       console.log('[AuthCallback] Token response keys:', Object.keys(tokens));
