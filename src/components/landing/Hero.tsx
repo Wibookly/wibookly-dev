@@ -1,4 +1,4 @@
-import { ArrowUpRight, Sparkles, Zap, Brain, Mail, Star, Cpu, Settings } from 'lucide-react';
+import { ArrowUpRight } from 'lucide-react';
 import outlookLogo from '@/assets/outlook-logo.png';
 import wibooklyLogo from '@/assets/wibookly-logo.png';
 
@@ -23,52 +23,45 @@ export function Hero({ onGetStartedClick }: HeroProps) {
       <div className="blob-decoration blob-blue w-80 h-80 top-20 -right-20" />
 
       <style>{`
-        @keyframes spin-cw {
-          from { transform: rotate(0deg); }
-          to   { transform: rotate(360deg); }
+        /* ── Engine animations ── */
+        @keyframes hero-spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+        @keyframes hero-spin-r { from { transform: rotate(360deg); } to { transform: rotate(0deg); } }
+        @keyframes hero-float {
+          0%, 100% { transform: translate(-50%, -50%) translateY(0); }
+          50%      { transform: translate(-50%, -50%) translateY(-10px); }
         }
-        @keyframes spin-ccw {
-          from { transform: rotate(360deg); }
-          to   { transform: rotate(0deg); }
+        @keyframes hero-card-float {
+          0%, 100% { transform: translateY(0); }
+          50%      { transform: translateY(5px); }
         }
-        @keyframes float-gentle {
-          0%, 100% { transform: translate(-50%, -50%) translateY(0px); }
-          50%      { transform: translate(-50%, -50%) translateY(-8px); }
+        @keyframes hero-wave {
+          0%   { transform: translate(-50%, -50%) scale(0.85); opacity: 0.6; }
+          100% { transform: translate(-50%, -50%) scale(1.6); opacity: 0; }
         }
-        @keyframes float-card {
-          0%, 100% { transform: translateY(0px); }
-          50%      { transform: translateY(6px); }
+        @keyframes hero-beam {
+          0%   { stroke-dashoffset: 200; opacity: 0.6; }
+          50%  { opacity: 1; }
+          100% { stroke-dashoffset: 0; opacity: 0.6; }
         }
-        @keyframes dash-flow {
-          from { stroke-dashoffset: 16; }
-          to   { stroke-dashoffset: 0; }
+        @keyframes hero-icon-orbit {
+          from { transform: rotate(var(--start)) translateX(var(--orbit-r)) rotate(calc(-1 * var(--start))); }
+          to   { transform: rotate(calc(var(--start) + 360deg)) translateX(var(--orbit-r)) rotate(calc(-1 * (var(--start) + 360deg))); }
         }
-        @keyframes breathe {
-          0%, 100% { transform: scale(1); opacity: 0.8; }
-          50%      { transform: scale(1.15); opacity: 1; }
+        @keyframes hero-pulse-ring {
+          0%, 100% { opacity: 0.25; }
+          50%      { opacity: 0.5; }
         }
-        @keyframes aura-spin {
+        @keyframes hero-glow {
+          0%, 100% { box-shadow: 0 0 30px hsl(170 65% 30% / 0.08), 0 0 60px hsl(210 70% 45% / 0.04); }
+          50%      { box-shadow: 0 0 50px hsl(170 65% 30% / 0.18), 0 0 90px hsl(210 70% 45% / 0.08); }
+        }
+        @keyframes hero-shimmer {
           from { transform: translate(-50%, -50%) rotate(0deg); }
           to   { transform: translate(-50%, -50%) rotate(360deg); }
         }
-        @keyframes aura-pulse {
-          0%, 100% { opacity: 0.4; transform: translate(-50%, -50%) scale(1); }
-          50%      { opacity: 0.7; transform: translate(-50%, -50%) scale(1.06); }
-        }
-        @keyframes energy-wave {
-          0%   { transform: translate(-50%, -50%) scale(0.9); opacity: 0.5; }
-          100% { transform: translate(-50%, -50%) scale(1.5); opacity: 0; }
-        }
-        .engine-wrap {
-          position: relative;
-          width: 100%;
-          max-width: 620px;
-          height: 300px;
-          margin: 0 auto;
-        }
-        @media (max-width: 640px) {
-          .engine-wrap { height: 260px; max-width: 380px; }
-        }
+        .hero-engine { position: relative; width: 100%; max-width: 680px; height: 340px; margin: 0 auto; }
+        @media (max-width: 768px) { .hero-engine { height: 280px; max-width: 400px; } }
+        @media (max-width: 480px) { .hero-engine { height: 240px; max-width: 340px; } }
       `}</style>
 
       <div className="container mx-auto px-6 relative z-10">
@@ -98,51 +91,136 @@ export function Hero({ onGetStartedClick }: HeroProps) {
             </button>
           </div>
 
-          {/* ── Engine Visual ── */}
-          <div className="mt-14 flex flex-col items-center gap-3">
+          {/* ── Futuristic Engine Visual ── */}
+          <div className="mt-16 flex flex-col items-center gap-4">
             <span className="text-sm text-muted-foreground font-medium tracking-widest uppercase">
               Your AI sits on top of
             </span>
 
-            <div className="engine-wrap mt-4">
+            <div className="hero-engine mt-2">
 
-              {/* ── Orbital rings ── */}
+              {/* ── SVG background layer: rings, beams, grid ── */}
+              <svg className="absolute inset-0 w-full h-full pointer-events-none" viewBox="0 0 680 340" preserveAspectRatio="xMidYMid meet" aria-hidden="true">
+                <defs>
+                  <linearGradient id="beam-grad" x1="0%" y1="0%" x2="100%" y2="0%">
+                    <stop offset="0%" stopColor="hsl(170 65% 30%)" stopOpacity="0" />
+                    <stop offset="50%" stopColor="hsl(170 65% 30%)" stopOpacity="0.5" />
+                    <stop offset="100%" stopColor="hsl(210 70% 45%)" stopOpacity="0" />
+                  </linearGradient>
+                  <radialGradient id="center-glow" cx="50%" cy="50%" r="50%">
+                    <stop offset="0%" stopColor="hsl(170 65% 30%)" stopOpacity="0.08" />
+                    <stop offset="100%" stopColor="hsl(170 65% 30%)" stopOpacity="0" />
+                  </radialGradient>
+                </defs>
+
+                {/* Subtle radial grid lines */}
+                {[80, 120, 160].map(r => (
+                  <circle
+                    key={r}
+                    cx="340" cy="155"
+                    r={r}
+                    fill="none"
+                    stroke="hsl(170 65% 30% / 0.06)"
+                    strokeWidth="1"
+                  />
+                ))}
+
+                {/* Center glow */}
+                <circle cx="340" cy="155" r="100" fill="url(#center-glow)" />
+
+                {/* Energy beam: center → Gmail */}
+                <path
+                  d="M 270 165 C 220 180, 160 190, 110 210"
+                  fill="none"
+                  stroke="url(#beam-grad)"
+                  strokeWidth="2.5"
+                  strokeDasharray="8 6"
+                  style={{ animation: 'hero-beam 2s linear infinite' }}
+                />
+                {/* Energy beam: center → Outlook */}
+                <path
+                  d="M 410 165 C 460 180, 520 190, 570 210"
+                  fill="none"
+                  stroke="url(#beam-grad)"
+                  strokeWidth="2.5"
+                  strokeDasharray="8 6"
+                  style={{ animation: 'hero-beam 2s linear infinite', animationDelay: '-1s' }}
+                />
+              </svg>
+
+              {/* ── Spinning dashed orbit ring 1 ── */}
               <div
-                className="absolute pointer-events-none rounded-full"
+                className="absolute rounded-full pointer-events-none"
                 style={{
-                  left: '50%', top: '44%',
-                  width: '260px', height: '260px',
-                  marginLeft: '-130px', marginTop: '-130px',
-                  border: '1.5px dashed hsl(170 65% 30% / 0.18)',
-                  animation: 'spin-cw 16s linear infinite',
+                  left: '50%', top: '45%',
+                  width: '220px', height: '220px',
+                  marginLeft: '-110px', marginTop: '-110px',
+                  border: '2px dashed hsl(170 65% 30% / 0.15)',
+                  animation: 'hero-spin 14s linear infinite',
                 }}
               />
+              {/* ── Spinning orbit ring 2 (reverse) ── */}
               <div
-                className="absolute pointer-events-none rounded-full"
+                className="absolute rounded-full pointer-events-none"
                 style={{
-                  left: '50%', top: '44%',
-                  width: '340px', height: '340px',
-                  marginLeft: '-170px', marginTop: '-170px',
-                  border: '1px dashed hsl(210 70% 45% / 0.12)',
-                  animation: 'spin-ccw 24s linear infinite',
+                  left: '50%', top: '45%',
+                  width: '300px', height: '300px',
+                  marginLeft: '-150px', marginTop: '-150px',
+                  border: '1.5px solid hsl(210 70% 45% / 0.08)',
+                  animation: 'hero-spin-r 20s linear infinite, hero-pulse-ring 4s ease-in-out infinite',
                 }}
               />
 
-              {/* ── Orbiting particles ── */}
+              {/* ── Orbiting icon nodes ── */}
               {[
-                { r: 130, dur: 12, delay: 0, size: 6, hue: '170 65% 30%' },
-                { r: 130, dur: 12, delay: 6, size: 5, hue: '210 70% 45%' },
-                { r: 170, dur: 20, delay: 0, size: 4, hue: '170 65% 30%' },
-                { r: 170, dur: 20, delay: 7, size: 5, hue: '210 70% 45%' },
-                { r: 170, dur: 20, delay: 13, size: 3, hue: '155 50% 45%' },
-              ].map((p, i) => (
+                { icon: '⚡', start: 0, r: 110, dur: 12 },
+                { icon: '🧠', start: 72, r: 110, dur: 12 },
+                { icon: '✦', start: 144, r: 110, dur: 12 },
+                { icon: '📧', start: 216, r: 110, dur: 12 },
+                { icon: '⚙', start: 288, r: 110, dur: 12 },
+                { icon: '✨', start: 30, r: 150, dur: 20 },
+                { icon: '🔮', start: 150, r: 150, dur: 20 },
+                { icon: '💡', start: 270, r: 150, dur: 20 },
+              ].map((n, i) => (
                 <div
                   key={i}
+                  className="absolute pointer-events-none z-30"
+                  style={{
+                    left: '50%', top: '45%',
+                    width: 0, height: 0,
+                    '--start': `${n.start}deg`,
+                    '--orbit-r': `${n.r}px`,
+                    animation: `hero-icon-orbit ${n.dur}s linear infinite`,
+                  } as React.CSSProperties}
+                >
+                  <div
+                    className="flex items-center justify-center rounded-full bg-card/80 border border-border/40 shadow-sm backdrop-blur-sm"
+                    style={{
+                      width: i < 5 ? 32 : 26,
+                      height: i < 5 ? 32 : 26,
+                      fontSize: i < 5 ? 14 : 11,
+                      transform: `translateX(${n.r}px) translateX(-50%) translateY(-50%)`,
+                    }}
+                  >
+                    {n.icon}
+                  </div>
+                </div>
+              ))}
+
+              {/* ── Orbiting glow dots ── */}
+              {[
+                { r: 110, dur: 12, delay: 3, size: 5, hue: '170 65% 30%' },
+                { r: 110, dur: 12, delay: 9, size: 4, hue: '210 70% 45%' },
+                { r: 150, dur: 20, delay: 5, size: 5, hue: '155 50% 45%' },
+                { r: 150, dur: 20, delay: 15, size: 4, hue: '210 70% 45%' },
+              ].map((p, i) => (
+                <div
+                  key={`dot-${i}`}
                   className="absolute pointer-events-none"
                   style={{
-                    left: '50%', top: '44%',
+                    left: '50%', top: '45%',
                     width: 0, height: 0,
-                    animation: `spin-cw ${p.dur}s linear infinite`,
+                    animation: `hero-spin ${p.dur}s linear infinite`,
                     animationDelay: `-${p.delay}s`,
                   }}
                 >
@@ -150,179 +228,118 @@ export function Hero({ onGetStartedClick }: HeroProps) {
                     width: p.size, height: p.size,
                     borderRadius: '50%',
                     background: `hsl(${p.hue})`,
-                    boxShadow: `0 0 10px hsl(${p.hue} / 0.6)`,
+                    boxShadow: `0 0 12px 2px hsl(${p.hue} / 0.5)`,
                     transform: `translateX(${p.r}px)`,
                   }} />
                 </div>
               ))}
 
-              {/* ── CENTER: Wibookly hub with gradient + energy aura ── */}
+              {/* ── CENTER HUB: Wibookly ── */}
               <div
                 className="absolute z-20"
                 style={{
-                  left: '50%', top: '44%',
-                  animation: 'float-gentle 4.5s ease-in-out infinite',
+                  left: '50%', top: '45%',
+                  animation: 'hero-float 5s ease-in-out infinite',
                 }}
               >
-                {/* Repeating energy waves */}
-                {[0, 1, 2].map(i => (
+                {/* Expanding energy waves */}
+                {[0, 1.2, 2.4].map(d => (
                   <div
-                    key={i}
+                    key={d}
                     className="absolute rounded-full pointer-events-none"
                     style={{
                       left: '50%', top: '50%',
-                      width: '160px', height: '160px',
-                      border: '1.5px solid hsl(170 65% 30% / 0.15)',
-                      animation: `energy-wave 3s ease-out infinite ${i}s`,
+                      width: '140px', height: '140px',
+                      border: '1.5px solid hsl(170 65% 30% / 0.12)',
+                      animation: `hero-wave 3.6s ease-out infinite ${d}s`,
                     }}
                   />
                 ))}
 
-                {/* Rotating gradient aura */}
+                {/* Rotating shimmer ring */}
                 <div
                   className="absolute rounded-full pointer-events-none"
                   style={{
                     left: '50%', top: '50%',
-                    width: '170px', height: '170px',
-                    background: 'conic-gradient(from 0deg, hsl(170 65% 30% / 0.15), hsl(210 70% 45% / 0.08), hsl(155 50% 45% / 0.12), hsl(170 65% 30% / 0.15))',
-                    animation: 'aura-spin 6s linear infinite',
-                    filter: 'blur(8px)',
+                    width: '160px', height: '160px',
+                    background: 'conic-gradient(from 0deg, transparent, hsl(170 65% 30% / 0.12) 30%, transparent 50%, hsl(210 70% 45% / 0.08) 80%, transparent)',
+                    animation: 'hero-shimmer 5s linear infinite',
+                    filter: 'blur(6px)',
                   }}
                 />
 
-                {/* Soft glow */}
+                {/* Main hub */}
                 <div
-                  className="absolute rounded-full pointer-events-none"
+                  className="relative rounded-full flex items-center justify-center"
                   style={{
-                    left: '50%', top: '50%',
-                    width: '155px', height: '155px',
-                    background: 'radial-gradient(circle, hsl(170 65% 30% / 0.1), hsl(210 70% 45% / 0.05) 60%, transparent 80%)',
-                    animation: 'aura-pulse 3s ease-in-out infinite',
-                  }}
-                />
-
-                {/* Main circle with gradient background */}
-                <div
-                  className="relative rounded-full flex items-center justify-center shadow-xl"
-                  style={{
-                    width: '9rem', height: '9rem',
-                    background: 'linear-gradient(145deg, hsl(178 30% 93%) 0%, hsl(185 35% 88%) 40%, hsl(195 30% 85%) 100%)',
-                    border: '3px solid hsl(170 65% 30% / 0.25)',
-                    boxShadow: '0 0 30px hsl(170 65% 30% / 0.12), 0 8px 32px hsl(200 40% 20% / 0.1), inset 0 1px 0 hsl(0 0% 100% / 0.3)',
+                    width: '10rem', height: '10rem',
+                    background: 'linear-gradient(160deg, hsl(178 32% 91%) 0%, hsl(185 40% 84%) 35%, hsl(195 38% 80%) 70%, hsl(205 35% 82%) 100%)',
+                    border: '3px solid hsl(170 65% 30% / 0.2)',
+                    animation: 'hero-glow 3s ease-in-out infinite',
                   }}
                 >
+                  {/* Inner subtle ring */}
+                  <div
+                    className="absolute inset-2 rounded-full pointer-events-none"
+                    style={{ border: '1px solid hsl(170 65% 30% / 0.08)' }}
+                  />
                   <img
                     src={wibooklyLogo}
                     alt="Wibookly"
-                    className="w-auto drop-shadow-md"
-                    style={{ height: '5.5rem' }}
+                    className="w-auto drop-shadow-lg relative z-10"
+                    style={{ height: '6rem' }}
                   />
                 </div>
 
-                <span className="block text-sm text-primary mt-2 text-center font-bold tracking-wide">AI-Powered</span>
+                <span
+                  className="block text-sm mt-3 text-center font-bold tracking-widest uppercase"
+                  style={{ color: 'hsl(170 65% 30%)' }}
+                >
+                  AI-Powered
+                </span>
               </div>
-
-              {/* ── Floating superpower icons ── */}
-              {[
-                { Icon: Brain,    left: '50%', top: '0%',   ml: -18, size: 36, iSize: 16, dur: 2.8, delay: 0 },
-                { Icon: Star,     left: '26%', top: '5%',   ml: -14, size: 28, iSize: 13, dur: 3.5, delay: 0.5 },
-                { Icon: Settings, left: '74%', top: '5%',   ml: -14, size: 28, iSize: 13, dur: 3.2, delay: 1 },
-                { Icon: Sparkles, left: '10%', top: '30%',  ml: -16, size: 32, iSize: 15, dur: 3,   delay: 0.3 },
-                { Icon: Mail,     left: '90%', top: '30%',  ml: -16, size: 32, iSize: 15, dur: 3.4, delay: 0.8 },
-                { Icon: Cpu,      left: '16%', top: '14%',  ml: -12, size: 24, iSize: 12, dur: 4,   delay: 1.5 },
-              ].map(({ Icon, left, top, ml, size, iSize, dur, delay }, i) => {
-                const isAccent = i === 3 || i === 4;
-                return (
-                  <div
-                    key={i}
-                    className={`absolute z-30 rounded-full flex items-center justify-center ${isAccent ? 'bg-accent/12 border border-accent/25' : 'bg-primary/12 border border-primary/25'}`}
-                    style={{
-                      left, top,
-                      marginLeft: ml,
-                      width: size, height: size,
-                      animation: `breathe ${dur}s ease-in-out infinite ${delay}s`,
-                    }}
-                  >
-                    <Icon
-                      className={isAccent ? 'text-accent' : 'text-primary'}
-                      style={{ width: iSize, height: iSize }}
-                    />
-                  </div>
-                );
-              })}
 
               {/* ── Gmail card — left ── */}
               <div
                 className="absolute z-20"
                 style={{
-                  left: '0%', bottom: '8%',
-                  animation: 'float-card 5s ease-in-out infinite',
+                  left: '0', bottom: '4%',
+                  animation: 'hero-card-float 4.5s ease-in-out infinite',
                 }}
               >
                 <div
-                  className="rounded-2xl bg-card/95 border-2 border-border/40 flex items-center justify-center shadow-lg backdrop-blur-md"
-                  style={{ width: '6rem', height: '6rem' }}
+                  className="rounded-2xl bg-card/95 border-2 border-border/40 flex items-center justify-center shadow-lg backdrop-blur-md transition-transform duration-300 hover:scale-105"
+                  style={{ width: '6.5rem', height: '6.5rem' }}
                 >
-                  <div style={{ width: '3.2rem', height: '3.2rem' }}>
+                  <div style={{ width: '3.5rem', height: '3.5rem' }}>
                     <GmailIcon />
                   </div>
                 </div>
-                <span className="block text-xs text-muted-foreground mt-2 text-center font-semibold">Gmail</span>
-                <div
-                  className="absolute -top-2 -right-2 w-7 h-7 rounded-full bg-primary/15 border border-primary/30 flex items-center justify-center"
-                  style={{ animation: 'breathe 2.5s ease-in-out infinite 0.3s' }}
-                >
-                  <Zap className="w-3.5 h-3.5 text-primary" />
-                </div>
+                <span className="block text-xs text-muted-foreground mt-2 text-center font-semibold tracking-wide">Gmail</span>
               </div>
 
               {/* ── Outlook card — right ── */}
               <div
                 className="absolute z-20"
                 style={{
-                  right: '0%', bottom: '8%',
-                  animation: 'float-card 5s ease-in-out infinite 1.2s',
+                  right: '0', bottom: '4%',
+                  animation: 'hero-card-float 4.5s ease-in-out infinite 1s',
                 }}
               >
                 <div
-                  className="rounded-2xl bg-card/95 border-2 border-border/40 flex items-center justify-center shadow-lg backdrop-blur-md"
-                  style={{ width: '6rem', height: '6rem' }}
+                  className="rounded-2xl bg-card/95 border-2 border-border/40 flex items-center justify-center shadow-lg backdrop-blur-md transition-transform duration-300 hover:scale-105"
+                  style={{ width: '6.5rem', height: '6.5rem' }}
                 >
                   <img
                     src={outlookLogo}
                     alt="Outlook"
                     className="object-contain"
-                    style={{ width: '3.8rem', height: '3.8rem' }}
+                    style={{ width: '4rem', height: '4rem' }}
                   />
                 </div>
-                <span className="block text-xs text-muted-foreground mt-2 text-center font-semibold">Outlook</span>
-                <div
-                  className="absolute -top-2 -left-2 w-7 h-7 rounded-full bg-primary/15 border border-primary/30 flex items-center justify-center"
-                  style={{ animation: 'breathe 3s ease-in-out infinite 0.7s' }}
-                >
-                  <Sparkles className="w-3.5 h-3.5 text-primary" />
-                </div>
+                <span className="block text-xs text-muted-foreground mt-2 text-center font-semibold tracking-wide">Outlook</span>
               </div>
 
-              {/* ── Animated connector curves ── */}
-              <svg className="absolute inset-0 w-full h-full pointer-events-none z-10" viewBox="0 0 620 300" preserveAspectRatio="xMidYMid meet" aria-hidden="true">
-                <path
-                  d="M 230 140 C 180 160, 130 165, 96 185"
-                  fill="none"
-                  stroke="hsl(170 65% 30% / 0.22)"
-                  strokeWidth="2"
-                  strokeDasharray="6 4"
-                  style={{ animation: 'dash-flow 1.2s linear infinite' }}
-                />
-                <path
-                  d="M 390 140 C 440 160, 490 165, 524 185"
-                  fill="none"
-                  stroke="hsl(170 65% 30% / 0.22)"
-                  strokeWidth="2"
-                  strokeDasharray="6 4"
-                  style={{ animation: 'dash-flow 1.2s linear infinite', animationDelay: '-0.6s' }}
-                />
-              </svg>
             </div>
           </div>
         </div>
