@@ -115,7 +115,7 @@ export default function AuthCallback() {
         const errBody = await tokenResponse.json().catch(() => ({}));
         const errMsg = errBody.error_description || errBody.error || 'Token exchange failed';
         console.error('[AuthCallback] Token exchange failed:', errMsg);
-        sessionStorage.removeItem('cognito_code_verifier');
+        localStorage.removeItem('cognito_code_verifier');
         throw new Error(errMsg);
       }
 
