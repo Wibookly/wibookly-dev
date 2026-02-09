@@ -54,17 +54,20 @@ export default function AuthCallback() {
 
   const handleCallback = async (code: string) => {
     try {
-      // ── Step 1: Retrieve the PKCE code verifier ──────────────────────
+      // ── Guard: this route is ONLY for Cognito login/signup ───────────
+      // The PKCE code verifier is set exclusively by signInWithCognito().
+      // If it's missing, this request did NOT originate from our Cognito flow.
       const codeVerifier = sessionStorage.getItem('cognito_code_verifier');
       if (!codeVerifier) {
-        throw new Error('Missing PKCE code verifier. Please try signing in again.');
+        throw new Error(
+          'This callback is reserved for authentication only. ' +
+          'If you were connecting Gmail or Outlook, please try again from the dashboard.'
+        );
       }
       sessionStorage.removeItem('cognito_code_verifier');
 
-      // ── Step 2: Exchange authorization code for Cognito tokens ───────
+      // ── Step 1: Exchange authorization code for Cognito tokens ───────
       // The redirect_uri MUST exactly match the one used during /authorize.
-      // Use the current origin so it works across all configured domains
-      // (preview, wibookly-dev.lovable.app, app.wibookly.ai).
       const currentRedirectUri = `${window.location.origin}/auth/callback`;
 
       const tokenResponse = await fetch(COGNITO_CONFIG.tokenEndpoint, {
@@ -91,6 +94,15 @@ export default function AuthCallback() {
         throw new Error('No ID token received from identity provider.');
       }
 
+      // ── Step 2: Validate id_token is a real JWT (3 segments) ────────
+      // This prevents accidentally passing an authorization code or
+      // non-JWT value to the verification bridge.
+      if (typeof id_token !== 'string' || id_token.split('.').length !== 3) {
+        throw new Error(
+          'Received an invalid token format from Cognito. Expected a JWT but got something else.'
+        );
+      }
+
       // Store Cognito tokens for potential future use (e.g. AWS API calls)
       localStorage.setItem(
         'cognito_tokens',
@@ -102,7 +114,7 @@ export default function AuthCallback() {
         })
       );
 
-      // ── Step 3: Bridge to backend session ────────────────────────────
+      // ── Step 3: Bridge to backend session (Cognito JWKS only) ───────
       const bridgeResponse = await fetch(
         `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/cognito-user-bridge`,
         {
