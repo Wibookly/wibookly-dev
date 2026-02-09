@@ -44,20 +44,22 @@ export default function AuthCallback() {
   useEffect(() => {
     // Primary: use React Router's searchParams
     let code = searchParams.get('code');
+    let stateParam = searchParams.get('state');
     let errorParam = searchParams.get('error');
     let errorDescription = searchParams.get('error_description');
 
-    // Fallback: parse directly from window.location in case React Router
-    // hasn't captured the query string (e.g. after a full-page redirect).
+    // Fallback: parse directly from window.location
     if (!code && !errorParam) {
       const raw = new URLSearchParams(window.location.search);
       code = raw.get('code');
+      stateParam = raw.get('state');
       errorParam = raw.get('error');
       errorDescription = raw.get('error_description');
     }
 
     console.log('[AuthCallback] url:', window.location.href);
     console.log('[AuthCallback] code present:', !!code);
+    console.log('[AuthCallback] state present:', !!stateParam);
 
     if (errorParam) {
       console.error('[AuthCallback] OAuth error:', errorParam, errorDescription);
@@ -71,23 +73,32 @@ export default function AuthCallback() {
       return;
     }
 
-    // ── PKCE verifier is REQUIRED — hard fail if missing ──
-    const codeVerifier = readPkceVerifier();
+    // ── Retrieve PKCE verifier ──
+    // Priority: 1) state parameter (guaranteed to survive redirects), 2) storage fallback
+    let codeVerifier: string | null = null;
 
-    console.log('[PKCE] callback url:', window.location.href);
-    console.log('[PKCE] code present:', Boolean(code));
-    console.log('[PKCE] verifier present:', Boolean(codeVerifier));
-    console.log('[PKCE] verifier length:', codeVerifier?.length);
+    if (stateParam) {
+      try {
+        const parsed = JSON.parse(atob(stateParam));
+        codeVerifier = parsed?.v || null;
+        console.log('[PKCE] verifier from state param, length:', codeVerifier?.length);
+      } catch (e) {
+        console.warn('[PKCE] Failed to parse state param:', e);
+      }
+    }
 
     if (!codeVerifier) {
-      console.error('[AuthCallback] PKCE verifier missing from both localStorage and cookie');
-      setError(
-        'PKCE verifier missing. This can happen in private/incognito browsing. Please try signing in in a regular browser window, or try again.'
-      );
+      codeVerifier = readPkceVerifier();
+      console.log('[PKCE] verifier from storage fallback, length:', codeVerifier?.length);
+    }
+
+    if (!codeVerifier) {
+      console.error('[AuthCallback] PKCE verifier missing from state, localStorage, and cookie');
+      setError('Authentication session expired. Please try signing in again.');
       return;
     }
 
-    console.log('[AuthCallback] PKCE verifier found, proceeding with Cognito token exchange');
+    console.log('[AuthCallback] PKCE verifier found, proceeding with token exchange');
     handleCognitoTokenExchange(code, codeVerifier);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
