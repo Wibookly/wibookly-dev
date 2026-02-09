@@ -115,8 +115,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const codeVerifier = generateCodeVerifier();
     const codeChallenge = await generateCodeChallenge(codeVerifier);
 
-    // Store PKCE verifier for the callback — this is how AuthCallback
-    // distinguishes Cognito login from Connect Gmail.
+    // Store PKCE verifier for the callback — AuthCallback reads this to
+    // complete the Cognito token exchange (code_challenge was sent with S256).
     sessionStorage.setItem('cognito_code_verifier', codeVerifier);
 
     const params = new URLSearchParams({
