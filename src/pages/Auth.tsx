@@ -84,9 +84,9 @@ export default function Auth() {
           >
             {isSignUp ? (
               <>
-                Sign up with your
+                Get started with
                 <br />
-                <span className="text-primary">work email</span>
+                <span className="text-primary">Wibookly</span>
               </>
             ) : (
               <>
@@ -98,7 +98,7 @@ export default function Auth() {
           </h1>
           <p className="mt-4 text-muted-foreground">
             {isSignUp
-              ? <>Use your <span className="font-semibold text-foreground">work email</span> to get started with Wibookly.</>
+              ? <>Create your account to get started with Wibookly.</>
               : <>Sign in to continue managing your inbox with AI.</>
             }
           </p>
