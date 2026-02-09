@@ -532,7 +532,7 @@ export default function Integrations() {
       </div>
       
       {/* Subscription Card */}
-      <div className="mb-6">
+      <div className="mb-6" data-onboarding="subscription-card">
         <SubscriptionCard />
       </div>
 
