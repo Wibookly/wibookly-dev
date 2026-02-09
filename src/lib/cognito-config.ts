@@ -20,15 +20,11 @@ export const COGNITO_CONFIG = {
   /** AWS region */
   region: 'us-west-2',
 
-  /** Callback URL – must match what is registered in Cognito */
-  get redirectUri() {
-    return `${window.location.origin}/auth/callback`;
-  },
+  /** Callback URL – must match exactly what is registered in Cognito */
+  redirectUri: 'https://app.wibookly.ai/auth/callback',
 
   /** Where Cognito redirects after logout */
-  get logoutUri() {
-    return `${window.location.origin}/`;
-  },
+  logoutUri: 'https://app.wibookly.ai/',
 
   /**
    * Identity provider names as configured in your Cognito User Pool.
