@@ -120,7 +120,7 @@ export default function AuthCallback() {
       }
 
       // Exchange succeeded — remove the single-use verifier
-      sessionStorage.removeItem('cognito_code_verifier');
+      localStorage.removeItem('cognito_code_verifier');
 
       const tokens = await tokenResponse.json();
       console.log('[AuthCallback] Token response keys:', Object.keys(tokens));
