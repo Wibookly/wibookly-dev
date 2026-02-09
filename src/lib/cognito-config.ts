@@ -11,6 +11,9 @@ export const COGNITO_CONFIG = {
   /** Cognito App Client ID (public SPA client, no secret) */
   clientId: '3k0v6stp6l5abmgsg6ja5rcauo',
 
+  /** Cognito User Pool ID */
+  userPoolId: 'us-west-2_mALN2509g',
+
   /** OAuth scopes */
   scopes: 'openid email profile',
 
