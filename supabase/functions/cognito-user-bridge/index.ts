@@ -51,6 +51,30 @@ async function verifyCognitoIdToken(
     );
   }
 
+  // ── Pre-check: verify the issuer is Cognito BEFORE doing JWKS lookup ──
+  // This rejects Google / Microsoft tokens immediately with a clear message.
+  try {
+    const payloadB64 = idToken.split('.')[1];
+    const padded = payloadB64.replace(/-/g, '+').replace(/_/g, '/').padEnd(
+      payloadB64.length + (4 - (payloadB64.length % 4)) % 4, '='
+    );
+    const rawPayload = JSON.parse(atob(padded));
+    const tokenIssuer = rawPayload.iss || '';
+
+    if (!tokenIssuer.includes('cognito-idp') || !tokenIssuer.includes(COGNITO_USER_POOL_ID)) {
+      throw new Error(
+        `Token issuer "${tokenIssuer}" is not this Cognito User Pool. ` +
+        'This endpoint only accepts Cognito ID tokens. ' +
+        'Gmail/Outlook tokens must use the oauth-callback endpoint instead.'
+      );
+    }
+  } catch (decodeErr) {
+    if (decodeErr instanceof Error && decodeErr.message.includes('Token issuer')) {
+      throw decodeErr; // Re-throw issuer mismatch
+    }
+    throw new Error('Failed to decode token payload for issuer check.');
+  }
+
   const jwks = await getJWKS();
 
   // Decode the header to get the kid
