@@ -531,6 +531,11 @@ export default function Integrations() {
       <div className="mb-4 flex justify-end">
         <UserAvatarDropdown />
       </div>
+
+      {/* Onboarding Checklist */}
+      <div className="mb-6">
+        <OnboardingChecklist onOpenPlanModal={() => setShowPlanModal(true)} />
+      </div>
       
       {/* Subscription Card */}
       <div className="mb-6" data-onboarding="subscription-card">
