@@ -15,14 +15,6 @@ const GoogleIcon = () => (
   </svg>
 );
 
-const OutlookIcon = () => (
-  <svg viewBox="0 0 48 48" className="w-8 h-8" aria-hidden="true">
-    <path d="M28 8H44V40H28V8Z" fill="#1976D2"/>
-    <path d="M28 8L4 13V35L28 40V8Z" fill="#2196F3"/>
-    <path d="M16 18C12.686 18 10 20.686 10 24C10 27.314 12.686 30 16 30C19.314 30 22 27.314 22 24C22 20.686 19.314 18 16 18ZM16 27C14.343 27 13 25.657 13 24C13 22.343 14.343 21 16 21C17.657 21 19 22.343 19 24C19 25.657 17.657 27 16 27Z" fill="white"/>
-  </svg>
-);
-
 export default function Auth() {
   const { user, loading, signInWithCognito } = useAuth();
   const navigate = useNavigate();
@@ -106,7 +98,7 @@ export default function Auth() {
             }
           </p>
 
-          <div className="mt-8 w-full space-y-3">
+          <div className="mt-8 w-full">
             <Button
               variant="outline"
               size="lg"
@@ -115,15 +107,6 @@ export default function Auth() {
             >
               <GoogleIcon />
               Continue with Google
-            </Button>
-            <Button
-              variant="outline"
-              size="lg"
-              className="w-full justify-center gap-3 h-14 text-base rounded-2xl border-border/50 bg-card/60 hover:bg-card/80 backdrop-blur-sm transition-all"
-              onClick={() => signInWithCognito('microsoft')}
-            >
-              <OutlookIcon />
-              Continue with Outlook
             </Button>
           </div>
 
