@@ -115,7 +115,7 @@ export function SubscriptionProvider({ children }: { children: ReactNode }) {
           loading: false,
         });
       } else {
-        setState(prev => ({ ...prev, plan: 'starter', status: 'active', loading: false }));
+        setState(prev => ({ ...prev, plan: 'starter', status: 'none', loading: false }));
       }
 
       const { data, error } = await supabase.functions.invoke('check-subscription', {

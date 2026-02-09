@@ -11,9 +11,10 @@ interface PlanBadgeProps {
 }
 
 export function PlanBadge({ plan: propPlan, size = 'md', showIcon = true, className }: PlanBadgeProps) {
-  const { plan: currentPlan } = useSubscription();
+  const { plan: currentPlan, status } = useSubscription();
   const plan = propPlan || currentPlan;
   
+  const hasActiveSub = status === 'active' || status === 'trialing';
   const planConfig = PLAN_CONFIG[plan];
 
   const icons = {
@@ -27,6 +28,22 @@ export function PlanBadge({ plan: propPlan, size = 'md', showIcon = true, classN
     pro: 'bg-primary/10 text-primary border-primary/20',
     enterprise: 'bg-accent/10 text-accent-foreground border-accent/20',
   };
+
+  // If no active subscription and no propPlan override, show "No Plan"
+  if (!hasActiveSub && !propPlan) {
+    return (
+      <Badge 
+        variant="outline" 
+        className={cn(
+          'bg-destructive/10 text-destructive border-destructive/20',
+          size === 'sm' ? 'text-xs px-2 py-0.5' : 'text-sm px-3 py-1',
+          className
+        )}
+      >
+        No Plan
+      </Badge>
+    );
+  }
 
   const Icon = icons[plan];
 
