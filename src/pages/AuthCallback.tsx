@@ -79,9 +79,9 @@ export default function AuthCallback() {
     console.log('[PKCE] verifier length:', codeVerifier?.length);
 
     if (!codeVerifier) {
-      console.error('[AuthCallback] PKCE verifier missing from sessionStorage');
+      console.error('[AuthCallback] PKCE verifier missing from localStorage');
       setError(
-        'PKCE verifier missing. This means the browser sessionStorage value was not saved or was cleared before redirect.'
+        'PKCE verifier missing. This means the browser localStorage value was not saved or was cleared before redirect. Please try signing in again.'
       );
       return;
     }
