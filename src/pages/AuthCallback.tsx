@@ -68,8 +68,6 @@ export default function AuthCallback() {
 
       // ── Step 1: Exchange authorization code for Cognito tokens ───────
       // The redirect_uri MUST exactly match the one used during /authorize.
-      const currentRedirectUri = `${window.location.origin}/auth/callback`;
-
       const tokenResponse = await fetch(COGNITO_CONFIG.tokenEndpoint, {
         method: 'POST',
         headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
@@ -77,7 +75,7 @@ export default function AuthCallback() {
           grant_type: 'authorization_code',
           client_id: COGNITO_CONFIG.clientId,
           code,
-          redirect_uri: currentRedirectUri,
+          redirect_uri: COGNITO_CONFIG.redirectUri,
           code_verifier: codeVerifier,
         }),
       });
