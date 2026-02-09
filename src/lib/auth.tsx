@@ -116,8 +116,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const codeVerifier = generateCodeVerifier();
     const codeChallenge = await generateCodeChallenge(codeVerifier);
 
+    console.log('[PKCE] generated verifier length:', codeVerifier?.length);
+
     // Store PKCE verifier — AuthCallback reads this for the token exchange
     sessionStorage.setItem('cognito_code_verifier', codeVerifier);
+
+    console.log('[PKCE] sessionStorage set key cognito_code_verifier:', sessionStorage.getItem('cognito_code_verifier')?.length);
 
     const params = new URLSearchParams({
       client_id: COGNITO_CONFIG.clientId,
