@@ -71,7 +71,7 @@ export default function AuthCallback() {
     }
 
     // ── PKCE verifier is REQUIRED — hard fail if missing ──
-    const codeVerifier = sessionStorage.getItem('cognito_code_verifier');
+    const codeVerifier = localStorage.getItem('cognito_code_verifier');
 
     console.log('[PKCE] callback url:', window.location.href);
     console.log('[PKCE] code present:', Boolean(code));
@@ -79,9 +79,9 @@ export default function AuthCallback() {
     console.log('[PKCE] verifier length:', codeVerifier?.length);
 
     if (!codeVerifier) {
-      console.error('[AuthCallback] PKCE verifier missing from sessionStorage');
+      console.error('[AuthCallback] PKCE verifier missing from localStorage');
       setError(
-        'PKCE verifier missing. This means the browser sessionStorage value was not saved or was cleared before redirect.'
+        'PKCE verifier missing. This means the browser localStorage value was not saved or was cleared before redirect. Please try signing in again.'
       );
       return;
     }
@@ -115,12 +115,12 @@ export default function AuthCallback() {
         const errBody = await tokenResponse.json().catch(() => ({}));
         const errMsg = errBody.error_description || errBody.error || 'Token exchange failed';
         console.error('[AuthCallback] Token exchange failed:', errMsg);
-        sessionStorage.removeItem('cognito_code_verifier');
+        localStorage.removeItem('cognito_code_verifier');
         throw new Error(errMsg);
       }
 
       // Exchange succeeded — remove the single-use verifier
-      sessionStorage.removeItem('cognito_code_verifier');
+      localStorage.removeItem('cognito_code_verifier');
 
       const tokens = await tokenResponse.json();
       console.log('[AuthCallback] Token response keys:', Object.keys(tokens));
