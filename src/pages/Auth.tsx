@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Loader2 } from 'lucide-react';
 import wibooklyLogo from '@/assets/wibookly-logo.png';
 import outlookLogo from '@/assets/outlook-logo.png';
+import { testimonials } from '@/data/testimonials';
 
 const GoogleIcon = () => (
   <svg viewBox="0 0 24 24" className="w-8 h-8" aria-hidden="true">
@@ -18,39 +19,6 @@ const GoogleIcon = () => (
 const OutlookIcon = ({ logo }: { logo: string }) => (
   <img src={logo} alt="Outlook" className="w-8 h-8 object-contain" />
 );
-
-const testimonials = [
-  {
-    quote: "I'm impressed by how good the generated replies are. It's just like myself. And I hardly ever need to edit them. I'm saving hours a week on email.",
-    name: "Sarah Mitchell",
-    title: "VP of Sales, TechCorp",
-    initial: "S",
-  },
-  {
-    quote: "Wibookly has completely transformed how our team handles email. We went from spending 3 hours a day on email to just 30 minutes.",
-    name: "James Chen",
-    title: "CTO, StartupFlow",
-    initial: "J",
-  },
-  {
-    quote: "The AI categorization is incredibly accurate. It knows exactly which emails need my attention and which ones can be handled automatically.",
-    name: "Maria Rodriguez",
-    title: "Head of Operations, ScaleUp Inc",
-    initial: "M",
-  },
-  {
-    quote: "We rolled out Wibookly across our entire sales team. Response times dropped by 60% and customer satisfaction went through the roof.",
-    name: "David Park",
-    title: "Director of Sales, CloudBase",
-    initial: "D",
-  },
-  {
-    quote: "As a founder, every minute counts. Wibookly gives me back hours each week that I can spend on what actually matters — building the product.",
-    name: "Emily Watson",
-    title: "CEO & Founder, NexaAI",
-    initial: "E",
-  },
-];
 
 export default function Auth() {
   const { user, loading, signInWithCognito } = useAuth();
@@ -265,24 +233,35 @@ export default function Auth() {
             {testimonial.quote}
           </p>
           <div className="flex items-center gap-4">
-            <div className="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center">
-              <span className="text-lg font-bold text-primary">{testimonial.initial}</span>
-            </div>
+            <img
+              src={testimonial.avatarUrl}
+              alt={testimonial.name}
+              className="w-12 h-12 rounded-full object-cover ring-2 ring-primary/20"
+            />
             <div>
               <div className="font-semibold text-foreground">{testimonial.name}</div>
               <div className="text-sm text-muted-foreground">{testimonial.title}</div>
             </div>
           </div>
 
-          <div className="flex items-center justify-center gap-2 mt-6">
-            {testimonials.map((_, i) => (
-              <div
-                key={i}
-                className={`w-2 h-2 rounded-full transition-all duration-300 ${
-                  i === currentTestimonial ? 'bg-primary w-4' : 'bg-primary/20'
-                }`}
-              />
-            ))}
+          <div className="flex items-center justify-center gap-3 mt-6">
+            <span className="text-xs text-muted-foreground tabular-nums">
+              {currentTestimonial + 1} / {testimonials.length}
+            </span>
+            <div className="flex items-center gap-1">
+              {Array.from({ length: 5 }).map((_, i) => {
+                // Map 5 dots to the progress through 50 testimonials
+                const segment = Math.floor(currentTestimonial / (testimonials.length / 5));
+                return (
+                  <div
+                    key={i}
+                    className={`w-2 h-2 rounded-full transition-all duration-300 ${
+                      i === segment ? 'bg-primary w-4' : 'bg-primary/20'
+                    }`}
+                  />
+                );
+              })}
+            </div>
           </div>
         </div>
       </div>
