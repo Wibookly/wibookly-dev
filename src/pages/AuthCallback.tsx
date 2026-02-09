@@ -86,20 +86,30 @@ export default function AuthCallback() {
       }
 
       const tokens = await tokenResponse.json();
-      const { id_token, access_token, refresh_token } = tokens;
 
-      if (!id_token) {
-        throw new Error('No ID token received from identity provider.');
+      console.log('[AuthCallback] token response keys:', Object.keys(tokens));
+
+      // Extract and validate the id_token as a plain string JWT
+      const rawIdToken = tokens.id_token;
+      const access_token = tokens.access_token;
+      const refresh_token = tokens.refresh_token;
+
+      if (!rawIdToken || typeof rawIdToken !== 'string') {
+        console.error('[AuthCallback] id_token is missing or not a string. Type:', typeof rawIdToken);
+        throw new Error('No valid ID token received from identity provider.');
       }
 
-      // ── Step 2: Validate id_token is a real JWT (3 segments) ────────
-      // This prevents accidentally passing an authorization code or
-      // non-JWT value to the verification bridge.
-      if (typeof id_token !== 'string' || id_token.split('.').length !== 3) {
+      // Ensure it's a clean string with no extra whitespace
+      const id_token = rawIdToken.trim();
+
+      if (id_token.split('.').length !== 3) {
+        console.error('[AuthCallback] id_token does not have 3 JWT segments');
         throw new Error(
           'Received an invalid token format from Cognito. Expected a JWT but got something else.'
         );
       }
+
+      console.log('[AuthCallback] id_token validated: 3 segments, length:', id_token.length);
 
       // Store Cognito tokens for potential future use (e.g. AWS API calls)
       localStorage.setItem(

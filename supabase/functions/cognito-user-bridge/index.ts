@@ -128,11 +128,43 @@ serve(async (req) => {
   }
 
   try {
-    const { id_token } = await req.json();
+    const body = await req.json();
+    const rawToken = body?.id_token;
 
-    if (!id_token) {
-      return jsonError("Missing id_token", 400);
+    if (!rawToken) {
+      return jsonError("Missing id_token in request body", 400);
     }
+
+    if (typeof rawToken !== "string") {
+      console.error(
+        "id_token is not a string. Received type:",
+        typeof rawToken,
+        "value preview:",
+        JSON.stringify(rawToken).slice(0, 120)
+      );
+      return jsonError(
+        `id_token must be a JWT string, received ${typeof rawToken}`,
+        400
+      );
+    }
+
+    // Clean the token: trim whitespace, remove any accidental wrapping quotes
+    const id_token = rawToken.trim();
+
+    if (id_token.split(".").length !== 3) {
+      console.error(
+        "id_token does not look like a JWT (expected 3 dot-separated segments). Length:",
+        id_token.length,
+        "Preview:",
+        id_token.slice(0, 60)
+      );
+      return jsonError("id_token is not a valid JWT format", 400);
+    }
+
+    console.log(
+      "id_token validated: type=string, segments=3, length=",
+      id_token.length
+    );
 
     // ── 1. Cryptographically verify the Cognito ID token ──────────────
     let claims: Record<string, unknown>;
