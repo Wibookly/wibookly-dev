@@ -97,6 +97,15 @@ serve(async (req) => {
 
     let authUrl: string;
 
+    // All Connect flows use the same redirect_uri as Cognito login — the
+    // SPA callback at https://app.wibookly.ai/auth/callback.  The callback
+    // component detects the flow type (Cognito vs Connect) by checking for
+    // the presence of the `state` parameter vs the PKCE code verifier.
+    const callbackUrl = 'https://app.wibookly.ai/auth/callback';
+
+    console.log(`[oauth-init] Flow: Connect ${provider} (NOT Cognito)`);
+    console.log(`[oauth-init] redirect_uri: ${callbackUrl}`);
+
     if (provider === 'google') {
       const clientId = Deno.env.get('GOOGLE_CLIENT_ID');
       if (!clientId) {
@@ -106,9 +115,6 @@ serve(async (req) => {
           { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
         );
       }
-
-      const supabaseUrl = Deno.env.get('SUPABASE_URL');
-      const callbackUrl = `${supabaseUrl}/functions/v1/oauth-callback`;
 
       // Use calendar-only scopes if requested (for adding calendar to existing connection)
       const scope = calendarOnly
@@ -127,7 +133,7 @@ serve(async (req) => {
       });
 
       authUrl = `https://accounts.google.com/o/oauth2/v2/auth?${params.toString()}`;
-      console.log(`Generated Google OAuth URL with ${calendarOnly ? 'calendar-only' : 'full'} scopes`);
+      console.log(`[oauth-init] Generated Google OAuth URL with ${calendarOnly ? 'calendar-only' : 'full'} scopes`);
 
     } else if (provider === 'outlook') {
       const clientId = Deno.env.get('MICROSOFT_CLIENT_ID');
@@ -138,9 +144,6 @@ serve(async (req) => {
           { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
         );
       }
-
-      const supabaseUrl = Deno.env.get('SUPABASE_URL');
-      const callbackUrl = `${supabaseUrl}/functions/v1/oauth-callback`;
 
       // Use calendar-only scopes if requested
       const scope = calendarOnly
@@ -157,7 +160,7 @@ serve(async (req) => {
       });
 
       authUrl = `https://login.microsoftonline.com/common/oauth2/v2.0/authorize?${params.toString()}`;
-      console.log(`Generated Microsoft OAuth URL with ${calendarOnly ? 'calendar-only' : 'full'} scopes`);
+      console.log(`[oauth-init] Generated Microsoft OAuth URL with ${calendarOnly ? 'calendar-only' : 'full'} scopes`);
 
     } else {
       return new Response(

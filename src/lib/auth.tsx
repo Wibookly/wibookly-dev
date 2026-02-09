@@ -108,10 +108,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
    * Optionally specify a provider to skip the Cognito provider-selection screen.
    */
   const signInWithCognito = async (provider?: 'google' | 'microsoft') => {
+    console.log('[Auth] Flow: Cognito login/signup (NOT Connect Gmail)');
+    console.log('[Auth] Provider:', provider || 'none (hosted UI)');
+    console.log('[Auth] redirect_uri:', COGNITO_CONFIG.redirectUri);
+
     const codeVerifier = generateCodeVerifier();
     const codeChallenge = await generateCodeChallenge(codeVerifier);
 
-    // Store PKCE verifier for the callback
+    // Store PKCE verifier for the callback — this is how AuthCallback
+    // distinguishes Cognito login from Connect Gmail.
     sessionStorage.setItem('cognito_code_verifier', codeVerifier);
 
     const params = new URLSearchParams({
@@ -130,7 +135,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       params.set('identity_provider', idpName);
     }
 
-    window.location.href = `${COGNITO_CONFIG.authorizeEndpoint}?${params.toString()}`;
+    const authorizeUrl = `${COGNITO_CONFIG.authorizeEndpoint}?${params.toString()}`;
+    console.log('[Auth] Redirecting to Cognito:', authorizeUrl.substring(0, 120) + '…');
+    window.location.href = authorizeUrl;
   };
 
   // Legacy sign-up – redirects to Cognito (account creation happens there)

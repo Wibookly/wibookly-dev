@@ -6,8 +6,8 @@ export default function IntegrationSetup() {
   const { toast } = useToast();
 
   const appOrigin = window.location.origin;
-  const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || '';
-  const callbackUrl = `${supabaseUrl}/functions/v1/oauth-callback`;
+  // Both Cognito login and Connect Gmail use the same redirect_uri
+  const callbackUrl = 'https://app.wibookly.ai/auth/callback';
 
   const copyToClipboard = (text: string, label: string) => {
     navigator.clipboard.writeText(text);
