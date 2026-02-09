@@ -10,14 +10,27 @@ import wibooklyLogo from '@/assets/wibookly-logo.png';
  *
  * Handles TWO completely separate OAuth flows at the same URL:
  *
- * 1. **Cognito Login/Signup** — detected by PKCE code_verifier in sessionStorage.
- *    Exchanges the code with Cognito's /oauth2/token, bridges to backend session.
+ * 1. **Cognito Login/Signup** — detected by id_token issuer after exchange.
+ * 2. **Connect Gmail/Outlook** — detected when id_token issuer is NOT Cognito.
  *
- * 2. **Connect Gmail/Outlook** — detected by `state` parameter (from oauth-init).
- *    Forwards code + state to the oauth-exchange edge function.
- *
- * These flows NEVER share tokens, logic, or code paths.
+ * Flow detection is based on the token issuer claim, NOT on PKCE or state params.
  */
+
+const COGNITO_ISSUER_PREFIX = `https://cognito-idp.${COGNITO_CONFIG.region}.amazonaws.com/${COGNITO_CONFIG.userPoolId}`;
+
+/** Decode the payload of a JWT without verification (for issuer inspection only). */
+function decodeJwtPayload(jwt: string): Record<string, unknown> | null {
+  try {
+    const parts = jwt.split('.');
+    if (parts.length !== 3) return null;
+    const b64 = parts[1].replace(/-/g, '+').replace(/_/g, '/');
+    const padded = b64.padEnd(b64.length + ((4 - (b64.length % 4)) % 4), '=');
+    return JSON.parse(atob(padded));
+  } catch {
+    return null;
+  }
+}
+
 export default function AuthCallback() {
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
@@ -27,18 +40,18 @@ export default function AuthCallback() {
   useEffect(() => {
     // Primary: use React Router's searchParams
     let code = searchParams.get('code');
-    let stateParam = searchParams.get('state');
     let errorParam = searchParams.get('error');
     let errorDescription = searchParams.get('error_description');
+    let stateParam = searchParams.get('state');
 
     // Fallback: parse directly from window.location in case React Router
     // hasn't captured the query string (e.g. after a full-page redirect).
     if (!code && !errorParam) {
       const raw = new URLSearchParams(window.location.search);
       code = raw.get('code');
-      stateParam = raw.get('state');
       errorParam = raw.get('error');
       errorDescription = raw.get('error_description');
+      stateParam = raw.get('state');
     }
 
     console.log('[AuthCallback] url:', window.location.href);
@@ -56,127 +69,169 @@ export default function AuthCallback() {
       return;
     }
 
-    // ── Flow Detection ────────────────────────────────────────────
-    const codeVerifier = sessionStorage.getItem('cognito_code_verifier');
-
-    if (stateParam && !codeVerifier) {
-      // STATE present + no PKCE verifier = Connect Gmail/Outlook flow
-      console.log('[AuthCallback] Flow detected: Connect Gmail/Outlook');
-      console.log('[AuthCallback] Payload type: code (authorization_code)');
-      setStatusMessage('Connecting your mailbox…');
-      handleConnectCallback(code, stateParam);
-    } else if (codeVerifier) {
-      // PKCE verifier present = Cognito login/signup flow
-      console.log('[AuthCallback] Flow detected: Cognito login/signup');
-      console.log('[AuthCallback] Payload type: code (authorization_code)');
-      console.log('[AuthCallback] redirect_uri:', COGNITO_CONFIG.redirectUri);
-      handleCognitoCallback(code);
-    } else {
-      console.error('[AuthCallback] Cannot determine flow: no state, no PKCE verifier');
-      setError(
-        'Unable to determine authentication flow. ' +
-        'Please try again from the sign-in page or dashboard.'
-      );
-    }
+    // ── Always attempt Cognito token exchange first ──────────────────
+    // Flow detection happens AFTER the exchange, based on id_token issuer.
+    console.log('[AuthCallback] Attempting Cognito token exchange to detect flow…');
+    handleTokenExchange(code, stateParam);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // ── Flow 1: Cognito Login/Signup ──────────────────────────────────
+  // ── Step 1: Exchange code with Cognito ─────────────────────────────
 
-  const handleCognitoCallback = async (code: string) => {
+  const handleTokenExchange = async (code: string, stateParam: string | null) => {
     try {
+      // Try to get PKCE verifier if present (Cognito may or may not use it)
       const codeVerifier = sessionStorage.getItem('cognito_code_verifier');
-      if (!codeVerifier) {
-        throw new Error('PKCE code verifier missing. Please try signing in again.');
+      if (codeVerifier) {
+        sessionStorage.removeItem('cognito_code_verifier');
       }
-      sessionStorage.removeItem('cognito_code_verifier');
 
-      console.log('[AuthCallback:Cognito] Exchanging code at:', COGNITO_CONFIG.tokenEndpoint);
-      console.log('[AuthCallback:Cognito] redirect_uri:', COGNITO_CONFIG.redirectUri);
+      console.log('[AuthCallback] Exchanging code at:', COGNITO_CONFIG.tokenEndpoint);
+      console.log('[AuthCallback] redirect_uri:', COGNITO_CONFIG.redirectUri);
+      console.log('[AuthCallback] PKCE verifier present:', !!codeVerifier);
 
-      // Step 1: Exchange authorization code for Cognito tokens
+      const bodyParams: Record<string, string> = {
+        grant_type: 'authorization_code',
+        client_id: COGNITO_CONFIG.clientId,
+        code,
+        redirect_uri: COGNITO_CONFIG.redirectUri,
+      };
+
+      // Only include code_verifier if we have one
+      if (codeVerifier) {
+        bodyParams.code_verifier = codeVerifier;
+      }
+
       const tokenResponse = await fetch(COGNITO_CONFIG.tokenEndpoint, {
         method: 'POST',
         headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-        body: new URLSearchParams({
-          grant_type: 'authorization_code',
-          client_id: COGNITO_CONFIG.clientId,
-          code,
-          redirect_uri: COGNITO_CONFIG.redirectUri,
-          code_verifier: codeVerifier,
-        }),
+        body: new URLSearchParams(bodyParams),
       });
 
       if (!tokenResponse.ok) {
         const errBody = await tokenResponse.json().catch(() => ({}));
-        throw new Error(errBody.error_description || errBody.error || 'Token exchange failed');
+        const errMsg = errBody.error_description || errBody.error || 'Token exchange failed';
+        console.warn('[AuthCallback] Cognito token exchange failed:', errMsg);
+
+        // If Cognito exchange fails AND we have a state param, this is likely
+        // a Connect Gmail/Outlook flow — the code was issued by Google/Microsoft,
+        // not Cognito.
+        if (stateParam) {
+          console.log('[AuthCallback] Falling back to Connect flow (state param present)');
+          setStatusMessage('Connecting your mailbox…');
+          await handleConnectCallback(code, stateParam);
+          return;
+        }
+
+        // No state param either → genuine failure
+        throw new Error(errMsg);
       }
 
       const tokens = await tokenResponse.json();
-      console.log('[AuthCallback:Cognito] Token response keys:', Object.keys(tokens));
+      console.log('[AuthCallback] Token response keys:', Object.keys(tokens));
 
-      // Step 2: Validate id_token
+      // ── Step 2: Inspect id_token issuer to determine flow ─────────
       const rawIdToken = tokens.id_token;
       if (!rawIdToken || typeof rawIdToken !== 'string') {
-        console.error('[AuthCallback:Cognito] id_token missing. Type:', typeof rawIdToken);
+        // No id_token from exchange — if state present, try Connect flow
+        if (stateParam) {
+          console.log('[AuthCallback] No id_token in response, falling back to Connect flow');
+          setStatusMessage('Connecting your mailbox…');
+          await handleConnectCallback(code, stateParam);
+          return;
+        }
         throw new Error('No valid ID token received from identity provider.');
       }
 
       const id_token = rawIdToken.trim();
       if (id_token.split('.').length !== 3) {
-        console.error('[AuthCallback:Cognito] id_token not a valid JWT (segments)');
         throw new Error('Received an invalid token format. Expected a JWT.');
       }
 
-      console.log('[AuthCallback:Cognito] id_token validated, length:', id_token.length);
+      const payload = decodeJwtPayload(id_token);
+      const issuer = (payload?.iss as string) || '';
 
-      // Store Cognito tokens
-      localStorage.setItem(
-        'cognito_tokens',
-        JSON.stringify({
-          access_token: tokens.access_token,
-          id_token,
-          refresh_token: tokens.refresh_token,
-          obtained_at: Date.now(),
-        })
-      );
+      console.log('[AuthCallback] id_token issuer:', issuer);
+      console.log('[AuthCallback] Expected Cognito issuer prefix:', COGNITO_ISSUER_PREFIX);
 
-      // Step 3: Bridge to backend session
-      const bridgeResponse = await fetch(
-        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/cognito-user-bridge`,
-        {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ id_token }),
+      if (issuer.startsWith(COGNITO_ISSUER_PREFIX)) {
+        // ── Flow: Cognito Login/Signup ──────────────────────────────
+        console.log('[AuthCallback] Flow detected: Cognito login/signup (issuer match)');
+        console.log('[AuthCallback] Payload type: id_token (Cognito)');
+        setStatusMessage('Completing sign-in…');
+        await handleCognitoSession(id_token, tokens);
+      } else {
+        // ── Flow: Connect Gmail/Outlook ─────────────────────────────
+        // Token exchange succeeded at Cognito but issuer doesn't match.
+        // This shouldn't normally happen, but handle gracefully.
+        console.log('[AuthCallback] Flow detected: Non-Cognito issuer, treating as Connect flow');
+        if (stateParam) {
+          setStatusMessage('Connecting your mailbox…');
+          await handleConnectCallback(code, stateParam);
+        } else {
+          throw new Error(
+            `Unexpected token issuer: ${issuer}. ` +
+            'Unable to determine authentication flow.'
+          );
         }
-      );
-
-      if (!bridgeResponse.ok) {
-        const errBody = await bridgeResponse.json().catch(() => ({}));
-        throw new Error(errBody.error || 'Failed to bridge authentication');
       }
-
-      const bridgeData = await bridgeResponse.json();
-      if (!bridgeData.token_hash) {
-        throw new Error('No session token received from bridge');
-      }
-
-      // Step 4: Establish backend session
-      const { error: verifyError } = await supabase.auth.verifyOtp({
-        token_hash: bridgeData.token_hash,
-        type: 'magiclink',
-      });
-
-      if (verifyError) {
-        throw new Error(`Session verification failed: ${verifyError.message}`);
-      }
-
-      console.log('[AuthCallback:Cognito] Session established, redirecting to /integrations');
-      navigate('/integrations', { replace: true });
     } catch (err) {
-      console.error('[AuthCallback:Cognito] Error:', err);
+      console.error('[AuthCallback] Error:', err);
       setError(err instanceof Error ? err.message : 'Authentication failed');
     }
+  };
+
+  // ── Flow 1: Cognito Login/Signup (after issuer confirmed) ──────────
+
+  const handleCognitoSession = async (
+    id_token: string,
+    tokens: { access_token?: string; refresh_token?: string }
+  ) => {
+    console.log('[AuthCallback:Cognito] id_token validated, length:', id_token.length);
+
+    // Store Cognito tokens
+    localStorage.setItem(
+      'cognito_tokens',
+      JSON.stringify({
+        access_token: tokens.access_token,
+        id_token,
+        refresh_token: tokens.refresh_token,
+        obtained_at: Date.now(),
+      })
+    );
+
+    // Bridge to backend session
+    const bridgeResponse = await fetch(
+      `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/cognito-user-bridge`,
+      {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id_token }),
+      }
+    );
+
+    if (!bridgeResponse.ok) {
+      const errBody = await bridgeResponse.json().catch(() => ({}));
+      throw new Error(errBody.error || 'Failed to bridge authentication');
+    }
+
+    const bridgeData = await bridgeResponse.json();
+    if (!bridgeData.token_hash) {
+      throw new Error('No session token received from bridge');
+    }
+
+    // Establish backend session
+    const { error: verifyError } = await supabase.auth.verifyOtp({
+      token_hash: bridgeData.token_hash,
+      type: 'magiclink',
+    });
+
+    if (verifyError) {
+      throw new Error(`Session verification failed: ${verifyError.message}`);
+    }
+
+    console.log('[AuthCallback:Cognito] Session established, redirecting to /integrations');
+    navigate('/integrations', { replace: true });
   };
 
   // ── Flow 2: Connect Gmail/Outlook ─────────────────────────────────
@@ -184,7 +239,7 @@ export default function AuthCallback() {
   const handleConnectCallback = async (code: string, state: string) => {
     try {
       console.log('[AuthCallback:Connect] Forwarding code to oauth-exchange');
-      console.log('[AuthCallback:Connect] redirect_uri used by oauth-init: https://app.wibookly.ai/auth/callback');
+      console.log('[AuthCallback:Connect] redirect_uri: https://app.wibookly.ai/auth/callback');
 
       const response = await fetch(
         `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/oauth-exchange`,
@@ -210,7 +265,6 @@ export default function AuthCallback() {
     } catch (err) {
       console.error('[AuthCallback:Connect] Error:', err);
       const message = err instanceof Error ? err.message : 'Connection failed';
-      // Redirect to integrations with error so the user sees the toast
       navigate(`/integrations?error=${encodeURIComponent(message)}`, { replace: true });
     }
   };
