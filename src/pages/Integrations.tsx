@@ -96,6 +96,7 @@ export default function Integrations() {
   const [confirmCalendarOnly, setConfirmCalendarOnly] = useState(false);
   const confirmOpen = confirmProvider !== null;
 
+  const [showPlanModal, setShowPlanModal] = useState(false);
   const [showDiagnostics, setShowDiagnostics] = useState(false);
   const [showGoogleError, setShowGoogleError] = useState(false);
   const [googleErrorMessage, setGoogleErrorMessage] = useState<string | undefined>();
