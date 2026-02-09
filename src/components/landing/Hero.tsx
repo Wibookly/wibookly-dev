@@ -26,12 +26,12 @@ export function Hero({ onGetStartedClick }: HeroProps) {
       <div className="container mx-auto px-6 relative z-10">
         <div className="max-w-5xl mx-auto text-center">
           <h1
-            className="text-4xl md:text-5xl lg:text-6xl font-bold tracking-tight leading-[1.08] text-foreground"
+            className="text-4xl md:text-5xl lg:text-6xl font-bold tracking-tight leading-[1.08]"
             style={{ fontFamily: "'Playfair Display', Georgia, serif" }}
           >
-            Stop writing emails.
+            <span className="text-foreground">Your inbox, handled.</span>
             <br />
-            Start closing deals.
+            <span className="text-primary">Your focus, reclaimed.</span>
           </h1>
 
           <p className="mt-8 text-lg md:text-xl text-muted-foreground max-w-2xl mx-auto leading-relaxed">
