@@ -113,17 +113,16 @@ export default function AuthCallback() {
         const errMsg = errBody.error_description || errBody.error || 'Token exchange failed';
         console.warn('[AuthCallback] Cognito token exchange failed:', errMsg);
 
-        // If Cognito exchange fails AND we have a state param, this is likely
-        // a Connect Gmail/Outlook flow — the code was issued by Google/Microsoft,
-        // not Cognito.
-        if (stateParam) {
-          console.log('[AuthCallback] Falling back to Connect flow (state param present)');
+        // Only fallback to Connect flow when state explicitly starts with "connect:"
+        // Cognito also uses state, so presence alone is not a reliable signal.
+        if (stateParam && stateParam.startsWith('connect:')) {
+          console.log('[AuthCallback] Fallback to connect flow', { state: stateParam });
           setStatusMessage('Connecting your mailbox…');
           await handleConnectCallback(code, stateParam);
           return;
         }
 
-        // No state param either → genuine failure
+        // Genuine failure — not a connect flow
         throw new Error(errMsg);
       }
 
@@ -133,9 +132,9 @@ export default function AuthCallback() {
       // ── Step 2: Inspect id_token issuer to determine flow ─────────
       const rawIdToken = tokens.id_token;
       if (!rawIdToken || typeof rawIdToken !== 'string') {
-        // No id_token from exchange — if state present, try Connect flow
-        if (stateParam) {
-          console.log('[AuthCallback] No id_token in response, falling back to Connect flow');
+      // No id_token from exchange — only fallback if state is a connect flow
+        if (stateParam && stateParam.startsWith('connect:')) {
+          console.log('[AuthCallback] Fallback to connect flow (no id_token)', { state: stateParam });
           setStatusMessage('Connecting your mailbox…');
           await handleConnectCallback(code, stateParam);
           return;
@@ -164,8 +163,9 @@ export default function AuthCallback() {
         // ── Flow: Connect Gmail/Outlook ─────────────────────────────
         // Token exchange succeeded at Cognito but issuer doesn't match.
         // This shouldn't normally happen, but handle gracefully.
-        console.log('[AuthCallback] Flow detected: Non-Cognito issuer, treating as Connect flow');
-        if (stateParam) {
+        console.log('[AuthCallback] Flow detected: Non-Cognito issuer');
+        if (stateParam && stateParam.startsWith('connect:')) {
+          console.log('[AuthCallback] Fallback to connect flow (non-Cognito issuer)', { state: stateParam });
           setStatusMessage('Connecting your mailbox…');
           await handleConnectCallback(code, stateParam);
         } else {
