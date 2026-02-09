@@ -116,10 +116,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     // 1. Generate PKCE verifier (sync)
     const codeVerifier = generateCodeVerifier();
 
-    // 2. Store verifier IMMEDIATELY — before any async work
-    sessionStorage.setItem('cognito_code_verifier', codeVerifier);
+    // 2. Store verifier IMMEDIATELY — using localStorage (survives external redirects)
+    localStorage.setItem('cognito_code_verifier', codeVerifier);
     console.log('[PKCE] generated verifier length:', codeVerifier.length);
-    console.log('[PKCE] sessionStorage set:', sessionStorage.getItem('cognito_code_verifier')?.length);
+    console.log('[PKCE] localStorage set:', localStorage.getItem('cognito_code_verifier')?.length);
 
     // 3. Derive challenge (async)
     const codeChallenge = await generateCodeChallenge(codeVerifier);
