@@ -25,7 +25,7 @@ export function Header({ onSignInClick, onGetStartedClick }: HeaderProps) {
           <Button 
             variant="outline" 
             size="sm" 
-            className="rounded-full px-5 border-border/50 bg-card/60 hover:bg-card/80"
+            className="rounded-full px-5 border-primary/40 text-primary bg-primary/10 hover:bg-primary/20 hover:border-primary/60"
             onClick={onSignInClick}
           >
             Log In
