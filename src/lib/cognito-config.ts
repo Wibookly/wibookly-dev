@@ -32,6 +32,7 @@ export const COGNITO_CONFIG = {
    */
   identityProviders: {
     google: 'Google',
+    microsoft: 'Microsoft',
   },
 
   /** OAuth endpoints (derived from custom domain) */
