@@ -73,11 +73,15 @@ export default function AuthCallback() {
     // ── PKCE verifier is REQUIRED — hard fail if missing ──
     const codeVerifier = sessionStorage.getItem('cognito_code_verifier');
 
+    console.log('[PKCE] callback url:', window.location.href);
+    console.log('[PKCE] code present:', Boolean(code));
+    console.log('[PKCE] verifier present:', Boolean(codeVerifier));
+    console.log('[PKCE] verifier length:', codeVerifier?.length);
+
     if (!codeVerifier) {
       console.error('[AuthCallback] PKCE verifier missing from sessionStorage');
       setError(
-        'Authentication session expired or was lost. ' +
-        'No PKCE verifier found. Please try signing in again.'
+        'PKCE verifier missing. This means the browser sessionStorage value was not saved or was cleared before redirect.'
       );
       return;
     }
