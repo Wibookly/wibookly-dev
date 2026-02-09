@@ -525,6 +525,7 @@ export default function Integrations() {
 
   return (
     <div className="min-h-full p-4 lg:p-6">
+      <PlanSelectionModal open={showPlanModal} onOpenChange={setShowPlanModal} />
       {/* User Avatar Row */}
       <div className="mb-4 flex justify-end">
         <UserAvatarDropdown />
