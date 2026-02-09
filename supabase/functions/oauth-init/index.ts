@@ -83,8 +83,11 @@ serve(async (req) => {
     // Generate a random state parameter for CSRF protection
     const state = crypto.randomUUID();
     
-    // Store the state in a simple format to pass to callback
-    const stateData = btoa(JSON.stringify({
+    // Encode state data as base64 JSON, then prefix with "connect:" so the
+    // SPA callback (/auth/callback) can distinguish Connect flows from
+    // Cognito login flows. The callback strips the prefix before forwarding
+    // to oauth-exchange.
+    const statePayload = btoa(JSON.stringify({
       state,
       userId,
       organizationId,
@@ -94,13 +97,14 @@ serve(async (req) => {
       appOrigin: req.headers.get('origin') || undefined,
       redirectUrl: redirectUrl || '/integrations'
     }));
+    const stateData = `connect:${statePayload}`;
 
     let authUrl: string;
 
     // All Connect flows use the same redirect_uri as Cognito login — the
     // SPA callback at https://app.wibookly.ai/auth/callback.  The callback
-    // component detects the flow type (Cognito vs Connect) by checking for
-    // the presence of the `state` parameter vs the PKCE code verifier.
+    // detects the flow type by checking for the "connect:" prefix in state
+    // (Connect flow) vs the PKCE verifier in sessionStorage (Cognito flow).
     const callbackUrl = 'https://app.wibookly.ai/auth/callback';
 
     console.log(`[oauth-init] Flow: Connect ${provider} (NOT Cognito)`);
