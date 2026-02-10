@@ -14,6 +14,7 @@ const navItems = [
   { title: 'AI Drafts', href: '/email-draft', icon: Sparkles },
   { title: 'AI Activity', href: '/ai-activity', icon: BarChart3 },
   { title: 'Settings', href: '/settings', icon: Settings },
+  { title: 'Billing & Usage', href: '/billing', icon: CreditCard },
 ];
 
 interface MobileSidebarProps {
