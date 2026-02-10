@@ -230,7 +230,9 @@ export function AppSidebar() {
 
           {/* Reports */}
           <NavSection title="Reports" icon={BarChart3} defaultOpen>
-            <NavItem href="/ai-activity" icon={BarChart3} showUpgradeBadge={needsUpgradeForAnalytics}>AI Activity</NavItem>
+            <div data-tour="nav-activity">
+              <NavItem href="/ai-activity" icon={BarChart3} showUpgradeBadge={needsUpgradeForAnalytics}>AI Activity</NavItem>
+            </div>
           </NavSection>
 
           {/* Super Admin - only visible to super_admin users */}
