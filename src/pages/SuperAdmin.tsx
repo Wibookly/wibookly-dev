@@ -504,6 +504,119 @@ export default function SuperAdmin() {
   );
 }
 
+// ===== Create User Card =====
+function CreateUserCard({
+  callAdminFunction,
+  onCreated,
+  toast,
+}: {
+  callAdminFunction: (body: Record<string, any>) => Promise<any>;
+  onCreated: () => void;
+  toast: any;
+}) {
+  const [open, setOpen] = useState(false);
+  const [email, setEmail] = useState('');
+  const [fullName, setFullName] = useState('');
+  const [password, setPassword] = useState('');
+  const [planOverride, setPlanOverride] = useState('none');
+  const [creating, setCreating] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
+
+  const handleCreate = async () => {
+    if (!email || !password) return;
+    setCreating(true);
+    try {
+      await callAdminFunction({
+        action: 'create_user',
+        email,
+        password,
+        full_name: fullName || undefined,
+        plan_override: planOverride,
+      });
+      toast({ title: 'User created', description: `${email} has been created successfully.` });
+      setEmail('');
+      setFullName('');
+      setPassword('');
+      setPlanOverride('none');
+      setOpen(false);
+      onCreated();
+    } catch (err: any) {
+      toast({ title: 'Error', description: err.message, variant: 'destructive' });
+    } finally {
+      setCreating(false);
+    }
+  };
+
+  return (
+    <Dialog open={open} onOpenChange={setOpen}>
+      <DialogTrigger asChild>
+        <Button>
+          <UserPlus className="w-4 h-4 mr-2" />
+          Create New User
+        </Button>
+      </DialogTrigger>
+      <DialogContent className="sm:max-w-md">
+        <DialogHeader>
+          <DialogTitle>Create New User</DialogTitle>
+          <DialogDescription>Create a new account with optional plan assignment.</DialogDescription>
+        </DialogHeader>
+        <div className="space-y-4 py-2">
+          <div className="space-y-2">
+            <Label>Email *</Label>
+            <Input type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="user@example.com" />
+          </div>
+          <div className="space-y-2">
+            <Label>Full Name</Label>
+            <Input value={fullName} onChange={(e) => setFullName(e.target.value)} placeholder="John Doe" />
+          </div>
+          <div className="space-y-2">
+            <Label>Password *</Label>
+            <div className="relative">
+              <Input
+                type={showPassword ? 'text' : 'password'}
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                placeholder="Min 6 characters"
+              />
+              <Button
+                type="button"
+                variant="ghost"
+                size="icon"
+                className="absolute right-1 top-1/2 -translate-y-1/2 h-7 w-7"
+                onClick={() => setShowPassword(!showPassword)}
+              >
+                {showPassword ? <EyeOff className="w-3 h-3" /> : <Eye className="w-3 h-3" />}
+              </Button>
+            </div>
+          </div>
+          <div className="space-y-2">
+            <Label>Assign Plan (Free Override)</Label>
+            <Select value={planOverride} onValueChange={setPlanOverride}>
+              <SelectTrigger>
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="none">No override (Starter default)</SelectItem>
+                <SelectItem value="starter">Starter</SelectItem>
+                <SelectItem value="pro">Pro</SelectItem>
+                <SelectItem value="enterprise">Business</SelectItem>
+              </SelectContent>
+            </Select>
+            <p className="text-xs text-muted-foreground">If set, the user gets this plan for free without Stripe.</p>
+          </div>
+        </div>
+        <DialogFooter>
+          <Button variant="outline" onClick={() => setOpen(false)}>Cancel</Button>
+          <Button onClick={handleCreate} disabled={creating || !email || !password || password.length < 6}>
+            {creating && <Loader2 className="w-4 h-4 animate-spin mr-2" />}
+            Create User
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
 // ===== Account Row with expandable connections =====
 function AccountRow({
   user: u,
@@ -526,13 +639,30 @@ function AccountRow({
   const [showConnections, setShowConnections] = useState(false);
   const [loadingConns, setLoadingConns] = useState(false);
   const [deletingConn, setDeletingConn] = useState<string | null>(null);
+  const [isBanned, setIsBanned] = useState<boolean | null>(null);
+  const [togglingBan, setTogglingBan] = useState(false);
+  const [resetDialogOpen, setResetDialogOpen] = useState(false);
+  const [newPassword, setNewPassword] = useState('');
+  const [showNewPassword, setShowNewPassword] = useState(false);
+  const [resettingPassword, setResettingPassword] = useState(false);
   const isSelf = u.user_id === currentUserId;
 
+  // Load user ban status on mount
+  useEffect(() => {
+    const checkStatus = async () => {
+      try {
+        const result = await callAdminFunction({ action: 'get_user_status', target_user_id: u.user_id });
+        const bannedUntil = result.banned_until;
+        setIsBanned(bannedUntil ? new Date(bannedUntil) > new Date() : false);
+      } catch {
+        setIsBanned(false);
+      }
+    };
+    checkStatus();
+  }, [u.user_id]);
+
   const loadConnections = async () => {
-    if (showConnections) {
-      setShowConnections(false);
-      return;
-    }
+    if (showConnections) { setShowConnections(false); return; }
     setLoadingConns(true);
     try {
       const result = await callAdminFunction({ action: 'get_user_connections', target_user_id: u.user_id });
@@ -559,6 +689,34 @@ function AccountRow({
     }
   };
 
+  const toggleBan = async () => {
+    setTogglingBan(true);
+    try {
+      await callAdminFunction({ action: 'toggle_ban', target_user_id: u.user_id, ban: !isBanned });
+      setIsBanned(!isBanned);
+      toast({ title: isBanned ? 'Account unlocked' : 'Account locked', description: isBanned ? 'User can now sign in.' : 'User is blocked from signing in.' });
+    } catch (err: any) {
+      toast({ title: 'Error', description: err.message, variant: 'destructive' });
+    } finally {
+      setTogglingBan(false);
+    }
+  };
+
+  const resetPassword = async () => {
+    if (!newPassword || newPassword.length < 6) return;
+    setResettingPassword(true);
+    try {
+      await callAdminFunction({ action: 'reset_password', target_user_id: u.user_id, new_password: newPassword });
+      toast({ title: 'Password reset', description: `Password updated for ${u.email}.` });
+      setNewPassword('');
+      setResetDialogOpen(false);
+    } catch (err: any) {
+      toast({ title: 'Error', description: err.message, variant: 'destructive' });
+    } finally {
+      setResettingPassword(false);
+    }
+  };
+
   const effectivePlan = u.override?.is_active ? u.override.granted_plan : u.subscription?.plan || 'starter';
 
   return (
@@ -571,42 +729,99 @@ function AccountRow({
           </div>
         </TableCell>
         <TableCell>
-          <p className="text-xs text-muted-foreground truncate max-w-[120px]">{u.organization_id.slice(0, 8)}…</p>
+          {isBanned === null ? (
+            <Badge variant="outline" className="text-xs">Loading...</Badge>
+          ) : isBanned ? (
+            <Badge variant="destructive" className="text-xs">Locked</Badge>
+          ) : (
+            <Badge variant="default" className="text-xs">Active</Badge>
+          )}
         </TableCell>
         <TableCell>
           <Button variant="outline" size="sm" onClick={loadConnections} disabled={loadingConns}>
             {loadingConns ? <Loader2 className="w-3 h-3 animate-spin mr-1" /> : <Mail className="w-3 h-3 mr-1" />}
-            {showConnections ? 'Hide' : 'View'} Emails
+            {showConnections ? 'Hide' : 'View'}
           </Button>
         </TableCell>
         <TableCell>
           <Badge variant="outline" className="capitalize">{effectivePlan}</Badge>
         </TableCell>
         <TableCell>
-          {!isSelf && (
-            <AlertDialog>
-              <AlertDialogTrigger asChild>
-                <Button variant="ghost" size="icon" disabled={saving}>
-                  <Trash2 className="w-4 h-4 text-destructive" />
+          <div className="flex items-center gap-0.5">
+            {/* Reset Password */}
+            <Dialog open={resetDialogOpen} onOpenChange={setResetDialogOpen}>
+              <DialogTrigger asChild>
+                <Button variant="ghost" size="icon" title="Reset Password">
+                  <KeyRound className="w-4 h-4" />
                 </Button>
-              </AlertDialogTrigger>
-              <AlertDialogContent>
-                <AlertDialogHeader>
-                  <AlertDialogTitle>Delete Account</AlertDialogTitle>
-                  <AlertDialogDescription>
-                    This will permanently delete <strong>{u.email}</strong> and all their data (connections, categories, AI settings, etc.). This cannot be undone.
-                  </AlertDialogDescription>
-                </AlertDialogHeader>
-                <AlertDialogFooter>
-                  <AlertDialogCancel>Cancel</AlertDialogCancel>
-                  <AlertDialogAction onClick={onDeleteAccount} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
-                    Delete Account
-                  </AlertDialogAction>
-                </AlertDialogFooter>
-              </AlertDialogContent>
-            </AlertDialog>
-          )}
-          {isSelf && <span className="text-xs text-muted-foreground">You</span>}
+              </DialogTrigger>
+              <DialogContent className="sm:max-w-sm">
+                <DialogHeader>
+                  <DialogTitle>Reset Password</DialogTitle>
+                  <DialogDescription>Set a new password for {u.email}</DialogDescription>
+                </DialogHeader>
+                <div className="space-y-3 py-2">
+                  <div className="relative">
+                    <Input
+                      type={showNewPassword ? 'text' : 'password'}
+                      value={newPassword}
+                      onChange={(e) => setNewPassword(e.target.value)}
+                      placeholder="New password (min 6 chars)"
+                    />
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="icon"
+                      className="absolute right-1 top-1/2 -translate-y-1/2 h-7 w-7"
+                      onClick={() => setShowNewPassword(!showNewPassword)}
+                    >
+                      {showNewPassword ? <EyeOff className="w-3 h-3" /> : <Eye className="w-3 h-3" />}
+                    </Button>
+                  </div>
+                </div>
+                <DialogFooter>
+                  <Button variant="outline" onClick={() => setResetDialogOpen(false)}>Cancel</Button>
+                  <Button onClick={resetPassword} disabled={resettingPassword || !newPassword || newPassword.length < 6}>
+                    {resettingPassword && <Loader2 className="w-3 h-3 animate-spin mr-1" />}
+                    Reset
+                  </Button>
+                </DialogFooter>
+              </DialogContent>
+            </Dialog>
+
+            {/* Lock/Unlock */}
+            {!isSelf && (
+              <Button variant="ghost" size="icon" onClick={toggleBan} disabled={togglingBan || isBanned === null} title={isBanned ? 'Unlock account' : 'Lock account'}>
+                {togglingBan ? <Loader2 className="w-4 h-4 animate-spin" /> : isBanned ? <Unlock className="w-4 h-4 text-primary" /> : <Lock className="w-4 h-4 text-muted-foreground" />}
+              </Button>
+            )}
+
+            {/* Delete */}
+            {!isSelf && (
+              <AlertDialog>
+                <AlertDialogTrigger asChild>
+                  <Button variant="ghost" size="icon" disabled={saving} title="Delete account">
+                    <Trash2 className="w-4 h-4 text-destructive" />
+                  </Button>
+                </AlertDialogTrigger>
+                <AlertDialogContent>
+                  <AlertDialogHeader>
+                    <AlertDialogTitle>Delete Account</AlertDialogTitle>
+                    <AlertDialogDescription>
+                      This will permanently delete <strong>{u.email}</strong> and all their data. This cannot be undone.
+                    </AlertDialogDescription>
+                  </AlertDialogHeader>
+                  <AlertDialogFooter>
+                    <AlertDialogCancel>Cancel</AlertDialogCancel>
+                    <AlertDialogAction onClick={onDeleteAccount} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+                      Delete Account
+                    </AlertDialogAction>
+                  </AlertDialogFooter>
+                </AlertDialogContent>
+              </AlertDialog>
+            )}
+            {isSelf && <span className="text-xs text-muted-foreground ml-1">You</span>}
+          </div>
         </TableCell>
       </TableRow>
       {showConnections && (
@@ -638,7 +853,7 @@ function AccountRow({
                         <AlertDialogHeader>
                           <AlertDialogTitle>Delete Email Connection</AlertDialogTitle>
                           <AlertDialogDescription>
-                            This will remove <strong>{conn.connected_email}</strong> and all associated data (categories, rules, drafts). This cannot be undone.
+                            This will remove <strong>{conn.connected_email}</strong> and all associated data. This cannot be undone.
                           </AlertDialogDescription>
                         </AlertDialogHeader>
                         <AlertDialogFooter>
