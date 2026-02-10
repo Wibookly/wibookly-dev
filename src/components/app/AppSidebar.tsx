@@ -141,7 +141,7 @@ export function AppSidebar() {
       </div>
 
       {/* Active Email Selector */}
-      <div className="px-4 py-3 border-b border-border">
+      <div className="px-4 py-3 border-b border-border" data-tour="email-selector">
         <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">Connected Emails</h3>
         {loading ? (
           <div className="h-10 bg-secondary animate-pulse rounded-lg" />
