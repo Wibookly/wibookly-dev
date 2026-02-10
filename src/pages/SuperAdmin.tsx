@@ -73,16 +73,16 @@ function getPlanDisplayInfo(user: UserWithOverride) {
   const isFreeOverride = !!overridePlan;
 
   if (effectivePlan === 'enterprise') {
-    return { label: 'Business', color: 'hsl(38 92% 50%)', bg: 'hsl(38 92% 50% / 0.12)', paid: !isFreeOverride };
+    return { label: 'Business $', color: 'hsl(38 92% 50%)', bg: 'hsl(38 92% 50% / 0.12)', paid: true };
   }
   if (effectivePlan === 'pro') {
-    return { label: isFreeOverride ? 'Pro Free' : 'Pro', color: 'hsl(280 70% 60%)', bg: 'hsl(280 70% 60% / 0.12)', paid: !isFreeOverride };
+    return { label: isFreeOverride ? 'Pro Free' : 'Pro $', color: 'hsl(280 70% 60%)', bg: 'hsl(280 70% 60% / 0.12)', paid: !isFreeOverride };
   }
   // Starter
   if (hasPaidSubscription && subPlan === 'starter' && !isFreeOverride) {
-    return { label: 'Starter', color: 'hsl(210 80% 55%)', bg: 'hsl(210 80% 55% / 0.12)', paid: true };
+    return { label: 'Starter $', color: 'hsl(210 80% 55%)', bg: 'hsl(210 80% 55% / 0.12)', paid: true };
   }
-  return { label: isFreeOverride ? 'Starter Free' : 'Starter Free', color: 'hsl(var(--muted-foreground))', bg: 'hsl(var(--muted-foreground) / 0.08)', paid: false };
+  return { label: 'Starter Free', color: 'hsl(var(--muted-foreground))', bg: 'hsl(var(--muted-foreground) / 0.08)', paid: false };
 }
 
 export default function SuperAdmin() {
@@ -801,8 +801,8 @@ function CreateUserCard({
               <SelectTrigger><SelectValue /></SelectTrigger>
               <SelectContent>
                 <SelectItem value="none">Starter Free</SelectItem>
-                <SelectItem value="starter">Starter $</SelectItem>
-                <SelectItem value="pro">Pro</SelectItem>
+                <SelectItem value="starter">Starter Free (Override)</SelectItem>
+                <SelectItem value="pro">Pro Free (Override)</SelectItem>
                 <SelectItem value="enterprise">Business</SelectItem>
               </SelectContent>
             </Select>
@@ -935,7 +935,14 @@ function UnifiedAccountRow({
     }
   };
 
-  const effectivePlan = u.override?.is_active ? u.override.granted_plan : u.subscription?.plan || 'starter';
+  const isFreeOverride = !!u.override?.is_active;
+  const rawPlan = u.override?.is_active ? u.override.granted_plan : u.subscription?.plan || 'starter';
+  // Build a select-compatible value distinguishing paid vs free
+  const selectPlanValue = rawPlan === 'enterprise' 
+    ? 'enterprise' 
+    : isFreeOverride 
+      ? rawPlan  // 'starter' or 'pro' (free override)
+      : (u.subscription?.status === 'active' ? `${rawPlan}_paid` : rawPlan);
 
   return (
     <>
@@ -958,17 +965,23 @@ function UnifiedAccountRow({
         <TableCell>
           <div className="flex items-center gap-1.5">
             <Select
-              value={effectivePlan}
-              onValueChange={(val) => onGrantOverride(u.user_id, val as PlanType)}
+              value={selectPlanValue}
+              onValueChange={(val) => {
+                // Only allow free overrides (starter, pro, enterprise)
+                if (val === 'starter_paid' || val === 'pro_paid') return;
+                onGrantOverride(u.user_id, val as PlanType);
+              }}
               disabled={saving}
             >
-              <SelectTrigger className="w-[120px] h-8" style={{ borderColor: planInfo.color }}>
+              <SelectTrigger className="w-[150px] h-8" style={{ borderColor: planInfo.color }}>
                 <SelectValue />
               </SelectTrigger>
               <SelectContent className="bg-card z-50">
                 <SelectItem value="starter">Starter Free</SelectItem>
                 <SelectItem value="pro">Pro Free</SelectItem>
-                <SelectItem value="enterprise">Business</SelectItem>
+                <SelectItem value="starter_paid" disabled className="opacity-50">Starter $ (Stripe)</SelectItem>
+                <SelectItem value="pro_paid" disabled className="opacity-50">Pro $ (Stripe)</SelectItem>
+                <SelectItem value="enterprise">Business $ (Stripe)</SelectItem>
               </SelectContent>
             </Select>
             {planInfo.paid && (
