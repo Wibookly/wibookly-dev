@@ -222,7 +222,9 @@ export function AppSidebar() {
 
           {/* Settings */}
           <NavSection title="Settings" icon={Settings} defaultOpen>
-            <NavItem href="/settings?section=profile" icon={User}>My Profile</NavItem>
+            <div data-tour="nav-profile">
+              <NavItem href="/settings?section=profile" icon={User}>My Profile</NavItem>
+            </div>
             <NavItem href="/settings?section=signature" icon={PenTool}>My Signature</NavItem>
           </NavSection>
 
