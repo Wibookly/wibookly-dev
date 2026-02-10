@@ -325,7 +325,7 @@ export default function AIDailyBrief() {
   }
 
   return (
-    <div className="min-h-full p-4 lg:p-6" ref={printRef}>
+    <div className="min-h-full p-4 lg:p-6" ref={printRef} data-tour="daily-brief">
       <div className="mb-4 flex justify-end">
         <UserAvatarDropdown />
       </div>

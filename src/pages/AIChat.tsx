@@ -359,7 +359,7 @@ export default function AIChat() {
   };
 
   return (
-    <div className="flex h-[calc(100vh-4rem)] overflow-hidden">
+    <div className="flex h-[calc(100vh-4rem)] overflow-hidden" data-tour="ai-chat">
       {/* Sidebar - Chat History */}
       <div className="w-64 border-r border-border bg-card/50 flex flex-col">
         <div className="p-3 border-b border-border">

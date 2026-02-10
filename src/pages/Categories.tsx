@@ -715,7 +715,7 @@ export default function Categories() {
         <UserAvatarDropdown />
       </div>
       
-      <div className="max-w-6xl animate-fade-in bg-card/80 backdrop-blur-sm rounded-xl border border-border shadow-lg p-6">
+      <div className="max-w-6xl animate-fade-in bg-card/80 backdrop-blur-sm rounded-xl border border-border shadow-lg p-6" data-tour="categories-list">
         <div className="mb-8 flex items-center justify-between">
           <div>
             <h1 className="text-2xl font-semibold tracking-tight">Categories</h1>

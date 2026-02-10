@@ -231,7 +231,7 @@ export default function AIActivityDashboard() {
         <UserAvatarDropdown />
       </div>
       
-      <div className="max-w-6xl animate-fade-in bg-card/80 backdrop-blur-sm rounded-xl border border-border shadow-lg p-6">
+      <div className="max-w-6xl animate-fade-in bg-card/80 backdrop-blur-sm rounded-xl border border-border shadow-lg p-6" data-tour="ai-activity">
         <div className="mb-8 flex flex-col md:flex-row md:items-center justify-between gap-4">
           <div>
             <h1 className="text-2xl font-semibold tracking-tight">AI Activity Dashboard</h1>

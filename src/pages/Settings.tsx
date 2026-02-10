@@ -653,7 +653,7 @@ export default function Settings() {
 
         {/* Email Signature Builder */}
         {activeSection === 'signature' && (
-        <section className="space-y-4">
+        <section className="space-y-4" data-tour="signature-section">
           <div className="flex items-center justify-between">
             <div>
               <h2 className="text-lg font-semibold">Email Signature</h2>

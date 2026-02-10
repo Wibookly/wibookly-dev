@@ -658,7 +658,7 @@ export default function Integrations() {
       </AlertDialog>
 
       {currentTab === 'settings' && (
-        <div className="space-y-8">
+        <div className="space-y-8" data-tour="calendar-section">
           {/* Availability Hours Section */}
           <div className="space-y-4">
             <div className="flex items-center gap-2 mb-4">
