@@ -69,17 +69,20 @@ function getPlanDisplayInfo(user: UserWithOverride) {
   const subPlan = user.subscription?.plan || 'starter';
   const effectivePlan = overridePlan || subPlan;
 
+  // If user has an active override, it's a free grant
+  const isFreeOverride = !!overridePlan;
+
   if (effectivePlan === 'enterprise') {
-    return { label: 'Business', color: 'hsl(38 92% 50%)', bg: 'hsl(38 92% 50% / 0.12)', paid: true };
+    return { label: 'Business', color: 'hsl(38 92% 50%)', bg: 'hsl(38 92% 50% / 0.12)', paid: !isFreeOverride };
   }
   if (effectivePlan === 'pro') {
-    return { label: 'Pro', color: 'hsl(280 70% 60%)', bg: 'hsl(280 70% 60% / 0.12)', paid: true };
+    return { label: isFreeOverride ? 'Pro Free' : 'Pro', color: 'hsl(280 70% 60%)', bg: 'hsl(280 70% 60% / 0.12)', paid: !isFreeOverride };
   }
-  // Starter - check if paid or free
-  if (hasPaidSubscription && subPlan === 'starter') {
+  // Starter
+  if (hasPaidSubscription && subPlan === 'starter' && !isFreeOverride) {
     return { label: 'Starter', color: 'hsl(210 80% 55%)', bg: 'hsl(210 80% 55% / 0.12)', paid: true };
   }
-  return { label: 'Starter', color: 'hsl(var(--muted-foreground))', bg: 'hsl(var(--muted-foreground) / 0.08)', paid: false };
+  return { label: isFreeOverride ? 'Starter Free' : 'Starter Free', color: 'hsl(var(--muted-foreground))', bg: 'hsl(var(--muted-foreground) / 0.08)', paid: false };
 }
 
 export default function SuperAdmin() {
@@ -334,7 +337,8 @@ export default function SuperAdmin() {
     const effectivePlanKey = u.override?.is_active ? u.override.granted_plan : u.subscription?.plan || 'starter';
     if (filterPlan === 'starter_free' && !(effectivePlanKey === 'starter' && !planInfo.paid)) return false;
     if (filterPlan === 'starter_paid' && !(effectivePlanKey === 'starter' && planInfo.paid)) return false;
-    if (filterPlan === 'pro' && effectivePlanKey !== 'pro') return false;
+    if (filterPlan === 'pro_free' && !(effectivePlanKey === 'pro' && !planInfo.paid)) return false;
+    if (filterPlan === 'pro_paid' && !(effectivePlanKey === 'pro' && planInfo.paid)) return false;
     if (filterPlan === 'enterprise' && effectivePlanKey !== 'enterprise') return false;
 
     // Status filter
@@ -360,9 +364,15 @@ export default function SuperAdmin() {
       const p = u.override?.is_active ? u.override.granted_plan : u.subscription?.plan || 'starter';
       return p === 'starter' && info.paid;
     }).length,
-    pro: subscriberUsers.filter(u => {
+    proFree: subscriberUsers.filter(u => {
+      const info = getPlanDisplayInfo(u);
       const p = u.override?.is_active ? u.override.granted_plan : u.subscription?.plan || 'starter';
-      return p === 'pro';
+      return p === 'pro' && !info.paid;
+    }).length,
+    proPaid: subscriberUsers.filter(u => {
+      const info = getPlanDisplayInfo(u);
+      const p = u.override?.is_active ? u.override.granted_plan : u.subscription?.plan || 'starter';
+      return p === 'pro' && info.paid;
     }).length,
     business: subscriberUsers.filter(u => {
       const p = u.override?.is_active ? u.override.granted_plan : u.subscription?.plan || 'starter';
@@ -473,11 +483,12 @@ export default function SuperAdmin() {
                   <SelectTrigger className="w-[160px] h-9">
                     <SelectValue placeholder="All Plans" />
                   </SelectTrigger>
-                  <SelectContent>
+                  <SelectContent className="bg-card z-50">
                     <SelectItem value="all">All Plans</SelectItem>
                     <SelectItem value="starter_free">Starter Free</SelectItem>
                     <SelectItem value="starter_paid">Starter $</SelectItem>
-                    <SelectItem value="pro">Pro</SelectItem>
+                    <SelectItem value="pro_free">Pro Free</SelectItem>
+                    <SelectItem value="pro_paid">Pro $</SelectItem>
                     <SelectItem value="enterprise">Business</SelectItem>
                   </SelectContent>
                 </Select>
@@ -665,10 +676,17 @@ export default function SuperAdmin() {
               </div>
             </div>
             <div className="flex items-center gap-3">
+              <div className="w-3 h-3 rounded-full" style={{ background: 'hsl(280 70% 60% / 0.4)' }} />
+              <div>
+                <p className="text-sm font-medium text-foreground">Pro Free</p>
+                <p className="text-xs text-muted-foreground">{planCounts.proFree} subscribers</p>
+              </div>
+            </div>
+            <div className="flex items-center gap-3">
               <div className="w-3 h-3 rounded-full" style={{ background: 'hsl(280 70% 60%)' }} />
               <div>
-                <p className="text-sm font-medium text-foreground">Pro</p>
-                <p className="text-xs text-muted-foreground">{planCounts.pro} subscribers</p>
+                <p className="text-sm font-medium text-foreground">Pro $</p>
+                <p className="text-xs text-muted-foreground">{planCounts.proPaid} subscribers</p>
               </div>
             </div>
             <div className="flex items-center gap-3">
@@ -947,11 +965,9 @@ function UnifiedAccountRow({
               <SelectTrigger className="w-[120px] h-8" style={{ borderColor: planInfo.color }}>
                 <SelectValue />
               </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="starter">
-                  <span className="flex items-center gap-1">Starter Free</span>
-                </SelectItem>
-                <SelectItem value="pro">Pro</SelectItem>
+              <SelectContent className="bg-card z-50">
+                <SelectItem value="starter">Starter Free</SelectItem>
+                <SelectItem value="pro">Pro Free</SelectItem>
                 <SelectItem value="enterprise">Business</SelectItem>
               </SelectContent>
             </Select>
