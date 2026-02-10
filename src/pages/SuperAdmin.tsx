@@ -337,7 +337,8 @@ export default function SuperAdmin() {
     const effectivePlanKey = u.override?.is_active ? u.override.granted_plan : u.subscription?.plan || 'starter';
     if (filterPlan === 'starter_free' && !(effectivePlanKey === 'starter' && !planInfo.paid)) return false;
     if (filterPlan === 'starter_paid' && !(effectivePlanKey === 'starter' && planInfo.paid)) return false;
-    if (filterPlan === 'pro' && effectivePlanKey !== 'pro') return false;
+    if (filterPlan === 'pro_free' && !(effectivePlanKey === 'pro' && !planInfo.paid)) return false;
+    if (filterPlan === 'pro_paid' && !(effectivePlanKey === 'pro' && planInfo.paid)) return false;
     if (filterPlan === 'enterprise' && effectivePlanKey !== 'enterprise') return false;
 
     // Status filter
