@@ -73,16 +73,16 @@ function getPlanDisplayInfo(user: UserWithOverride) {
   const isFreeOverride = !!overridePlan;
 
   if (effectivePlan === 'enterprise') {
-    return { label: 'Business', color: 'hsl(38 92% 50%)', bg: 'hsl(38 92% 50% / 0.12)', paid: !isFreeOverride };
+    return { label: 'Business $', color: 'hsl(38 92% 50%)', bg: 'hsl(38 92% 50% / 0.12)', paid: true };
   }
   if (effectivePlan === 'pro') {
-    return { label: isFreeOverride ? 'Pro Free' : 'Pro', color: 'hsl(280 70% 60%)', bg: 'hsl(280 70% 60% / 0.12)', paid: !isFreeOverride };
+    return { label: isFreeOverride ? 'Pro Free' : 'Pro $', color: 'hsl(280 70% 60%)', bg: 'hsl(280 70% 60% / 0.12)', paid: !isFreeOverride };
   }
   // Starter
   if (hasPaidSubscription && subPlan === 'starter' && !isFreeOverride) {
-    return { label: 'Starter', color: 'hsl(210 80% 55%)', bg: 'hsl(210 80% 55% / 0.12)', paid: true };
+    return { label: 'Starter $', color: 'hsl(210 80% 55%)', bg: 'hsl(210 80% 55% / 0.12)', paid: true };
   }
-  return { label: isFreeOverride ? 'Starter Free' : 'Starter Free', color: 'hsl(var(--muted-foreground))', bg: 'hsl(var(--muted-foreground) / 0.08)', paid: false };
+  return { label: 'Starter Free', color: 'hsl(var(--muted-foreground))', bg: 'hsl(var(--muted-foreground) / 0.08)', paid: false };
 }
 
 export default function SuperAdmin() {
