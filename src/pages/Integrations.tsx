@@ -542,12 +542,11 @@ export default function Integrations() {
     return <GoogleOAuthErrorScreen errorMessage={googleErrorMessage} onBack={() => setShowGoogleError(false)} />;
   }
 
-  const { currentStep, isOnboardingComplete, refreshProgress } = useOnboarding();
 
   // Auto-refresh onboarding progress when connections change
   useEffect(() => {
     if (connections.length > 0) {
-      refreshProgress();
+      refreshOnboarding();
     }
   }, [connections.length]);
 
