@@ -12,10 +12,16 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
 import { useToast } from '@/hooks/use-toast';
-import { Shield, Search, Trash2, Loader2, Palette, Users, Mail, Building2, Pencil, X, Check, UserPlus, KeyRound, Lock, Unlock, Eye, EyeOff } from 'lucide-react';
+import { Shield, Search, Trash2, Loader2, Palette, Users, Mail, Building2, Pencil, X, Check, UserPlus, KeyRound, Lock, Unlock, Eye, EyeOff, BarChart3 } from 'lucide-react';
 import { Label } from '@/components/ui/label';
 import { PlanType } from '@/lib/subscription';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
 
 interface UserWithOverride {
   user_id: string;
@@ -61,6 +67,7 @@ export default function SuperAdmin() {
   const { toast } = useToast();
   const [isSuperAdmin, setIsSuperAdmin] = useState<boolean | null>(null);
   const [users, setUsers] = useState<UserWithOverride[]>([]);
+  const [organizations, setOrganizations] = useState<Organization[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
   const [saving, setSaving] = useState<string | null>(null);
@@ -80,8 +87,12 @@ export default function SuperAdmin() {
     
     const isAdmin = !!data;
     setIsSuperAdmin(isAdmin);
-    if (isAdmin) fetchUsers();
-    else setLoading(false);
+    if (isAdmin) {
+      fetchUsers();
+      loadOrganizations();
+    } else {
+      setLoading(false);
+    }
   };
 
   const fetchUsers = async () => {
@@ -130,6 +141,15 @@ export default function SuperAdmin() {
     }
   };
 
+  const loadOrganizations = async () => {
+    try {
+      const result = await callAdminFunction({ action: 'get_organizations' });
+      setOrganizations(result.organizations || []);
+    } catch (err: any) {
+      console.error('Failed to load organizations', err);
+    }
+  };
+
   const callAdminFunction = async (body: Record<string, any>) => {
     const { data: { session } } = await supabase.auth.getSession();
     const res = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/admin-manage-users`, {
@@ -145,7 +165,6 @@ export default function SuperAdmin() {
     return result;
   };
 
-  // Plan override actions
   const grantOverride = async (targetUserId: string, plan: PlanType) => {
     setSaving(targetUserId);
     try {
@@ -156,7 +175,7 @@ export default function SuperAdmin() {
         is_active: true,
       }, { onConflict: 'user_id' });
       if (error) throw error;
-      toast({ title: 'Override granted', description: `User now has ${plan} plan access for free.` });
+      toast({ title: 'Override granted', description: `User now has ${plan} plan access.` });
       fetchUsers();
     } catch (err: any) {
       toast({ title: 'Error', description: err.message, variant: 'destructive' });
@@ -193,7 +212,6 @@ export default function SuperAdmin() {
     }
   };
 
-  // White label actions
   const saveWhiteLabel = async (targetUserId: string, data: { subdomain_slug: string; brand_name: string; logo_url: string }) => {
     setSaving(targetUserId);
     try {
@@ -242,12 +260,11 @@ export default function SuperAdmin() {
     }
   };
 
-  // Account management actions
   const deleteAccount = async (targetUserId: string) => {
     setSaving(targetUserId);
     try {
       await callAdminFunction({ action: 'delete_account', target_user_id: targetUserId });
-      toast({ title: 'Account deleted', description: 'User and all associated data have been removed.' });
+      toast({ title: 'Account deleted' });
       fetchUsers();
     } catch (err: any) {
       toast({ title: 'Error', description: err.message, variant: 'destructive' });
@@ -273,11 +290,32 @@ export default function SuperAdmin() {
     (u.full_name || '').toLowerCase().includes(searchQuery.toLowerCase())
   );
 
+  // Summary stats
+  const totalOrgs = organizations.length;
+  const totalUsers = users.length;
+  const activeUsers = users.filter(u => u.subscription?.status === 'active' || u.override?.is_active).length;
+  const totalEmails = users.length; // Each user has at least their auth email
+  const planCounts = {
+    starter: users.filter(u => {
+      const p = u.override?.is_active ? u.override.granted_plan : u.subscription?.plan || 'starter';
+      return p === 'starter';
+    }).length,
+    pro: users.filter(u => {
+      const p = u.override?.is_active ? u.override.granted_plan : u.subscription?.plan || 'starter';
+      return p === 'pro';
+    }).length,
+    business: users.filter(u => {
+      const p = u.override?.is_active ? u.override.granted_plan : u.subscription?.plan || 'starter';
+      return p === 'enterprise';
+    }).length,
+  };
+
   return (
-    <div className="max-w-6xl mx-auto space-y-6">
+    <div className="max-w-7xl mx-auto space-y-6">
+      {/* Header */}
       <div className="flex items-center gap-3">
-        <div className="p-2 bg-primary/10 rounded-lg">
-          <Shield className="w-6 h-6 text-primary" />
+        <div className="p-2 rounded-lg" style={{ background: 'hsl(0 72% 51% / 0.1)' }}>
+          <Shield className="w-6 h-6" style={{ color: 'hsl(0 72% 51%)' }} />
         </div>
         <div>
           <h1 className="text-2xl font-bold text-foreground">Super Admin</h1>
@@ -285,30 +323,25 @@ export default function SuperAdmin() {
         </div>
       </div>
 
-      {/* Search */}
-      <div className="relative w-full max-w-sm">
-        <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-        <Input
-          placeholder="Search by email or name..."
-          value={searchQuery}
-          onChange={(e) => setSearchQuery(e.target.value)}
-          className="pl-9"
-        />
+      {/* Search + Create */}
+      <div className="flex items-center gap-3">
+        <div className="relative flex-1 max-w-sm">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+          <Input
+            placeholder="Search by email or name..."
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            className="pl-9"
+          />
+        </div>
+        <CreateUserCard callAdminFunction={callAdminFunction} onCreated={fetchUsers} toast={toast} />
       </div>
 
       <Tabs defaultValue="accounts">
         <TabsList>
           <TabsTrigger value="accounts">
             <Users className="w-4 h-4 mr-2" />
-            Account Management
-          </TabsTrigger>
-          <TabsTrigger value="overrides">
-            <Shield className="w-4 h-4 mr-2" />
-            Plan Overrides
-          </TabsTrigger>
-          <TabsTrigger value="organizations">
-            <Building2 className="w-4 h-4 mr-2" />
-            Organizations
+            Users & Organizations
           </TabsTrigger>
           <TabsTrigger value="whitelabel">
             <Palette className="w-4 h-4 mr-2" />
@@ -316,30 +349,32 @@ export default function SuperAdmin() {
           </TabsTrigger>
         </TabsList>
 
+        {/* Merged Accounts + Organizations Tab */}
         <TabsContent value="accounts">
-          <div className="space-y-4">
-            {/* Create User Card */}
-            <CreateUserCard callAdminFunction={callAdminFunction} onCreated={fetchUsers} toast={toast} />
-
-            <Card>
-              <CardHeader className="pb-3">
-                <CardTitle className="text-lg">User Accounts</CardTitle>
-                <p className="text-sm text-muted-foreground">Manage accounts, email connections, passwords, and access.</p>
-              </CardHeader>
-              <CardContent>
+          <Card>
+            <CardHeader className="pb-3">
+              <CardTitle className="text-lg flex items-center gap-2">
+                <Users className="w-5 h-5" style={{ color: 'hsl(210 80% 55%)' }} />
+                User Management
+              </CardTitle>
+              <p className="text-sm text-muted-foreground">Manage accounts, emails, plans, and access status.</p>
+            </CardHeader>
+            <CardContent>
+              <div className="overflow-x-auto">
                 <Table>
                   <TableHeader>
                     <TableRow>
                       <TableHead>User</TableHead>
-                      <TableHead>Status</TableHead>
-                      <TableHead>Connections</TableHead>
+                      <TableHead>Organization</TableHead>
+                      <TableHead>Emails</TableHead>
                       <TableHead>Plan</TableHead>
-                      <TableHead className="w-[180px]">Actions</TableHead>
+                      <TableHead>Status</TableHead>
+                      <TableHead className="w-[200px]">Actions</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
                     {filteredUsers.map((u) => (
-                      <AccountRow
+                      <UnifiedAccountRow
                         key={u.user_id}
                         user={u}
                         saving={saving === u.user_id}
@@ -347,121 +382,55 @@ export default function SuperAdmin() {
                         callAdminFunction={callAdminFunction}
                         onDeleteAccount={() => deleteAccount(u.user_id)}
                         onRefresh={fetchUsers}
+                        onGrantOverride={grantOverride}
+                        onToggleOverride={toggleOverride}
+                        onRemoveOverride={removeOverride}
+                        organizations={organizations}
                         toast={toast}
                       />
                     ))}
                     {filteredUsers.length === 0 && (
                       <TableRow>
-                        <TableCell colSpan={5} className="text-center text-muted-foreground py-8">
+                        <TableCell colSpan={6} className="text-center text-muted-foreground py-8">
                           {searchQuery ? 'No users match your search' : 'No users found'}
                         </TableCell>
                       </TableRow>
                     )}
                   </TableBody>
                 </Table>
-              </CardContent>
-            </Card>
-          </div>
-        </TabsContent>
-
-        {/* Plan Overrides Tab */}
-        <TabsContent value="overrides">
-          <Card>
-            <CardHeader className="pb-3">
-              <CardTitle className="text-lg">User Plan Overrides</CardTitle>
-              <p className="text-sm text-muted-foreground">Grant users a plan for free — they get full plan access without paying.</p>
-            </CardHeader>
-            <CardContent>
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>User</TableHead>
-                    <TableHead>Stripe Plan</TableHead>
-                    <TableHead>Override Plan</TableHead>
-                    <TableHead>Active</TableHead>
-                    <TableHead className="w-[100px]">Actions</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {filteredUsers.map((u) => (
-                    <TableRow key={u.user_id}>
-                      <TableCell>
-                        <div>
-                          <p className="text-sm font-medium">{u.full_name || 'No name'}</p>
-                          <p className="text-xs text-muted-foreground">{u.email}</p>
-                        </div>
-                      </TableCell>
-                      <TableCell>
-                        {u.subscription ? (
-                          <Badge variant={u.subscription.status === 'active' ? 'default' : 'secondary'}>
-                            {u.subscription.plan} ({u.subscription.status})
-                          </Badge>
-                        ) : (
-                          <Badge variant="outline">No subscription</Badge>
-                        )}
-                      </TableCell>
-                      <TableCell>
-                        <Select
-                          value={u.override?.granted_plan || ''}
-                          onValueChange={(val) => grantOverride(u.user_id, val as PlanType)}
-                          disabled={saving === u.user_id}
-                        >
-                          <SelectTrigger className="w-[130px]">
-                            <SelectValue placeholder="No override" />
-                          </SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="starter">Starter</SelectItem>
-                            <SelectItem value="pro">Pro</SelectItem>
-                            <SelectItem value="enterprise">Business</SelectItem>
-                          </SelectContent>
-                        </Select>
-                      </TableCell>
-                      <TableCell>
-                        {u.override && (
-                          <Switch
-                            checked={u.override.is_active}
-                            onCheckedChange={(checked) => toggleOverride(u.user_id, checked)}
-                            disabled={saving === u.user_id}
-                          />
-                        )}
-                      </TableCell>
-                      <TableCell>
-                        {u.override && (
-                          <Button variant="ghost" size="icon" onClick={() => removeOverride(u.user_id)} disabled={saving === u.user_id}>
-                            <Trash2 className="w-4 h-4 text-destructive" />
-                          </Button>
-                        )}
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                  {filteredUsers.length === 0 && (
-                    <TableRow>
-                      <TableCell colSpan={5} className="text-center text-muted-foreground py-8">
-                        {searchQuery ? 'No users match your search' : 'No users found'}
-                      </TableCell>
-                    </TableRow>
-                  )}
-                </TableBody>
-              </Table>
+              </div>
             </CardContent>
           </Card>
-        </TabsContent>
 
-        {/* Organizations Tab */}
-        <TabsContent value="organizations">
-          <OrganizationsTab
-            callAdminFunction={callAdminFunction}
-            currentUserId={user!.id}
-            users={users}
-            toast={toast}
-          />
+          {/* Organizations Management */}
+          <Card className="mt-6">
+            <CardHeader className="pb-3">
+              <CardTitle className="text-lg flex items-center gap-2">
+                <Building2 className="w-5 h-5" style={{ color: 'hsl(280 70% 60%)' }} />
+                Organizations
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <OrganizationsTab
+                callAdminFunction={callAdminFunction}
+                currentUserId={user!.id}
+                users={users}
+                organizations={organizations}
+                onRefresh={loadOrganizations}
+                toast={toast}
+              />
+            </CardContent>
+          </Card>
         </TabsContent>
 
         {/* White Label Tab */}
         <TabsContent value="whitelabel">
           <Card>
             <CardHeader className="pb-3">
-              <CardTitle className="text-lg">White Label Branding</CardTitle>
+              <CardTitle className="text-lg flex items-center gap-2">
+                <Palette className="w-5 h-5" style={{ color: 'hsl(280 70% 60%)' }} />
+                White Label Branding
+              </CardTitle>
               <p className="text-sm text-muted-foreground">Assign custom branding per user.</p>
             </CardHeader>
             <CardContent>
@@ -500,6 +469,78 @@ export default function SuperAdmin() {
           </Card>
         </TabsContent>
       </Tabs>
+
+      {/* Summary Reports Section */}
+      <div className="space-y-4">
+        <div className="flex items-center gap-2">
+          <BarChart3 className="w-5 h-5" style={{ color: 'hsl(180 60% 45%)' }} />
+          <h2 className="text-lg font-semibold text-foreground">Summary Report</h2>
+        </div>
+        
+        {/* Stat Cards */}
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+          <Card className="p-4">
+            <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Organizations</p>
+            <p className="text-3xl font-bold text-foreground mt-1">{totalOrgs}</p>
+          </Card>
+          <Card className="p-4">
+            <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Total Users</p>
+            <p className="text-3xl font-bold text-foreground mt-1">{totalUsers}</p>
+          </Card>
+          <Card className="p-4">
+            <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Active Accounts</p>
+            <p className="text-3xl font-bold mt-1" style={{ color: 'hsl(var(--primary))' }}>{activeUsers}</p>
+          </Card>
+          <Card className="p-4">
+            <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Total Emails</p>
+            <p className="text-3xl font-bold text-foreground mt-1">{totalEmails}</p>
+          </Card>
+        </div>
+
+        {/* Plan Breakdown */}
+        <Card className="p-4">
+          <p className="text-sm font-semibold text-foreground mb-3">Plan Distribution</p>
+          <div className="grid grid-cols-3 gap-4">
+            <div className="flex items-center gap-3">
+              <div className="w-3 h-3 rounded-full" style={{ background: 'hsl(210 80% 55%)' }} />
+              <div>
+                <p className="text-sm font-medium text-foreground">Starter</p>
+                <p className="text-xs text-muted-foreground">{planCounts.starter} users</p>
+              </div>
+            </div>
+            <div className="flex items-center gap-3">
+              <div className="w-3 h-3 rounded-full" style={{ background: 'hsl(280 70% 60%)' }} />
+              <div>
+                <p className="text-sm font-medium text-foreground">Pro</p>
+                <p className="text-xs text-muted-foreground">{planCounts.pro} users</p>
+              </div>
+            </div>
+            <div className="flex items-center gap-3">
+              <div className="w-3 h-3 rounded-full" style={{ background: 'hsl(38 92% 50%)' }} />
+              <div>
+                <p className="text-sm font-medium text-foreground">Business</p>
+                <p className="text-xs text-muted-foreground">{planCounts.business} users</p>
+              </div>
+            </div>
+          </div>
+        </Card>
+
+        {/* Org Breakdown */}
+        <Card className="p-4">
+          <p className="text-sm font-semibold text-foreground mb-3">Users per Organization</p>
+          <div className="space-y-2">
+            {organizations.map(org => (
+              <div key={org.id} className="flex items-center justify-between py-1.5 border-b border-border last:border-0">
+                <span className="text-sm text-foreground">{org.name}</span>
+                <Badge variant="secondary">{org.member_count} member{org.member_count !== 1 ? 's' : ''}</Badge>
+              </div>
+            ))}
+            {organizations.length === 0 && (
+              <p className="text-sm text-muted-foreground">No organizations yet</p>
+            )}
+          </div>
+        </Card>
+      </div>
     </div>
   );
 }
@@ -534,10 +575,7 @@ function CreateUserCard({
         plan_override: planOverride,
       });
       toast({ title: 'User created', description: `${email} has been created successfully.` });
-      setEmail('');
-      setFullName('');
-      setPassword('');
-      setPlanOverride('none');
+      setEmail(''); setFullName(''); setPassword(''); setPlanOverride('none');
       setOpen(false);
       onCreated();
     } catch (err: any) {
@@ -578,31 +616,22 @@ function CreateUserCard({
                 onChange={(e) => setPassword(e.target.value)}
                 placeholder="Min 6 characters"
               />
-              <Button
-                type="button"
-                variant="ghost"
-                size="icon"
-                className="absolute right-1 top-1/2 -translate-y-1/2 h-7 w-7"
-                onClick={() => setShowPassword(!showPassword)}
-              >
+              <Button type="button" variant="ghost" size="icon" className="absolute right-1 top-1/2 -translate-y-1/2 h-7 w-7" onClick={() => setShowPassword(!showPassword)}>
                 {showPassword ? <EyeOff className="w-3 h-3" /> : <Eye className="w-3 h-3" />}
               </Button>
             </div>
           </div>
           <div className="space-y-2">
-            <Label>Assign Plan (Free Override)</Label>
+            <Label>Assign Plan</Label>
             <Select value={planOverride} onValueChange={setPlanOverride}>
-              <SelectTrigger>
-                <SelectValue />
-              </SelectTrigger>
+              <SelectTrigger><SelectValue /></SelectTrigger>
               <SelectContent>
-                <SelectItem value="none">No override (Starter default)</SelectItem>
+                <SelectItem value="none">No override (Starter)</SelectItem>
                 <SelectItem value="starter">Starter</SelectItem>
                 <SelectItem value="pro">Pro</SelectItem>
                 <SelectItem value="enterprise">Business</SelectItem>
               </SelectContent>
             </Select>
-            <p className="text-xs text-muted-foreground">If set, the user gets this plan for free without Stripe.</p>
           </div>
         </div>
         <DialogFooter>
@@ -617,14 +646,18 @@ function CreateUserCard({
   );
 }
 
-// ===== Account Row with expandable connections =====
-function AccountRow({
+// ===== Unified Account Row =====
+function UnifiedAccountRow({
   user: u,
   saving,
   currentUserId,
   callAdminFunction,
   onDeleteAccount,
   onRefresh,
+  onGrantOverride,
+  onToggleOverride,
+  onRemoveOverride,
+  organizations,
   toast,
 }: {
   user: UserWithOverride;
@@ -633,6 +666,10 @@ function AccountRow({
   callAdminFunction: (body: Record<string, any>) => Promise<any>;
   onDeleteAccount: () => void;
   onRefresh: () => void;
+  onGrantOverride: (userId: string, plan: PlanType) => void;
+  onToggleOverride: (userId: string, isActive: boolean) => void;
+  onRemoveOverride: (userId: string) => void;
+  organizations: Organization[];
   toast: any;
 }) {
   const [connections, setConnections] = useState<UserConnection[]>([]);
@@ -647,7 +684,8 @@ function AccountRow({
   const [resettingPassword, setResettingPassword] = useState(false);
   const isSelf = u.user_id === currentUserId;
 
-  // Load user ban status on mount
+  const orgName = organizations.find(o => o.id === u.organization_id)?.name || u.organization_id.slice(0, 8) + '…';
+
   useEffect(() => {
     const checkStatus = async () => {
       try {
@@ -694,7 +732,7 @@ function AccountRow({
     try {
       await callAdminFunction({ action: 'toggle_ban', target_user_id: u.user_id, ban: !isBanned });
       setIsBanned(!isBanned);
-      toast({ title: isBanned ? 'Account unlocked' : 'Account locked', description: isBanned ? 'User can now sign in.' : 'User is blocked from signing in.' });
+      toast({ title: isBanned ? 'Account activated' : 'Account deactivated' });
     } catch (err: any) {
       toast({ title: 'Error', description: err.message, variant: 'destructive' });
     } finally {
@@ -708,8 +746,7 @@ function AccountRow({
     try {
       await callAdminFunction({ action: 'reset_password', target_user_id: u.user_id, new_password: newPassword });
       toast({ title: 'Password reset', description: `Password updated for ${u.email}.` });
-      setNewPassword('');
-      setResetDialogOpen(false);
+      setNewPassword(''); setResetDialogOpen(false);
     } catch (err: any) {
       toast({ title: 'Error', description: err.message, variant: 'destructive' });
     } finally {
@@ -718,6 +755,7 @@ function AccountRow({
   };
 
   const effectivePlan = u.override?.is_active ? u.override.granted_plan : u.subscription?.plan || 'starter';
+  const planLabel = effectivePlan === 'enterprise' ? 'Business' : effectivePlan.charAt(0).toUpperCase() + effectivePlan.slice(1);
 
   return (
     <>
@@ -729,13 +767,7 @@ function AccountRow({
           </div>
         </TableCell>
         <TableCell>
-          {isBanned === null ? (
-            <Badge variant="outline" className="text-xs">Loading...</Badge>
-          ) : isBanned ? (
-            <Badge variant="destructive" className="text-xs">Locked</Badge>
-          ) : (
-            <Badge variant="default" className="text-xs">Active</Badge>
-          )}
+          <span className="text-sm text-foreground">{orgName}</span>
         </TableCell>
         <TableCell>
           <Button variant="outline" size="sm" onClick={loadConnections} disabled={loadingConns}>
@@ -744,89 +776,117 @@ function AccountRow({
           </Button>
         </TableCell>
         <TableCell>
-          <Badge variant="outline" className="capitalize">{effectivePlan}</Badge>
+          <Select
+            value={effectivePlan}
+            onValueChange={(val) => onGrantOverride(u.user_id, val as PlanType)}
+            disabled={saving}
+          >
+            <SelectTrigger className="w-[110px] h-8">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="starter">Starter</SelectItem>
+              <SelectItem value="pro">Pro</SelectItem>
+              <SelectItem value="enterprise">Business</SelectItem>
+            </SelectContent>
+          </Select>
         </TableCell>
         <TableCell>
-          <div className="flex items-center gap-0.5">
-            {/* Reset Password */}
-            <Dialog open={resetDialogOpen} onOpenChange={setResetDialogOpen}>
-              <DialogTrigger asChild>
-                <Button variant="ghost" size="icon" title="Reset Password">
-                  <KeyRound className="w-4 h-4" />
-                </Button>
-              </DialogTrigger>
-              <DialogContent className="sm:max-w-sm">
-                <DialogHeader>
-                  <DialogTitle>Reset Password</DialogTitle>
-                  <DialogDescription>Set a new password for {u.email}</DialogDescription>
-                </DialogHeader>
-                <div className="space-y-3 py-2">
-                  <div className="relative">
-                    <Input
-                      type={showNewPassword ? 'text' : 'password'}
-                      value={newPassword}
-                      onChange={(e) => setNewPassword(e.target.value)}
-                      placeholder="New password (min 6 chars)"
-                    />
-                    <Button
-                      type="button"
-                      variant="ghost"
-                      size="icon"
-                      className="absolute right-1 top-1/2 -translate-y-1/2 h-7 w-7"
-                      onClick={() => setShowNewPassword(!showNewPassword)}
-                    >
-                      {showNewPassword ? <EyeOff className="w-3 h-3" /> : <Eye className="w-3 h-3" />}
-                    </Button>
-                  </div>
-                </div>
-                <DialogFooter>
-                  <Button variant="outline" onClick={() => setResetDialogOpen(false)}>Cancel</Button>
-                  <Button onClick={resetPassword} disabled={resettingPassword || !newPassword || newPassword.length < 6}>
-                    {resettingPassword && <Loader2 className="w-3 h-3 animate-spin mr-1" />}
-                    Reset
-                  </Button>
-                </DialogFooter>
-              </DialogContent>
-            </Dialog>
-
-            {/* Lock/Unlock */}
-            {!isSelf && (
-              <Button variant="ghost" size="icon" onClick={toggleBan} disabled={togglingBan || isBanned === null} title={isBanned ? 'Unlock account' : 'Lock account'}>
-                {togglingBan ? <Loader2 className="w-4 h-4 animate-spin" /> : isBanned ? <Unlock className="w-4 h-4 text-primary" /> : <Lock className="w-4 h-4 text-muted-foreground" />}
+          {isBanned === null ? (
+            <Badge variant="outline" className="text-xs">Loading...</Badge>
+          ) : (
+            <div className="flex items-center gap-2">
+              <Switch
+                checked={!isBanned}
+                onCheckedChange={(checked) => toggleBan()}
+                disabled={togglingBan || isSelf}
+              />
+              <span className={`text-xs font-medium ${isBanned ? 'text-destructive' : 'text-foreground'}`}>
+                {isBanned ? 'Deactivated' : 'Active'}
+              </span>
+            </div>
+          )}
+        </TableCell>
+        <TableCell>
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="outline" size="sm">
+                Actions
               </Button>
-            )}
-
-            {/* Delete */}
-            {!isSelf && (
-              <AlertDialog>
-                <AlertDialogTrigger asChild>
-                  <Button variant="ghost" size="icon" disabled={saving} title="Delete account">
-                    <Trash2 className="w-4 h-4 text-destructive" />
-                  </Button>
-                </AlertDialogTrigger>
-                <AlertDialogContent>
-                  <AlertDialogHeader>
-                    <AlertDialogTitle>Delete Account</AlertDialogTitle>
-                    <AlertDialogDescription>
-                      This will permanently delete <strong>{u.email}</strong> and all their data. This cannot be undone.
-                    </AlertDialogDescription>
-                  </AlertDialogHeader>
-                  <AlertDialogFooter>
-                    <AlertDialogCancel>Cancel</AlertDialogCancel>
-                    <AlertDialogAction onClick={onDeleteAccount} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end">
+              {/* Reset Password */}
+              <DropdownMenuItem onSelect={() => setResetDialogOpen(true)}>
+                <KeyRound className="w-4 h-4 mr-2" />
+                Reset Password
+              </DropdownMenuItem>
+              {/* Delete */}
+              {!isSelf && (
+                <DropdownMenuItem className="text-destructive" onSelect={(e) => e.preventDefault()}>
+                  <AlertDialog>
+                    <AlertDialogTrigger className="flex items-center gap-2 w-full">
+                      <Trash2 className="w-4 h-4" />
                       Delete Account
-                    </AlertDialogAction>
-                  </AlertDialogFooter>
-                </AlertDialogContent>
-              </AlertDialog>
-            )}
-            {isSelf && <span className="text-xs text-muted-foreground ml-1">You</span>}
-          </div>
+                    </AlertDialogTrigger>
+                    <AlertDialogContent>
+                      <AlertDialogHeader>
+                        <AlertDialogTitle>Delete Account</AlertDialogTitle>
+                        <AlertDialogDescription>
+                          This will permanently delete <strong>{u.email}</strong> and all their data.
+                        </AlertDialogDescription>
+                      </AlertDialogHeader>
+                      <AlertDialogFooter>
+                        <AlertDialogCancel>Cancel</AlertDialogCancel>
+                        <AlertDialogAction onClick={onDeleteAccount} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+                          Delete
+                        </AlertDialogAction>
+                      </AlertDialogFooter>
+                    </AlertDialogContent>
+                  </AlertDialog>
+                </DropdownMenuItem>
+              )}
+              {isSelf && (
+                <DropdownMenuItem disabled>
+                  <span className="text-xs text-muted-foreground">This is your account</span>
+                </DropdownMenuItem>
+              )}
+            </DropdownMenuContent>
+          </DropdownMenu>
+
+          {/* Reset Password Dialog */}
+          <Dialog open={resetDialogOpen} onOpenChange={setResetDialogOpen}>
+            <DialogContent className="sm:max-w-sm">
+              <DialogHeader>
+                <DialogTitle>Reset Password</DialogTitle>
+                <DialogDescription>Set a new password for {u.email}</DialogDescription>
+              </DialogHeader>
+              <div className="space-y-3 py-2">
+                <div className="relative">
+                  <Input
+                    type={showNewPassword ? 'text' : 'password'}
+                    value={newPassword}
+                    onChange={(e) => setNewPassword(e.target.value)}
+                    placeholder="New password (min 6 chars)"
+                  />
+                  <Button type="button" variant="ghost" size="icon" className="absolute right-1 top-1/2 -translate-y-1/2 h-7 w-7" onClick={() => setShowNewPassword(!showNewPassword)}>
+                    {showNewPassword ? <EyeOff className="w-3 h-3" /> : <Eye className="w-3 h-3" />}
+                  </Button>
+                </div>
+              </div>
+              <DialogFooter>
+                <Button variant="outline" onClick={() => setResetDialogOpen(false)}>Cancel</Button>
+                <Button onClick={resetPassword} disabled={resettingPassword || !newPassword || newPassword.length < 6}>
+                  {resettingPassword && <Loader2 className="w-3 h-3 animate-spin mr-1" />}
+                  Reset
+                </Button>
+              </DialogFooter>
+            </DialogContent>
+          </Dialog>
         </TableCell>
       </TableRow>
       {showConnections && (
         <TableRow>
-          <TableCell colSpan={5} className="bg-muted/30 p-0">
+          <TableCell colSpan={6} className="bg-muted/30 p-0">
             <div className="px-6 py-3 space-y-2">
               <p className="text-xs font-semibold text-muted-foreground uppercase">Connected Emails</p>
               {connections.length === 0 ? (
@@ -853,13 +913,13 @@ function AccountRow({
                         <AlertDialogHeader>
                           <AlertDialogTitle>Delete Email Connection</AlertDialogTitle>
                           <AlertDialogDescription>
-                            This will remove <strong>{conn.connected_email}</strong> and all associated data. This cannot be undone.
+                            Remove <strong>{conn.connected_email}</strong> and all associated data?
                           </AlertDialogDescription>
                         </AlertDialogHeader>
                         <AlertDialogFooter>
                           <AlertDialogCancel>Cancel</AlertDialogCancel>
                           <AlertDialogAction onClick={() => deleteConnection(conn.id)} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
-                            Delete Connection
+                            Delete
                           </AlertDialogAction>
                         </AlertDialogFooter>
                       </AlertDialogContent>
@@ -875,39 +935,25 @@ function AccountRow({
   );
 }
 
-// ===== Organizations Tab =====
+// ===== Organizations Tab (now inline card) =====
 function OrganizationsTab({
   callAdminFunction,
   currentUserId,
   users,
+  organizations,
+  onRefresh,
   toast,
 }: {
   callAdminFunction: (body: Record<string, any>) => Promise<any>;
   currentUserId: string;
   users: UserWithOverride[];
+  organizations: Organization[];
+  onRefresh: () => void;
   toast: any;
 }) {
-  const [organizations, setOrganizations] = useState<Organization[]>([]);
-  const [loading, setLoading] = useState(true);
   const [editingOrg, setEditingOrg] = useState<string | null>(null);
   const [editName, setEditName] = useState('');
   const [saving, setSaving] = useState<string | null>(null);
-
-  useEffect(() => {
-    loadOrganizations();
-  }, []);
-
-  const loadOrganizations = async () => {
-    setLoading(true);
-    try {
-      const result = await callAdminFunction({ action: 'get_organizations' });
-      setOrganizations(result.organizations || []);
-    } catch (err: any) {
-      toast({ title: 'Error', description: err.message, variant: 'destructive' });
-    } finally {
-      setLoading(false);
-    }
-  };
 
   const updateOrgName = async (orgId: string) => {
     setSaving(orgId);
@@ -915,7 +961,7 @@ function OrganizationsTab({
       await callAdminFunction({ action: 'update_organization', organization_id: orgId, name: editName });
       toast({ title: 'Organization updated' });
       setEditingOrg(null);
-      loadOrganizations();
+      onRefresh();
     } catch (err: any) {
       toast({ title: 'Error', description: err.message, variant: 'destructive' });
     } finally {
@@ -927,8 +973,8 @@ function OrganizationsTab({
     setSaving(orgId);
     try {
       await callAdminFunction({ action: 'delete_organization', organization_id: orgId });
-      toast({ title: 'Organization deleted', description: 'Organization and all members removed.' });
-      loadOrganizations();
+      toast({ title: 'Organization deleted' });
+      onRefresh();
     } catch (err: any) {
       toast({ title: 'Error', description: err.message, variant: 'destructive' });
     } finally {
@@ -938,119 +984,87 @@ function OrganizationsTab({
 
   const callerOrgId = users.find(u => u.user_id === currentUserId)?.organization_id;
 
-  if (loading) {
-    return (
-      <Card>
-        <CardContent className="flex items-center justify-center py-12">
-          <Loader2 className="w-5 h-5 animate-spin text-muted-foreground" />
-        </CardContent>
-      </Card>
-    );
-  }
-
   return (
-    <Card>
-      <CardHeader className="pb-3">
-        <CardTitle className="text-lg">Organizations</CardTitle>
-        <p className="text-sm text-muted-foreground">View, rename, or delete organizations and their members.</p>
-      </CardHeader>
-      <CardContent>
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead>Name</TableHead>
-              <TableHead>ID</TableHead>
-              <TableHead>Members</TableHead>
-              <TableHead>Created</TableHead>
-              <TableHead className="w-[140px]">Actions</TableHead>
+    <Table>
+      <TableHeader>
+        <TableRow>
+          <TableHead>Name</TableHead>
+          <TableHead>Members</TableHead>
+          <TableHead>Created</TableHead>
+          <TableHead className="w-[120px]">Actions</TableHead>
+        </TableRow>
+      </TableHeader>
+      <TableBody>
+        {organizations.map((org) => {
+          const isSelfOrg = org.id === callerOrgId;
+          return (
+            <TableRow key={org.id}>
+              <TableCell>
+                {editingOrg === org.id ? (
+                  <div className="flex items-center gap-1">
+                    <Input value={editName} onChange={(e) => setEditName(e.target.value)} className="w-[160px] h-8" disabled={saving === org.id} />
+                    <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => updateOrgName(org.id)} disabled={saving === org.id || !editName.trim()}>
+                      <Check className="w-3 h-3 text-primary" />
+                    </Button>
+                    <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => setEditingOrg(null)}>
+                      <X className="w-3 h-3" />
+                    </Button>
+                  </div>
+                ) : (
+                  <div className="flex items-center gap-2">
+                    <span className="text-sm font-medium">{org.name}</span>
+                    {isSelfOrg && <Badge variant="outline" className="text-xs">Your org</Badge>}
+                  </div>
+                )}
+              </TableCell>
+              <TableCell>
+                <Badge variant="secondary">{org.member_count}</Badge>
+              </TableCell>
+              <TableCell>
+                <span className="text-xs text-muted-foreground">{new Date(org.created_at).toLocaleDateString()}</span>
+              </TableCell>
+              <TableCell>
+                <div className="flex items-center gap-1">
+                  <Button variant="ghost" size="icon" onClick={() => { setEditingOrg(org.id); setEditName(org.name); }} disabled={saving === org.id}>
+                    <Pencil className="w-3 h-3" />
+                  </Button>
+                  {!isSelfOrg && (
+                    <AlertDialog>
+                      <AlertDialogTrigger asChild>
+                        <Button variant="ghost" size="icon" disabled={saving === org.id}>
+                          <Trash2 className="w-4 h-4 text-destructive" />
+                        </Button>
+                      </AlertDialogTrigger>
+                      <AlertDialogContent>
+                        <AlertDialogHeader>
+                          <AlertDialogTitle>Delete Organization</AlertDialogTitle>
+                          <AlertDialogDescription>
+                            Delete <strong>{org.name}</strong> and all {org.member_count} member(s)?
+                          </AlertDialogDescription>
+                        </AlertDialogHeader>
+                        <AlertDialogFooter>
+                          <AlertDialogCancel>Cancel</AlertDialogCancel>
+                          <AlertDialogAction onClick={() => deleteOrganization(org.id)} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+                            Delete
+                          </AlertDialogAction>
+                        </AlertDialogFooter>
+                      </AlertDialogContent>
+                    </AlertDialog>
+                  )}
+                </div>
+              </TableCell>
             </TableRow>
-          </TableHeader>
-          <TableBody>
-            {organizations.map((org) => {
-              const isSelfOrg = org.id === callerOrgId;
-              return (
-                <TableRow key={org.id}>
-                  <TableCell>
-                    {editingOrg === org.id ? (
-                      <div className="flex items-center gap-1">
-                        <Input
-                          value={editName}
-                          onChange={(e) => setEditName(e.target.value)}
-                          className="w-[160px] h-8"
-                          disabled={saving === org.id}
-                        />
-                        <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => updateOrgName(org.id)} disabled={saving === org.id || !editName.trim()}>
-                          <Check className="w-3 h-3 text-primary" />
-                        </Button>
-                        <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => setEditingOrg(null)}>
-                          <X className="w-3 h-3" />
-                        </Button>
-                      </div>
-                    ) : (
-                      <div className="flex items-center gap-2">
-                        <span className="text-sm font-medium">{org.name}</span>
-                        {isSelfOrg && <Badge variant="outline" className="text-xs">Your org</Badge>}
-                      </div>
-                    )}
-                  </TableCell>
-                  <TableCell>
-                    <span className="text-xs text-muted-foreground font-mono">{org.id.slice(0, 8)}…</span>
-                  </TableCell>
-                  <TableCell>
-                    <Badge variant="secondary">{org.member_count}</Badge>
-                  </TableCell>
-                  <TableCell>
-                    <span className="text-xs text-muted-foreground">{new Date(org.created_at).toLocaleDateString()}</span>
-                  </TableCell>
-                  <TableCell>
-                    <div className="flex items-center gap-1">
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        onClick={() => { setEditingOrg(org.id); setEditName(org.name); }}
-                        disabled={saving === org.id}
-                      >
-                        <Pencil className="w-3 h-3" />
-                      </Button>
-                      {!isSelfOrg && (
-                        <AlertDialog>
-                          <AlertDialogTrigger asChild>
-                            <Button variant="ghost" size="icon" disabled={saving === org.id}>
-                              <Trash2 className="w-4 h-4 text-destructive" />
-                            </Button>
-                          </AlertDialogTrigger>
-                          <AlertDialogContent>
-                            <AlertDialogHeader>
-                              <AlertDialogTitle>Delete Organization</AlertDialogTitle>
-                              <AlertDialogDescription>
-                                This will permanently delete <strong>{org.name}</strong> and all {org.member_count} member(s), including their accounts and data. This cannot be undone.
-                              </AlertDialogDescription>
-                            </AlertDialogHeader>
-                            <AlertDialogFooter>
-                              <AlertDialogCancel>Cancel</AlertDialogCancel>
-                              <AlertDialogAction onClick={() => deleteOrganization(org.id)} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
-                                Delete Organization
-                              </AlertDialogAction>
-                            </AlertDialogFooter>
-                          </AlertDialogContent>
-                        </AlertDialog>
-                      )}
-                    </div>
-                  </TableCell>
-                </TableRow>
-              );
-            })}
-            {organizations.length === 0 && (
-              <TableRow>
-                <TableCell colSpan={5} className="text-center text-muted-foreground py-8">
-                  No organizations found
-                </TableCell>
-              </TableRow>
-            )}
-          </TableBody>
-        </Table>
-      </CardContent>
-    </Card>
+          );
+        })}
+        {organizations.length === 0 && (
+          <TableRow>
+            <TableCell colSpan={4} className="text-center text-muted-foreground py-8">
+              No organizations found
+            </TableCell>
+          </TableRow>
+        )}
+      </TableBody>
+    </Table>
   );
 }
 
