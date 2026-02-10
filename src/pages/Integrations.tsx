@@ -541,6 +541,15 @@ export default function Integrations() {
     return <GoogleOAuthErrorScreen errorMessage={googleErrorMessage} onBack={() => setShowGoogleError(false)} />;
   }
 
+  const { currentStep, isOnboardingComplete, refreshProgress } = useOnboarding();
+
+  // Auto-refresh onboarding progress when connections change
+  useEffect(() => {
+    if (connections.length > 0) {
+      refreshProgress();
+    }
+  }, [connections.length]);
+
   return (
     <div className="min-h-full p-4 lg:p-6">
       <PlanSelectionModal open={showPlanModal} onOpenChange={setShowPlanModal} />
@@ -556,7 +565,7 @@ export default function Integrations() {
       
       {/* Subscription Card — hidden for free override users */}
       {!isFreeOverride && (
-        <div className="mb-6" data-onboarding="subscription-card">
+        <div className={`mb-6 transition-all duration-300 ${!isOnboardingComplete && currentStep?.id === 'subscribe' ? 'onboarding-highlight-strong' : ''}`} data-onboarding="subscription-card">
           <SubscriptionCard />
         </div>
       )}
