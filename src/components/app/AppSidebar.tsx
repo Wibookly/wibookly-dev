@@ -196,7 +196,9 @@ export function AppSidebar() {
           {/* Email & Calendar Settings */}
           <NavSection title="Email & Calendar" icon={Cog} defaultOpen>
             <NavItem href="/integrations?tab=settings" icon={Clock}>Availability & Calendar</NavItem>
-            <NavItem href="/categories" icon={Tag}>Email Categories</NavItem>
+            <div data-tour="nav-categories">
+              <NavItem href="/categories" icon={Tag}>Email Categories</NavItem>
+            </div>
           </NavSection>
 
           {/* AI Settings */}
