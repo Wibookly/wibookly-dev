@@ -84,7 +84,7 @@ type ProviderId = 'google' | 'outlook';
 export default function Integrations() {
   const { organization, profile, loading: authLoading } = useAuth();
   const { activeConnection, loading: emailLoading } = useActiveEmail();
-  const { canConnectMoreMailboxes, getMailboxLimit, refreshSubscription, plan, status, startCheckout } = useSubscription();
+  const { canConnectMoreMailboxes, getMailboxLimit, refreshSubscription, plan, status, startCheckout, isFreeOverride } = useSubscription();
   const hasActiveSub = status === 'active' || status === 'trialing';
   const { toast } = useToast();
   const { logAttempt } = useConnectAttemptLogger();
@@ -458,6 +458,22 @@ export default function Integrations() {
   const googleConnections = getConnectionsByProvider('google');
   const outlookConnections = getConnectionsByProvider('outlook');
 
+  // For free override users, detect provider from signup email and show as auto-connected
+  const userEmail = profile?.email || '';
+  const isGmailUser = userEmail.toLowerCase().endsWith('@gmail.com') || userEmail.toLowerCase().endsWith('@googlemail.com');
+  const isOutlookUser = userEmail.toLowerCase().endsWith('@outlook.com') || userEmail.toLowerCase().endsWith('@hotmail.com') || userEmail.toLowerCase().endsWith('@live.com');
+
+  // Build fake connection entries for free users with no actual connections
+  const freeAutoGoogle = isFreeOverride && isGmailUser && googleConnections.length === 0
+    ? [{ id: 'auto-google', provider: 'google', is_connected: true, connected_at: new Date().toISOString(), connected_email: userEmail, calendar_connected: false, calendar_connected_at: null }]
+    : [];
+  const freeAutoOutlook = isFreeOverride && isOutlookUser && outlookConnections.length === 0
+    ? [{ id: 'auto-outlook', provider: 'outlook', is_connected: true, connected_at: new Date().toISOString(), connected_email: userEmail, calendar_connected: false, calendar_connected_at: null }]
+    : [];
+
+  const effectiveGoogleConnections = [...googleConnections, ...freeAutoGoogle];
+  const effectiveOutlookConnections = [...outlookConnections, ...freeAutoOutlook];
+
   const integrations = useMemo(
     () => [
       {
@@ -474,7 +490,7 @@ export default function Integrations() {
             />
           </svg>
         ),
-        connections: outlookConnections,
+        connections: effectiveOutlookConnections,
         available: true,
       },
       {
@@ -501,11 +517,11 @@ export default function Integrations() {
             />
           </svg>
         ),
-        connections: googleConnections,
+        connections: effectiveGoogleConnections,
         available: true,
       },
     ],
-    [googleConnections, outlookConnections]
+    [effectiveGoogleConnections, effectiveOutlookConnections]
   );
 
   // Extract first name from profile full_name (first word only)
@@ -537,10 +553,12 @@ export default function Integrations() {
         <OnboardingChecklist onOpenPlanModal={() => setShowPlanModal(true)} />
       </div>
       
-      {/* Subscription Card */}
-      <div className="mb-6" data-onboarding="subscription-card">
-        <SubscriptionCard />
-      </div>
+      {/* Subscription Card — hidden for free override users */}
+      {!isFreeOverride && (
+        <div className="mb-6" data-onboarding="subscription-card">
+          <SubscriptionCard />
+        </div>
+      )}
 
       <section data-onboarding="email-providers" data-tour="email-providers" className="animate-fade-in bg-card/80 backdrop-blur-sm rounded-xl border border-border shadow-lg p-6" aria-busy={loading ? 'true' : 'false'}>
         <header className="mb-8">
@@ -893,12 +911,13 @@ export default function Integrations() {
                 </div>
 
                 <div>
+                  {/* Hide connect button for free override users who already have auto-connected entry */}
+                  {!(isFreeOverride && integration.connections.length > 0) && (
                   <Button
                     size="sm"
                     disabled={!integration.available || connecting === integration.id}
                     onClick={() => {
-                      if (!hasActiveSub) {
-                        // No subscription — open plan selection modal
+                      if (!hasActiveSub && !isFreeOverride) {
                         setShowPlanModal(true);
                       } else {
                         setConfirmProvider(integration.id);
@@ -910,7 +929,7 @@ export default function Integrations() {
                         <Loader2 className="mr-2 w-3 h-3 animate-spin" />
                         Connecting...
                       </>
-                    ) : !hasActiveSub ? (
+                    ) : !hasActiveSub && !isFreeOverride ? (
                       <>
                         Subscribe to Connect
                         <ExternalLink className="ml-2 w-3 h-3" />
@@ -924,6 +943,7 @@ export default function Integrations() {
                       'Coming Soon'
                     )}
                   </Button>
+                  )}
                 </div>
               </div>
             </article>

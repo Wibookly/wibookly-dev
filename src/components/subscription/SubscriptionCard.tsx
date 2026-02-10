@@ -9,7 +9,7 @@ import { useState } from 'react';
 import { useActiveEmail } from '@/contexts/ActiveEmailContext';
 
 export function SubscriptionCard() {
-  const { plan, status, currentPeriodEnd, startCheckout, openCustomerPortal, getMailboxLimit } = useSubscription();
+  const { plan, status, currentPeriodEnd, startCheckout, openCustomerPortal, getMailboxLimit, isFreeOverride } = useSubscription();
   const { connections } = useActiveEmail();
   const { toast } = useToast();
   const [loading, setLoading] = useState<string | null>(null);
@@ -19,6 +19,9 @@ export function SubscriptionCard() {
   const planConfig = PLAN_CONFIG[plan];
   const connectedCount = connections.length;
   const mailboxLimit = getMailboxLimit();
+
+  // Free override users don't see the subscription card at all
+  if (isFreeOverride) return null;
 
   const handleUpgrade = async (targetPlan: PlanType) => {
     setLoading(targetPlan);

@@ -55,7 +55,7 @@ export function PlanSelectionModal({ open, onOpenChange }: PlanSelectionModalPro
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
+      <DialogContent className="max-w-4xl max-h-[85vh] overflow-y-auto p-4">
         <DialogHeader>
           <DialogTitle className="text-2xl text-center">Choose Your Plan</DialogTitle>
           <DialogDescription className="text-center">
@@ -91,7 +91,7 @@ export function PlanSelectionModal({ open, onOpenChange }: PlanSelectionModalPro
         </div>
 
         {/* Plans Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-2">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-3 mt-2">
           {PRICING_PLANS.map((plan) => {
             const Icon = PLAN_ICONS[plan.id] || Zap;
             const isCurrentPlan = hasActiveSub && currentPlan === plan.id;
@@ -105,7 +105,7 @@ export function PlanSelectionModal({ open, onOpenChange }: PlanSelectionModalPro
               <div
                 key={plan.id}
                 className={cn(
-                  'relative rounded-lg border p-4 flex flex-col',
+                  'relative rounded-lg border p-3 flex flex-col',
                   plan.popular
                     ? 'border-primary shadow-md ring-1 ring-primary/20'
                     : 'border-border',
@@ -148,7 +148,7 @@ export function PlanSelectionModal({ open, onOpenChange }: PlanSelectionModalPro
                 </div>
 
                 {/* Features */}
-                <div className="flex-1 space-y-1.5 mb-4">
+                <div className="flex-1 space-y-1 mb-3">
                   {plan.features.map((feature) => (
                     <div key={feature} className="flex items-start gap-1.5 text-xs">
                       <Check className="w-3.5 h-3.5 text-primary mt-0.5 shrink-0" />
