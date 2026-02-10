@@ -364,9 +364,15 @@ export default function SuperAdmin() {
       const p = u.override?.is_active ? u.override.granted_plan : u.subscription?.plan || 'starter';
       return p === 'starter' && info.paid;
     }).length,
-    pro: subscriberUsers.filter(u => {
+    proFree: subscriberUsers.filter(u => {
+      const info = getPlanDisplayInfo(u);
       const p = u.override?.is_active ? u.override.granted_plan : u.subscription?.plan || 'starter';
-      return p === 'pro';
+      return p === 'pro' && !info.paid;
+    }).length,
+    proPaid: subscriberUsers.filter(u => {
+      const info = getPlanDisplayInfo(u);
+      const p = u.override?.is_active ? u.override.granted_plan : u.subscription?.plan || 'starter';
+      return p === 'pro' && info.paid;
     }).length,
     business: subscriberUsers.filter(u => {
       const p = u.override?.is_active ? u.override.granted_plan : u.subscription?.plan || 'starter';
