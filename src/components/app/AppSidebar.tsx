@@ -131,11 +131,13 @@ export function AppSidebar() {
     }
   }, [organization?.id]);
 
+  const { logoUrl, brandName } = useBranding();
+
   return (
     <aside className="hidden lg:flex w-72 h-screen bg-[image:var(--gradient-card)] backdrop-blur-md border-r border-border/40 flex-col">
       {/* Logo */}
       <div className="p-5 border-b border-border">
-        <img src={wibooklyLogo} alt="Wibookly" className="h-12 w-auto" />
+        <img src={logoUrl} alt={brandName} className="h-12 w-auto" />
       </div>
 
       {/* Active Email Selector */}

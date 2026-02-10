@@ -60,9 +60,10 @@ const App = () => (
                 <Route path="*" element={<NotFound />} />
               </Routes>
             </BrowserRouter>
-          </SubscriptionProvider>
-        </ActiveEmailProvider>
-      </AuthProvider>
+            </SubscriptionProvider>
+          </ActiveEmailProvider>
+        </AuthProvider>
+      </BrandingProvider>
     </TooltipProvider>
   </QueryClientProvider>
 );
