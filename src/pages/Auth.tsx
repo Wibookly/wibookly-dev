@@ -3,7 +3,7 @@ import { useNavigate, Link, useSearchParams } from 'react-router-dom';
 import { useAuth } from '@/lib/auth';
 import { Button } from '@/components/ui/button';
 import { Loader2 } from 'lucide-react';
-import wibooklyLogo from '@/assets/wibookly-logo.png';
+import { useBranding } from '@/contexts/BrandingContext';
 import { testimonials } from '@/data/testimonials';
 
 const GoogleIcon = () => (
