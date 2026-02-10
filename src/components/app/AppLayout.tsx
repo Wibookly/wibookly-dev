@@ -4,6 +4,8 @@ import { useAuth } from '@/lib/auth';
 import { AppSidebar } from './AppSidebar';
 import { MobileHeader } from './MobileHeader';
 import { MobileSidebar } from './MobileSidebar';
+import { ProductTourOverlay } from './ProductTourOverlay';
+import { ProductTourProvider } from '@/contexts/ProductTourContext';
 import { Loader2 } from 'lucide-react';
 
 export function AppLayout() {
@@ -23,16 +25,19 @@ export function AppLayout() {
   }
 
   return (
-    <div className="min-h-screen flex flex-col lg:flex-row ocean-bg">
-      <MobileHeader onMenuClick={() => setMobileMenuOpen(true)} />
-      <MobileSidebar open={mobileMenuOpen} onClose={() => setMobileMenuOpen(false)} />
-      <AppSidebar />
-      
-      <div className="flex-1 flex flex-col min-h-0">
-        <main className="flex-1 overflow-auto p-4 lg:p-6">
-          <Outlet />
-        </main>
+    <ProductTourProvider>
+      <div className="min-h-screen flex flex-col lg:flex-row ocean-bg">
+        <MobileHeader onMenuClick={() => setMobileMenuOpen(true)} />
+        <MobileSidebar open={mobileMenuOpen} onClose={() => setMobileMenuOpen(false)} />
+        <AppSidebar />
+        
+        <div className="flex-1 flex flex-col min-h-0">
+          <main className="flex-1 overflow-auto p-4 lg:p-6">
+            <Outlet />
+          </main>
+        </div>
+        <ProductTourOverlay />
       </div>
-    </div>
+    </ProductTourProvider>
   );
 }

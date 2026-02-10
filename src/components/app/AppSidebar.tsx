@@ -141,7 +141,7 @@ export function AppSidebar() {
       </div>
 
       {/* Active Email Selector */}
-      <div className="px-4 py-3 border-b border-border">
+      <div className="px-4 py-3 border-b border-border" data-tour="email-selector">
         <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">Connected Emails</h3>
         {loading ? (
           <div className="h-10 bg-secondary animate-pulse rounded-lg" />
@@ -188,37 +188,51 @@ export function AppSidebar() {
         <nav className="p-3 space-y-1.5">
           {/* Account Provisioning */}
           <NavSection title="Account Provisioning" icon={UserPlus} defaultOpen>
-            <NavItem href="/integrations" icon={Link2}>Email & Calendar Connections</NavItem>
+            <div data-tour="nav-connections">
+              <NavItem href="/integrations" icon={Link2}>Email & Calendar Connections</NavItem>
+            </div>
           </NavSection>
 
           {/* Email & Calendar Settings */}
           <NavSection title="Email & Calendar" icon={Cog} defaultOpen>
             <NavItem href="/integrations?tab=settings" icon={Clock}>Availability & Calendar</NavItem>
-            <NavItem href="/categories" icon={Tag}>Email Categories</NavItem>
+            <div data-tour="nav-categories">
+              <NavItem href="/categories" icon={Tag}>Email Categories</NavItem>
+            </div>
           </NavSection>
 
           {/* AI Settings */}
           <NavSection title="AI Settings" icon={Sparkles} defaultOpen>
-            <NavItem href="/email-draft" icon={Sparkles}>AI Draft Settings</NavItem>
+            <div data-tour="nav-ai-drafts">
+              <NavItem href="/email-draft" icon={Sparkles}>AI Draft Settings</NavItem>
+            </div>
             <NavItem href="/email-draft?tab=auto-reply" icon={MessageSquare} showUpgradeBadge={needsUpgradeForAutoReply}>AI Auto Reply</NavItem>
             <NavItem href="/email-draft?tab=labels" icon={Palette}>AI Label Colors</NavItem>
           </NavSection>
 
           {/* AI Assistant */}
           <NavSection title="AI Assistant" icon={Bot} defaultOpen>
-            <NavItem href="/ai-daily-brief" icon={Sun}>My Daily Brief</NavItem>
-            <NavItem href="/ai-chat" icon={MessageSquare}>AI Chat</NavItem>
+            <div data-tour="nav-daily-brief">
+              <NavItem href="/ai-daily-brief" icon={Sun}>My Daily Brief</NavItem>
+            </div>
+            <div data-tour="nav-ai-chat">
+              <NavItem href="/ai-chat" icon={MessageSquare}>AI Chat</NavItem>
+            </div>
           </NavSection>
 
           {/* Settings */}
           <NavSection title="Settings" icon={Settings} defaultOpen>
-            <NavItem href="/settings?section=profile" icon={User}>My Profile</NavItem>
+            <div data-tour="nav-profile">
+              <NavItem href="/settings?section=profile" icon={User}>My Profile</NavItem>
+            </div>
             <NavItem href="/settings?section=signature" icon={PenTool}>My Signature</NavItem>
           </NavSection>
 
           {/* Reports */}
           <NavSection title="Reports" icon={BarChart3} defaultOpen>
-            <NavItem href="/ai-activity" icon={BarChart3} showUpgradeBadge={needsUpgradeForAnalytics}>AI Activity</NavItem>
+            <div data-tour="nav-activity">
+              <NavItem href="/ai-activity" icon={BarChart3} showUpgradeBadge={needsUpgradeForAnalytics}>AI Activity</NavItem>
+            </div>
           </NavSection>
 
           {/* Super Admin - only visible to super_admin users */}

@@ -16,7 +16,8 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { useToast } from '@/hooks/use-toast';
-import { Loader2, Save, Sparkles, Upload, X, Image as ImageIcon, Mail, Calendar, Clock, User2, Building2 } from 'lucide-react';
+import { Loader2, Save, Sparkles, Upload, X, Image as ImageIcon, Mail, Calendar, Clock, User2, Building2, RotateCcw } from 'lucide-react';
+import { useProductTour } from '@/contexts/ProductTourContext';
 import { Switch } from '@/components/ui/switch';
 import { organizationNameSchema, fullNameSchema, validateField } from '@/lib/validation';
 
@@ -122,6 +123,21 @@ const formatPhoneNumber = (value: string): string => {
 };
 
 type SettingsSection = 'profile' | 'signature';
+
+function RestartTourButton() {
+  // Use try/catch so it works even outside ProductTourProvider
+  try {
+    const { startTour } = useProductTour();
+    return (
+      <Button variant="outline" onClick={startTour}>
+        <RotateCcw className="w-4 h-4 mr-2" />
+        Restart Product Tour
+      </Button>
+    );
+  } catch {
+    return null;
+  }
+}
 
 const SETTINGS_SECTIONS = [
   { value: 'profile' as const, label: 'Update Profile', icon: Mail },
@@ -1014,19 +1030,22 @@ CEO, Company Name
         <section className="space-y-4 mt-8 pt-6 border-t border-border">
           <h2 className="text-lg font-semibold">Onboarding</h2>
           <p className="text-sm text-muted-foreground">
-            Access your setup checklist to update or review your configuration steps.
+            Access your setup checklist or relaunch the guided product tour.
           </p>
-          <Button
-            variant="outline"
-            onClick={() => {
-              if (organization?.id) {
-                localStorage.removeItem(`onboarding-dismissed-${organization.id}`);
-                window.location.reload();
-              }
-            }}
-          >
-            Show Onboarding Checklist
-          </Button>
+          <div className="flex flex-wrap gap-3">
+            <Button
+              variant="outline"
+              onClick={() => {
+                if (organization?.id) {
+                  localStorage.removeItem(`onboarding-dismissed-${organization.id}`);
+                  window.location.reload();
+                }
+              }}
+            >
+              Show Onboarding Checklist
+            </Button>
+            <RestartTourButton />
+          </div>
         </section>
         </div>
       </div>
