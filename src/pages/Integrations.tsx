@@ -119,6 +119,13 @@ export default function Integrations() {
   const [meetingDuration, setMeetingDuration] = useState(30);
   const [savingDuration, setSavingDuration] = useState(false);
 
+  // Auto-refresh onboarding progress when connections change
+  useEffect(() => {
+    if (connections.length > 0) {
+      refreshOnboarding();
+    }
+  }, [connections.length]);
+
   // Fetch availability and meeting duration when active connection changes
   useEffect(() => {
     if (activeConnection?.id && organization?.id) {
