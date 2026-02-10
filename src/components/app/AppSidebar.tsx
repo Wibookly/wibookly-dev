@@ -212,8 +212,12 @@ export function AppSidebar() {
 
           {/* AI Assistant */}
           <NavSection title="AI Assistant" icon={Bot} defaultOpen>
-            <NavItem href="/ai-daily-brief" icon={Sun}>My Daily Brief</NavItem>
-            <NavItem href="/ai-chat" icon={MessageSquare}>AI Chat</NavItem>
+            <div data-tour="nav-daily-brief">
+              <NavItem href="/ai-daily-brief" icon={Sun}>My Daily Brief</NavItem>
+            </div>
+            <div data-tour="nav-ai-chat">
+              <NavItem href="/ai-chat" icon={MessageSquare}>AI Chat</NavItem>
+            </div>
           </NavSection>
 
           {/* Settings */}
