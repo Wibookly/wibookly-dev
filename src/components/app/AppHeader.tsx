@@ -1,5 +1,6 @@
 import { useAuth } from '@/lib/auth';
 import { Sun, Moon, Sunrise, Sunset } from 'lucide-react';
+import { useBranding } from '@/contexts/BrandingContext';
 import { UserAvatarDropdown } from './UserAvatarDropdown';
 
 function getTimeOfDay() {
@@ -121,6 +122,7 @@ const FLOW_PARTICLES = [
 
 export function AppHeader() {
   const { profile } = useAuth();
+  const { logoUrl, brandName } = useBranding();
   const firstName = profile?.full_name?.trim().split(' ')[0] || 'there';
   const quote = getDailyQuote();
 
@@ -173,23 +175,26 @@ export function AppHeader() {
         />
       ))}
 
-      {/* Center: Greeting + Quote */}
-      <div className="flex-1 flex items-center justify-center gap-3 relative z-10 min-w-0 px-5">
-        <div className="p-2 rounded-xl bg-primary/10 shrink-0">
-          <TimeIcon className="w-5 h-5" />
-        </div>
-        <div className="min-w-0">
-          <h2 className="text-lg font-semibold text-foreground">
-            {getGreeting()}, {firstName}
-          </h2>
-          <p className="text-xs text-muted-foreground truncate italic">
-            "{quote.text}" — <span className="font-medium not-italic">{quote.author}</span>
-          </p>
-        </div>
+      {/* Left: Wibookly Logo */}
+      <div className="flex items-center px-5 relative z-10 shrink-0">
+        <img src={logoUrl} alt={brandName} className="h-10 w-auto" />
       </div>
 
-      {/* Right: User profile */}
-      <div className="flex items-center px-5 relative z-10 shrink-0">
+      {/* Center: Quote with elegant font */}
+      <div className="flex-1 flex items-center justify-center relative z-10 min-w-0 px-4">
+        <p className="text-sm text-muted-foreground truncate italic text-center" style={{ fontFamily: "'Playfair Display', serif" }}>
+          "{quote.text}" — <span className="font-semibold not-italic">{quote.author}</span>
+        </p>
+      </div>
+
+      {/* Right: Greeting + User profile */}
+      <div className="flex items-center gap-3 px-5 relative z-10 shrink-0">
+        <div className="p-1.5 rounded-lg bg-primary/10 shrink-0">
+          <TimeIcon className="w-4 h-4" />
+        </div>
+        <span className="text-sm font-semibold text-foreground whitespace-nowrap">
+          {getGreeting()}, {firstName}
+        </span>
         <UserAvatarDropdown />
       </div>
 
