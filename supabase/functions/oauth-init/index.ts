@@ -101,11 +101,10 @@ serve(async (req) => {
 
     let authUrl: string;
 
-    // All Connect flows use the same redirect_uri as Cognito login — the
-    // SPA callback at https://app.wibookly.ai/auth/callback.  The callback
-    // detects the flow type by checking for the "connect:" prefix in state
-    // (Connect flow) vs the PKCE verifier in sessionStorage (Cognito flow).
-    const callbackUrl = 'https://app.wibookly.ai/auth/callback';
+    // Connect flows redirect directly to the oauth-callback edge function,
+    // which exchanges the code for tokens and redirects back to the app.
+    const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
+    const callbackUrl = `${supabaseUrl}/functions/v1/oauth-callback`;
 
     console.log(`[oauth-init] Flow: Connect ${provider} (NOT Cognito)`);
     console.log(`[oauth-init] redirect_uri: ${callbackUrl}`);
