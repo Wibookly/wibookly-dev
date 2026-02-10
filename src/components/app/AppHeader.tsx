@@ -1,6 +1,5 @@
 import { useAuth } from '@/lib/auth';
 import { Sun, Moon, Sunrise, Sunset } from 'lucide-react';
-import { useBranding } from '@/contexts/BrandingContext';
 import { UserAvatarDropdown } from './UserAvatarDropdown';
 
 function getTimeOfDay() {
@@ -105,23 +104,23 @@ function getDailyQuote(): { text: string; author: string } {
   const dayOfYear = Math.floor(
     (now.getTime() - new Date(now.getFullYear(), 0, 0).getTime()) / 86400000
   );
-  const halfDay = now.getHours() < 14 ? 0 : 1; // changes at 2pm
+  const halfDay = now.getHours() < 14 ? 0 : 1;
   const index = (dayOfYear * 2 + halfDay) % QUOTES.length;
   return QUOTES[index];
 }
 
-const FLOATING_OBJECTS = [
-  { icon: '✉️', delay: 0, y: 30, dur: 6, size: 16 },
-  { icon: '📧', delay: 2, y: 55, dur: 5.5, size: 14 },
-  { icon: '📨', delay: 4, y: 70, dur: 5, size: 15 },
-  { icon: '✉️', delay: 1.5, y: 20, dur: 6.5, size: 13 },
-  { icon: '📧', delay: 3.5, y: 45, dur: 5.8, size: 16 },
-  { icon: '📨', delay: 0.8, y: 75, dur: 5.2, size: 14 },
+/** Subtle flowing dots that drift across the header */
+const FLOW_PARTICLES = [
+  { delay: 0, y: 30, dur: 8, size: 4, color: 'hsl(170 65% 50%)' },
+  { delay: 2, y: 55, dur: 9, size: 3, color: 'hsl(210 80% 55%)' },
+  { delay: 4, y: 70, dur: 7.5, size: 5, color: 'hsl(280 60% 60%)' },
+  { delay: 1, y: 20, dur: 10, size: 3, color: 'hsl(38 85% 55%)' },
+  { delay: 3, y: 45, dur: 8.5, size: 4, color: 'hsl(170 65% 50%)' },
+  { delay: 5, y: 75, dur: 7, size: 3, color: 'hsl(210 80% 55%)' },
 ];
 
 export function AppHeader() {
   const { profile } = useAuth();
-  const { logoUrl, brandName } = useBranding();
   const firstName = profile?.full_name?.trim().split(' ')[0] || 'there';
   const quote = getDailyQuote();
 
@@ -136,54 +135,46 @@ export function AppHeader() {
   };
 
   return (
-    <header className="hidden lg:flex h-16 border-b border-border/40 bg-card/30 backdrop-blur-sm items-center sticky top-0 z-20 relative overflow-hidden">
-      {/* Animated data streams */}
+    <header className="hidden lg:flex h-16 border-b border-border/40 bg-card/30 backdrop-blur-sm items-center sticky top-0 z-40 relative overflow-hidden w-full">
+      {/* Subtle animated data streams */}
       <svg className="absolute inset-0 w-full h-full pointer-events-none" preserveAspectRatio="none">
         <defs>
           <linearGradient id="hdr-stream-1" x1="0%" y1="0%" x2="100%" y2="0%">
             <stop offset="0%" stopColor="hsl(170 65% 40%)" stopOpacity="0" />
-            <stop offset="30%" stopColor="hsl(170 65% 40%)" stopOpacity="0.15" />
-            <stop offset="70%" stopColor="hsl(210 80% 55%)" stopOpacity="0.15" />
+            <stop offset="30%" stopColor="hsl(170 65% 40%)" stopOpacity="0.1" />
+            <stop offset="70%" stopColor="hsl(210 80% 55%)" stopOpacity="0.1" />
             <stop offset="100%" stopColor="hsl(210 80% 55%)" stopOpacity="0" />
           </linearGradient>
           <linearGradient id="hdr-stream-2" x1="100%" y1="0%" x2="0%" y2="0%">
             <stop offset="0%" stopColor="hsl(280 70% 60%)" stopOpacity="0" />
-            <stop offset="40%" stopColor="hsl(280 70% 60%)" stopOpacity="0.12" />
+            <stop offset="40%" stopColor="hsl(280 70% 60%)" stopOpacity="0.08" />
             <stop offset="100%" stopColor="hsl(38 92% 50%)" stopOpacity="0" />
           </linearGradient>
         </defs>
-        <line x1="0" y1="24" x2="100%" y2="28" stroke="url(#hdr-stream-1)" strokeWidth="1" strokeDasharray="8 6" style={{ animation: 'hdr-dash 4s linear infinite' }} />
-        <line x1="0" y1="42" x2="100%" y2="38" stroke="url(#hdr-stream-2)" strokeWidth="1" strokeDasharray="6 8" style={{ animation: 'hdr-dash-rev 5s linear infinite' }} />
-        <line x1="0" y1="56" x2="100%" y2="52" stroke="url(#hdr-stream-1)" strokeWidth="0.8" strokeDasharray="4 6" style={{ animation: 'hdr-dash 6s linear infinite', animationDelay: '-2s' }} />
+        <line x1="0" y1="24" x2="100%" y2="28" stroke="url(#hdr-stream-1)" strokeWidth="1" strokeDasharray="8 6" style={{ animation: 'hdr-dash 6s linear infinite' }} />
+        <line x1="0" y1="42" x2="100%" y2="38" stroke="url(#hdr-stream-2)" strokeWidth="1" strokeDasharray="6 8" style={{ animation: 'hdr-dash-rev 7s linear infinite' }} />
       </svg>
 
-      {/* Floating envelope objects */}
-      {FLOATING_OBJECTS.map((p, i) => (
+      {/* Subtle flowing dot particles */}
+      {FLOW_PARTICLES.map((p, i) => (
         <div
           key={i}
-          className="absolute pointer-events-none select-none"
+          className="absolute rounded-full pointer-events-none"
           style={{
             top: `${p.y}%`,
-            left: i % 2 === 0 ? '0' : 'auto',
-            right: i % 2 === 1 ? '0' : 'auto',
-            fontSize: `${p.size}px`,
-            animation: `${i % 2 === 0 ? 'hdr-fly-right' : 'hdr-fly-left'} ${p.dur}s ease-in-out infinite`,
+            width: `${p.size}px`,
+            height: `${p.size}px`,
+            backgroundColor: p.color,
+            animation: `hdr-dot-flow ${p.dur}s linear infinite`,
             animationDelay: `${p.delay}s`,
             opacity: 0,
-            filter: 'drop-shadow(0 0 3px hsl(var(--primary) / 0.2))',
+            filter: `blur(0.5px)`,
           }}
-        >
-          {p.icon}
-        </div>
+        />
       ))}
 
-      {/* Left: Logo */}
-      <div className="flex items-center px-5 relative z-10 shrink-0">
-        <img src={logoUrl} alt={brandName} className="h-12 w-auto" />
-      </div>
-
       {/* Center: Greeting + Quote */}
-      <div className="flex-1 flex items-center justify-center gap-3 relative z-10 min-w-0">
+      <div className="flex-1 flex items-center justify-center gap-3 relative z-10 min-w-0 px-5">
         <div className="p-2 rounded-xl bg-primary/10 shrink-0">
           <TimeIcon className="w-5 h-5" />
         </div>
@@ -212,19 +203,12 @@ export function AppHeader() {
           0%   { stroke-dashoffset: 0; }
           100% { stroke-dashoffset: 200; }
         }
-        @keyframes hdr-fly-right {
-          0%   { transform: translateX(0) scale(0.5); opacity: 0; }
-          8%   { opacity: 0.7; transform: translateX(40px) scale(0.9); }
-          50%  { opacity: 0.5; transform: translateX(50vw) scale(0.8) translateY(-4px); }
-          85%  { opacity: 0.2; transform: translateX(85vw) scale(0.5) translateY(2px); }
-          100% { opacity: 0; transform: translateX(95vw) scale(0.3); }
-        }
-        @keyframes hdr-fly-left {
-          0%   { transform: translateX(0) scale(0.5); opacity: 0; }
-          8%   { opacity: 0.7; transform: translateX(-40px) scale(0.9); }
-          50%  { opacity: 0.5; transform: translateX(-50vw) scale(0.8) translateY(4px); }
-          85%  { opacity: 0.2; transform: translateX(-85vw) scale(0.5) translateY(-2px); }
-          100% { opacity: 0; transform: translateX(-95vw) scale(0.3); }
+        @keyframes hdr-dot-flow {
+          0%   { left: -10px; opacity: 0; }
+          5%   { opacity: 0.6; }
+          50%  { opacity: 0.4; }
+          95%  { opacity: 0.1; }
+          100% { left: 100%; opacity: 0; }
         }
       `}</style>
     </header>
