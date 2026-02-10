@@ -83,21 +83,16 @@ serve(async (req) => {
     // Generate a random state parameter for CSRF protection
     const state = crypto.randomUUID();
     
-    // Encode state data as base64 JSON, then prefix with "connect:" so the
-    // SPA callback (/auth/callback) can distinguish Connect flows from
-    // Cognito login flows. The callback strips the prefix before forwarding
-    // to oauth-exchange.
-    const statePayload = btoa(JSON.stringify({
+    // Encode state data as base64 JSON containing all info the callback
+    // needs to complete the flow.
+    const stateData = btoa(JSON.stringify({
       state,
       userId,
       organizationId,
       provider,
-      // Remember which web origin started the flow so the callback can return there.
-      // This avoids redirecting to an unpublished/stale domain.
       appOrigin: req.headers.get('origin') || undefined,
       redirectUrl: redirectUrl || '/integrations'
     }));
-    const stateData = `connect:${statePayload}`;
 
     let authUrl: string;
 
