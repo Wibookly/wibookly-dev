@@ -22,6 +22,7 @@ import NotFound from "./pages/NotFound";
 import AIChat from "./pages/AIChat";
 import AIDailyBrief from "./pages/AIDailyBrief";
 import Pricing from "./pages/Pricing";
+import SuperAdmin from "./pages/SuperAdmin";
 
 const queryClient = new QueryClient();
 
@@ -52,6 +53,7 @@ const App = () => (
                   <Route path="/ai-activity" element={<AIActivityDashboard />} />
                   <Route path="/ai-chat" element={<AIChat />} />
                   <Route path="/ai-daily-brief" element={<AIDailyBrief />} />
+                  <Route path="/super-admin" element={<SuperAdmin />} />
                 </Route>
                 <Route path="*" element={<NotFound />} />
               </Routes>

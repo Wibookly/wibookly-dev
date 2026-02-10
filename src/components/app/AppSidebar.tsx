@@ -1,5 +1,6 @@
 import { NavLink, useLocation } from 'react-router-dom';
-import { Plug, FolderOpen, Settings, LogOut, Sparkles, BarChart3, ChevronDown, Check, Mail, Calendar, Clock, Tag, Palette, User, PenTool, ListFilter, MessageSquare, Sun, Bot, UserPlus, Link2, Cog } from 'lucide-react';
+import { Plug, FolderOpen, Settings, LogOut, Sparkles, BarChart3, ChevronDown, Check, Mail, Calendar, Clock, Tag, Palette, User, PenTool, ListFilter, MessageSquare, Sun, Bot, UserPlus, Link2, Cog, Shield } from 'lucide-react';
+import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/lib/auth';
 import { cn } from '@/lib/utils';
 import wibooklyLogo from '@/assets/wibookly-logo.png';
@@ -99,11 +100,24 @@ function NavItem({ href, icon: Icon, children, showUpgradeBadge }: NavItemProps)
 }
 
 export function AppSidebar() {
-  const { signOut, organization } = useAuth();
+  const { signOut, user, organization } = useAuth();
   const location = useLocation();
   const { connections, activeConnection, setActiveConnectionId, loading } = useActiveEmail();
   const { hasFeature } = useSubscription();
   const [isOnboardingComplete, setIsOnboardingComplete] = useState(false);
+  const [isSuperAdmin, setIsSuperAdmin] = useState(false);
+
+  // Check if current user is super_admin
+  useEffect(() => {
+    if (!user) return;
+    supabase
+      .from('user_roles')
+      .select('role')
+      .eq('user_id', user.id)
+      .eq('role', 'super_admin')
+      .maybeSingle()
+      .then(({ data }) => setIsSuperAdmin(!!data));
+  }, [user]);
 
   // Check feature access for upgrade badges
   const needsUpgradeForAutoReply = !hasFeature('aiAutoReply');
@@ -204,6 +218,13 @@ export function AppSidebar() {
           <NavSection title="Reports" icon={BarChart3} defaultOpen>
             <NavItem href="/ai-activity" icon={BarChart3} showUpgradeBadge={needsUpgradeForAnalytics}>AI Activity</NavItem>
           </NavSection>
+
+          {/* Super Admin - only visible to super_admin users */}
+          {isSuperAdmin && (
+            <NavSection title="Super Admin" icon={Shield} defaultOpen>
+              <NavItem href="/super-admin" icon={Shield}>User Overrides</NavItem>
+            </NavSection>
+          )}
         </nav>
       </div>
 
