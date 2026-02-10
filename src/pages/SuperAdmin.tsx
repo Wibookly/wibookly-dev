@@ -12,8 +12,10 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
 import { useToast } from '@/hooks/use-toast';
-import { Shield, Search, Trash2, Loader2, Palette, Users, Mail, Building2, Pencil, X, Check } from 'lucide-react';
+import { Shield, Search, Trash2, Loader2, Palette, Users, Mail, Building2, Pencil, X, Check, UserPlus, KeyRound, Lock, Unlock, Eye, EyeOff } from 'lucide-react';
+import { Label } from '@/components/ui/label';
 import { PlanType } from '@/lib/subscription';
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 
 interface UserWithOverride {
   user_id: string;
