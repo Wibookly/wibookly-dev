@@ -611,7 +611,7 @@ export default function Settings() {
 
         {/* Profile Settings */}
         {activeSection === 'profile' && (
-        <section className="space-y-4">
+        <section className="space-y-4" data-tour="profile-section">
           <h2 className="text-lg font-semibold">Profile</h2>
           <div className="space-y-4 p-6 bg-card rounded-lg border border-border">
             <div className="space-y-2">
