@@ -87,6 +87,7 @@ export default function SuperAdmin() {
   const { toast } = useToast();
   const [isSuperAdmin, setIsSuperAdmin] = useState<boolean | null>(null);
   const [users, setUsers] = useState<UserWithOverride[]>([]);
+  const [superAdminIds, setSuperAdminIds] = useState<Set<string>>(new Set());
   const [organizations, setOrganizations] = useState<Organization[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
