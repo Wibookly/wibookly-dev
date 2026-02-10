@@ -490,7 +490,7 @@ export default function Integrations() {
             />
           </svg>
         ),
-        connections: outlookConnections,
+        connections: effectiveOutlookConnections,
         available: true,
       },
       {
@@ -517,11 +517,11 @@ export default function Integrations() {
             />
           </svg>
         ),
-        connections: googleConnections,
+        connections: effectiveGoogleConnections,
         available: true,
       },
     ],
-    [googleConnections, outlookConnections]
+    [effectiveGoogleConnections, effectiveOutlookConnections]
   );
 
   // Extract first name from profile full_name (first word only)
