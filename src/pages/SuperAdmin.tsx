@@ -965,8 +965,12 @@ function UnifiedAccountRow({
         <TableCell>
           <div className="flex items-center gap-1.5">
             <Select
-              value={effectivePlan}
-              onValueChange={(val) => onGrantOverride(u.user_id, val as PlanType)}
+              value={selectPlanValue}
+              onValueChange={(val) => {
+                // Only allow free overrides (starter, pro, enterprise)
+                if (val === 'starter_paid' || val === 'pro_paid') return;
+                onGrantOverride(u.user_id, val as PlanType);
+              }}
               disabled={saving}
             >
               <SelectTrigger className="w-[120px] h-8" style={{ borderColor: planInfo.color }}>
