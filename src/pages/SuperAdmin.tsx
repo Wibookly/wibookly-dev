@@ -12,7 +12,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
 import { useToast } from '@/hooks/use-toast';
-import { Shield, Search, Trash2, Loader2, Palette, Users, Mail, Building2, Pencil, X, Check, UserPlus, KeyRound, Lock, Unlock, Eye, EyeOff, BarChart3 } from 'lucide-react';
+import { Shield, Search, Trash2, Loader2, Palette, Users, Mail, Building2, Pencil, X, Check, UserPlus, KeyRound, Eye, EyeOff, BarChart3, Filter, DollarSign } from 'lucide-react';
 import { Label } from '@/components/ui/label';
 import { PlanType } from '@/lib/subscription';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
@@ -62,6 +62,26 @@ interface Organization {
   member_count: number;
 }
 
+// Plan display helpers
+function getPlanDisplayInfo(user: UserWithOverride) {
+  const hasPaidSubscription = user.subscription?.status === 'active' && user.subscription?.plan;
+  const overridePlan = user.override?.is_active ? user.override.granted_plan : null;
+  const subPlan = user.subscription?.plan || 'starter';
+  const effectivePlan = overridePlan || subPlan;
+
+  if (effectivePlan === 'enterprise') {
+    return { label: 'Business', color: 'hsl(38 92% 50%)', bg: 'hsl(38 92% 50% / 0.12)', paid: true };
+  }
+  if (effectivePlan === 'pro') {
+    return { label: 'Pro', color: 'hsl(280 70% 60%)', bg: 'hsl(280 70% 60% / 0.12)', paid: true };
+  }
+  // Starter - check if paid or free
+  if (hasPaidSubscription && subPlan === 'starter') {
+    return { label: 'Starter', color: 'hsl(210 80% 55%)', bg: 'hsl(210 80% 55% / 0.12)', paid: true };
+  }
+  return { label: 'Starter', color: 'hsl(var(--muted-foreground))', bg: 'hsl(var(--muted-foreground) / 0.08)', paid: false };
+}
+
 export default function SuperAdmin() {
   const { user } = useAuth();
   const { toast } = useToast();
@@ -71,6 +91,10 @@ export default function SuperAdmin() {
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
   const [saving, setSaving] = useState<string | null>(null);
+  // Filters
+  const [filterOrg, setFilterOrg] = useState<string>('all');
+  const [filterPlan, setFilterPlan] = useState<string>('all');
+  const [filterStatus, setFilterStatus] = useState<string>('all');
 
   useEffect(() => {
     if (!user) return;
@@ -285,20 +309,46 @@ export default function SuperAdmin() {
     return <Navigate to="/integrations" replace />;
   }
 
-  const filteredUsers = users.filter(u =>
-    u.email.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    (u.full_name || '').toLowerCase().includes(searchQuery.toLowerCase())
-  );
+  // Apply filters
+  const filteredUsers = users.filter(u => {
+    // Search
+    const matchesSearch = u.email.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      (u.full_name || '').toLowerCase().includes(searchQuery.toLowerCase());
+    if (!matchesSearch) return false;
+
+    // Org filter
+    if (filterOrg !== 'all' && u.organization_id !== filterOrg) return false;
+
+    // Plan filter
+    const planInfo = getPlanDisplayInfo(u);
+    const effectivePlanKey = u.override?.is_active ? u.override.granted_plan : u.subscription?.plan || 'starter';
+    if (filterPlan === 'starter_free' && !(effectivePlanKey === 'starter' && !planInfo.paid)) return false;
+    if (filterPlan === 'starter_paid' && !(effectivePlanKey === 'starter' && planInfo.paid)) return false;
+    if (filterPlan === 'pro' && effectivePlanKey !== 'pro') return false;
+    if (filterPlan === 'enterprise' && effectivePlanKey !== 'enterprise') return false;
+
+    // Status filter
+    if (filterStatus === 'active' && !(u.subscription?.status === 'active' || u.override?.is_active)) return false;
+    if (filterStatus === 'deactivated' && (u.subscription?.status === 'active' || u.override?.is_active)) return false;
+
+    return true;
+  });
 
   // Summary stats
   const totalOrgs = organizations.length;
   const totalUsers = users.length;
   const activeUsers = users.filter(u => u.subscription?.status === 'active' || u.override?.is_active).length;
-  const totalEmails = users.length; // Each user has at least their auth email
+  const totalEmails = users.length;
   const planCounts = {
-    starter: users.filter(u => {
+    starterFree: users.filter(u => {
+      const info = getPlanDisplayInfo(u);
       const p = u.override?.is_active ? u.override.granted_plan : u.subscription?.plan || 'starter';
-      return p === 'starter';
+      return p === 'starter' && !info.paid;
+    }).length,
+    starterPaid: users.filter(u => {
+      const info = getPlanDisplayInfo(u);
+      const p = u.override?.is_active ? u.override.granted_plan : u.subscription?.plan || 'starter';
+      return p === 'starter' && info.paid;
     }).length,
     pro: users.filter(u => {
       const p = u.override?.is_active ? u.override.granted_plan : u.subscription?.plan || 'starter';
@@ -311,37 +361,23 @@ export default function SuperAdmin() {
   };
 
   return (
-    <div className="max-w-7xl mx-auto space-y-6">
+    <div className="w-full space-y-6">
       {/* Header */}
       <div className="flex items-center gap-3">
-        <div className="p-2 rounded-lg" style={{ background: 'hsl(0 72% 51% / 0.1)' }}>
+        <div className="p-2.5 rounded-xl" style={{ background: 'hsl(0 72% 51% / 0.1)' }}>
           <Shield className="w-6 h-6" style={{ color: 'hsl(0 72% 51%)' }} />
         </div>
         <div>
-          <h1 className="text-2xl font-bold text-foreground">Super Admin</h1>
-          <p className="text-sm text-muted-foreground">Manage users, organizations, plans, and branding</p>
+          <h1 className="text-2xl font-bold text-foreground">Wibookly Administrators</h1>
+          <p className="text-sm text-muted-foreground">Manage subscribers, organizations, plans, and branding</p>
         </div>
       </div>
 
-      {/* Search + Create */}
-      <div className="flex items-center gap-3">
-        <div className="relative flex-1 max-w-sm">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-          <Input
-            placeholder="Search by email or name..."
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            className="pl-9"
-          />
-        </div>
-        <CreateUserCard callAdminFunction={callAdminFunction} onCreated={fetchUsers} toast={toast} />
-      </div>
-
-      <Tabs defaultValue="accounts">
+      <Tabs defaultValue="subscribers">
         <TabsList>
-          <TabsTrigger value="accounts">
+          <TabsTrigger value="subscribers">
             <Users className="w-4 h-4 mr-2" />
-            Users & Organizations
+            Subscribers
           </TabsTrigger>
           <TabsTrigger value="whitelabel">
             <Palette className="w-4 h-4 mr-2" />
@@ -349,17 +385,69 @@ export default function SuperAdmin() {
           </TabsTrigger>
         </TabsList>
 
-        {/* Merged Accounts + Organizations Tab */}
-        <TabsContent value="accounts">
+        {/* Subscribers Tab */}
+        <TabsContent value="subscribers">
           <Card>
             <CardHeader className="pb-3">
-              <CardTitle className="text-lg flex items-center gap-2">
-                <Users className="w-5 h-5" style={{ color: 'hsl(210 80% 55%)' }} />
-                User Management
-              </CardTitle>
-              <p className="text-sm text-muted-foreground">Manage accounts, emails, plans, and access status.</p>
+              <div className="flex items-center justify-between flex-wrap gap-3">
+                <div>
+                  <CardTitle className="text-lg flex items-center gap-2">
+                    <Users className="w-5 h-5" style={{ color: 'hsl(210 80% 55%)' }} />
+                    Subscriber Management
+                  </CardTitle>
+                  <p className="text-sm text-muted-foreground mt-1">Manage accounts, emails, plans, and access status.</p>
+                </div>
+                <CreateUserCard callAdminFunction={callAdminFunction} onCreated={fetchUsers} toast={toast} />
+              </div>
             </CardHeader>
             <CardContent>
+              {/* Filters Row */}
+              <div className="flex flex-wrap items-center gap-3 mb-4 p-3 rounded-lg bg-secondary/50 border border-border">
+                <Filter className="w-4 h-4 text-muted-foreground" />
+                <div className="relative flex-1 min-w-[180px] max-w-xs">
+                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                  <Input
+                    placeholder="Search by email or name..."
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    className="pl-9 h-9"
+                  />
+                </div>
+                <Select value={filterOrg} onValueChange={setFilterOrg}>
+                  <SelectTrigger className="w-[180px] h-9">
+                    <SelectValue placeholder="All Organizations" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">All Organizations</SelectItem>
+                    {organizations.map(org => (
+                      <SelectItem key={org.id} value={org.id}>{org.name}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <Select value={filterPlan} onValueChange={setFilterPlan}>
+                  <SelectTrigger className="w-[160px] h-9">
+                    <SelectValue placeholder="All Plans" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">All Plans</SelectItem>
+                    <SelectItem value="starter_free">Starter Free</SelectItem>
+                    <SelectItem value="starter_paid">Starter $</SelectItem>
+                    <SelectItem value="pro">Pro</SelectItem>
+                    <SelectItem value="enterprise">Business</SelectItem>
+                  </SelectContent>
+                </Select>
+                <Select value={filterStatus} onValueChange={setFilterStatus}>
+                  <SelectTrigger className="w-[140px] h-9">
+                    <SelectValue placeholder="All Status" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">All Status</SelectItem>
+                    <SelectItem value="active">Active</SelectItem>
+                    <SelectItem value="deactivated">Deactivated</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
               <div className="overflow-x-auto">
                 <Table>
                   <TableHeader>
@@ -369,7 +457,7 @@ export default function SuperAdmin() {
                       <TableHead>Emails</TableHead>
                       <TableHead>Plan</TableHead>
                       <TableHead>Status</TableHead>
-                      <TableHead className="w-[200px]">Actions</TableHead>
+                      <TableHead className="w-[140px]">Actions</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
@@ -387,12 +475,13 @@ export default function SuperAdmin() {
                         onRemoveOverride={removeOverride}
                         organizations={organizations}
                         toast={toast}
+                        filterStatus={filterStatus}
                       />
                     ))}
                     {filteredUsers.length === 0 && (
                       <TableRow>
                         <TableCell colSpan={6} className="text-center text-muted-foreground py-8">
-                          {searchQuery ? 'No users match your search' : 'No users found'}
+                          {searchQuery || filterOrg !== 'all' || filterPlan !== 'all' ? 'No subscribers match your filters' : 'No subscribers found'}
                         </TableCell>
                       </TableRow>
                     )}
@@ -402,7 +491,7 @@ export default function SuperAdmin() {
             </CardContent>
           </Card>
 
-          {/* Organizations Management */}
+          {/* Organizations Card */}
           <Card className="mt-6">
             <CardHeader className="pb-3">
               <CardTitle className="text-lg flex items-center gap-2">
@@ -431,7 +520,7 @@ export default function SuperAdmin() {
                 <Palette className="w-5 h-5" style={{ color: 'hsl(280 70% 60%)' }} />
                 White Label Branding
               </CardTitle>
-              <p className="text-sm text-muted-foreground">Assign custom branding per user.</p>
+              <p className="text-sm text-muted-foreground">Assign custom branding per subscriber.</p>
             </CardHeader>
             <CardContent>
               <Table>
@@ -459,7 +548,7 @@ export default function SuperAdmin() {
                   {filteredUsers.length === 0 && (
                     <TableRow>
                       <TableCell colSpan={6} className="text-center text-muted-foreground py-8">
-                        {searchQuery ? 'No users match your search' : 'No users found'}
+                        No subscribers found
                       </TableCell>
                     </TableRow>
                   )}
@@ -480,46 +569,68 @@ export default function SuperAdmin() {
         {/* Stat Cards */}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
           <Card className="p-4">
-            <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Organizations</p>
-            <p className="text-3xl font-bold text-foreground mt-1">{totalOrgs}</p>
+            <div className="flex items-center gap-2 mb-1">
+              <Building2 className="w-4 h-4" style={{ color: 'hsl(280 70% 60%)' }} />
+              <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Organizations</p>
+            </div>
+            <p className="text-3xl font-bold text-foreground">{totalOrgs}</p>
           </Card>
           <Card className="p-4">
-            <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Total Users</p>
-            <p className="text-3xl font-bold text-foreground mt-1">{totalUsers}</p>
+            <div className="flex items-center gap-2 mb-1">
+              <Users className="w-4 h-4" style={{ color: 'hsl(210 80% 55%)' }} />
+              <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Total Subscribers</p>
+            </div>
+            <p className="text-3xl font-bold text-foreground">{totalUsers}</p>
           </Card>
           <Card className="p-4">
-            <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Active Accounts</p>
-            <p className="text-3xl font-bold mt-1" style={{ color: 'hsl(var(--primary))' }}>{activeUsers}</p>
+            <div className="flex items-center gap-2 mb-1">
+              <Check className="w-4 h-4" style={{ color: 'hsl(var(--primary))' }} />
+              <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Active Accounts</p>
+            </div>
+            <p className="text-3xl font-bold" style={{ color: 'hsl(var(--primary))' }}>{activeUsers}</p>
           </Card>
           <Card className="p-4">
-            <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Total Emails</p>
-            <p className="text-3xl font-bold text-foreground mt-1">{totalEmails}</p>
+            <div className="flex items-center gap-2 mb-1">
+              <Mail className="w-4 h-4" style={{ color: 'hsl(38 92% 50%)' }} />
+              <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Total Emails</p>
+            </div>
+            <p className="text-3xl font-bold text-foreground">{totalEmails}</p>
           </Card>
         </div>
 
         {/* Plan Breakdown */}
         <Card className="p-4">
           <p className="text-sm font-semibold text-foreground mb-3">Plan Distribution</p>
-          <div className="grid grid-cols-3 gap-4">
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+            <div className="flex items-center gap-3">
+              <div className="w-3 h-3 rounded-full bg-muted-foreground/40" />
+              <div>
+                <p className="text-sm font-medium text-foreground">Starter Free</p>
+                <p className="text-xs text-muted-foreground">{planCounts.starterFree} subscribers</p>
+              </div>
+            </div>
             <div className="flex items-center gap-3">
               <div className="w-3 h-3 rounded-full" style={{ background: 'hsl(210 80% 55%)' }} />
               <div>
-                <p className="text-sm font-medium text-foreground">Starter</p>
-                <p className="text-xs text-muted-foreground">{planCounts.starter} users</p>
+                <div className="flex items-center gap-1">
+                  <p className="text-sm font-medium text-foreground">Starter</p>
+                  <DollarSign className="w-3 h-3" style={{ color: 'hsl(210 80% 55%)' }} />
+                </div>
+                <p className="text-xs text-muted-foreground">{planCounts.starterPaid} subscribers</p>
               </div>
             </div>
             <div className="flex items-center gap-3">
               <div className="w-3 h-3 rounded-full" style={{ background: 'hsl(280 70% 60%)' }} />
               <div>
                 <p className="text-sm font-medium text-foreground">Pro</p>
-                <p className="text-xs text-muted-foreground">{planCounts.pro} users</p>
+                <p className="text-xs text-muted-foreground">{planCounts.pro} subscribers</p>
               </div>
             </div>
             <div className="flex items-center gap-3">
               <div className="w-3 h-3 rounded-full" style={{ background: 'hsl(38 92% 50%)' }} />
               <div>
                 <p className="text-sm font-medium text-foreground">Business</p>
-                <p className="text-xs text-muted-foreground">{planCounts.business} users</p>
+                <p className="text-xs text-muted-foreground">{planCounts.business} subscribers</p>
               </div>
             </div>
           </div>
@@ -527,7 +638,7 @@ export default function SuperAdmin() {
 
         {/* Org Breakdown */}
         <Card className="p-4">
-          <p className="text-sm font-semibold text-foreground mb-3">Users per Organization</p>
+          <p className="text-sm font-semibold text-foreground mb-3">Subscribers per Organization</p>
           <div className="space-y-2">
             {organizations.map(org => (
               <div key={org.id} className="flex items-center justify-between py-1.5 border-b border-border last:border-0">
@@ -574,7 +685,7 @@ function CreateUserCard({
         full_name: fullName || undefined,
         plan_override: planOverride,
       });
-      toast({ title: 'User created', description: `${email} has been created successfully.` });
+      toast({ title: 'Subscriber created', description: `${email} has been created successfully.` });
       setEmail(''); setFullName(''); setPassword(''); setPlanOverride('none');
       setOpen(false);
       onCreated();
@@ -590,12 +701,12 @@ function CreateUserCard({
       <DialogTrigger asChild>
         <Button>
           <UserPlus className="w-4 h-4 mr-2" />
-          Create New User
+          Create Subscriber
         </Button>
       </DialogTrigger>
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
-          <DialogTitle>Create New User</DialogTitle>
+          <DialogTitle>Create New Subscriber</DialogTitle>
           <DialogDescription>Create a new account with optional plan assignment.</DialogDescription>
         </DialogHeader>
         <div className="space-y-4 py-2">
@@ -626,8 +737,8 @@ function CreateUserCard({
             <Select value={planOverride} onValueChange={setPlanOverride}>
               <SelectTrigger><SelectValue /></SelectTrigger>
               <SelectContent>
-                <SelectItem value="none">No override (Starter)</SelectItem>
-                <SelectItem value="starter">Starter</SelectItem>
+                <SelectItem value="none">Starter Free</SelectItem>
+                <SelectItem value="starter">Starter $</SelectItem>
                 <SelectItem value="pro">Pro</SelectItem>
                 <SelectItem value="enterprise">Business</SelectItem>
               </SelectContent>
@@ -638,7 +749,7 @@ function CreateUserCard({
           <Button variant="outline" onClick={() => setOpen(false)}>Cancel</Button>
           <Button onClick={handleCreate} disabled={creating || !email || !password || password.length < 6}>
             {creating && <Loader2 className="w-4 h-4 animate-spin mr-2" />}
-            Create User
+            Create Subscriber
           </Button>
         </DialogFooter>
       </DialogContent>
@@ -659,6 +770,7 @@ function UnifiedAccountRow({
   onRemoveOverride,
   organizations,
   toast,
+  filterStatus,
 }: {
   user: UserWithOverride;
   saving: boolean;
@@ -671,6 +783,7 @@ function UnifiedAccountRow({
   onRemoveOverride: (userId: string) => void;
   organizations: Organization[];
   toast: any;
+  filterStatus: string;
 }) {
   const [connections, setConnections] = useState<UserConnection[]>([]);
   const [showConnections, setShowConnections] = useState(false);
@@ -685,6 +798,7 @@ function UnifiedAccountRow({
   const isSelf = u.user_id === currentUserId;
 
   const orgName = organizations.find(o => o.id === u.organization_id)?.name || u.organization_id.slice(0, 8) + '…';
+  const planInfo = getPlanDisplayInfo(u);
 
   useEffect(() => {
     const checkStatus = async () => {
@@ -698,6 +812,10 @@ function UnifiedAccountRow({
     };
     checkStatus();
   }, [u.user_id]);
+
+  // Filter by status
+  if (filterStatus === 'active' && isBanned === true) return null;
+  if (filterStatus === 'deactivated' && isBanned === false) return null;
 
   const loadConnections = async () => {
     if (showConnections) { setShowConnections(false); return; }
@@ -755,7 +873,6 @@ function UnifiedAccountRow({
   };
 
   const effectivePlan = u.override?.is_active ? u.override.granted_plan : u.subscription?.plan || 'starter';
-  const planLabel = effectivePlan === 'enterprise' ? 'Business' : effectivePlan.charAt(0).toUpperCase() + effectivePlan.slice(1);
 
   return (
     <>
@@ -776,20 +893,27 @@ function UnifiedAccountRow({
           </Button>
         </TableCell>
         <TableCell>
-          <Select
-            value={effectivePlan}
-            onValueChange={(val) => onGrantOverride(u.user_id, val as PlanType)}
-            disabled={saving}
-          >
-            <SelectTrigger className="w-[110px] h-8">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="starter">Starter</SelectItem>
-              <SelectItem value="pro">Pro</SelectItem>
-              <SelectItem value="enterprise">Business</SelectItem>
-            </SelectContent>
-          </Select>
+          <div className="flex items-center gap-1.5">
+            <Select
+              value={effectivePlan}
+              onValueChange={(val) => onGrantOverride(u.user_id, val as PlanType)}
+              disabled={saving}
+            >
+              <SelectTrigger className="w-[120px] h-8" style={{ borderColor: planInfo.color }}>
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="starter">
+                  <span className="flex items-center gap-1">Starter Free</span>
+                </SelectItem>
+                <SelectItem value="pro">Pro</SelectItem>
+                <SelectItem value="enterprise">Business</SelectItem>
+              </SelectContent>
+            </Select>
+            {planInfo.paid && (
+              <DollarSign className="w-3.5 h-3.5 flex-shrink-0" style={{ color: planInfo.color }} />
+            )}
+          </div>
         </TableCell>
         <TableCell>
           {isBanned === null ? (
@@ -798,7 +922,7 @@ function UnifiedAccountRow({
             <div className="flex items-center gap-2">
               <Switch
                 checked={!isBanned}
-                onCheckedChange={(checked) => toggleBan()}
+                onCheckedChange={() => toggleBan()}
                 disabled={togglingBan || isSelf}
               />
               <span className={`text-xs font-medium ${isBanned ? 'text-destructive' : 'text-foreground'}`}>
@@ -815,12 +939,10 @@ function UnifiedAccountRow({
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end">
-              {/* Reset Password */}
               <DropdownMenuItem onSelect={() => setResetDialogOpen(true)}>
                 <KeyRound className="w-4 h-4 mr-2" />
                 Reset Password
               </DropdownMenuItem>
-              {/* Delete */}
               {!isSelf && (
                 <DropdownMenuItem className="text-destructive" onSelect={(e) => e.preventDefault()}>
                   <AlertDialog>
@@ -853,7 +975,6 @@ function UnifiedAccountRow({
             </DropdownMenuContent>
           </DropdownMenu>
 
-          {/* Reset Password Dialog */}
           <Dialog open={resetDialogOpen} onOpenChange={setResetDialogOpen}>
             <DialogContent className="sm:max-w-sm">
               <DialogHeader>
@@ -935,7 +1056,7 @@ function UnifiedAccountRow({
   );
 }
 
-// ===== Organizations Tab (now inline card) =====
+// ===== Organizations Tab =====
 function OrganizationsTab({
   callAdminFunction,
   currentUserId,
