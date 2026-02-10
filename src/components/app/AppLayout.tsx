@@ -27,19 +27,24 @@ export function AppLayout() {
 
   return (
     <ProductTourProvider>
-      <div className="min-h-screen flex flex-col lg:flex-row ocean-bg">
+      <div className="min-h-screen flex flex-col ocean-bg">
         <MobileHeader onMenuClick={() => setMobileMenuOpen(true)} />
         <MobileSidebar open={mobileMenuOpen} onClose={() => setMobileMenuOpen(false)} />
-        <AppSidebar />
         
-        {/* Main content offset by sidebar width on desktop */}
-        <div className="flex-1 flex flex-col min-h-0 lg:ml-80">
-          <AppHeader />
-          <main className="flex-1 overflow-auto p-4 lg:p-8 main-scroll">
-            <div className="w-full">
-              <Outlet />
-            </div>
-          </main>
+        {/* Full-width header on top */}
+        <AppHeader />
+        
+        <div className="flex-1 flex flex-row">
+          <AppSidebar />
+          
+          {/* Main content offset by sidebar width on desktop */}
+          <div className="flex-1 flex flex-col min-h-0 lg:ml-80">
+            <main className="flex-1 overflow-auto p-4 lg:p-8 main-scroll">
+              <div className="w-full">
+                <Outlet />
+              </div>
+            </main>
+          </div>
         </div>
         <ProductTourOverlay />
       </div>

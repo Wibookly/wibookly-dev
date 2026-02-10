@@ -163,7 +163,7 @@ export function AppSidebar() {
   }, [organization?.id]);
 
   return (
-    <aside className="hidden lg:flex w-80 h-screen bg-[image:var(--gradient-card)] backdrop-blur-md border-r border-border/40 flex-col fixed left-0 top-0 z-30">
+    <aside className="hidden lg:flex w-80 bg-[image:var(--gradient-card)] backdrop-blur-md border-r border-border/40 flex-col fixed left-0 top-16 bottom-0 z-30">
       {/* AI Brain Hub replacing plain logo */}
       <SidebarAIHub />
 
