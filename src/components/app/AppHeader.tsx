@@ -47,7 +47,7 @@ export function AppHeader() {
   };
 
   return (
-    <header className="hidden lg:flex h-16 border-b border-border/40 bg-card/30 backdrop-blur-sm px-6 items-center justify-between">
+    <header className="hidden lg:flex h-16 border-b border-border/40 bg-card/30 backdrop-blur-sm px-6 items-center justify-between sticky top-0 z-20">
       {/* Left: Greeting */}
       <div className="flex items-center gap-3">
         <div className="p-2 rounded-xl bg-primary/10">
@@ -61,7 +61,7 @@ export function AppHeader() {
         </div>
       </div>
 
-      {/* Right: Avatar dropdown */}
+      {/* Right: Avatar dropdown only (single instance) */}
       <DropdownMenu>
         <DropdownMenuTrigger asChild>
           <button className="flex items-center gap-3 hover:opacity-80 transition-opacity">

@@ -9,6 +9,7 @@ import { PostOnboardingNav } from './PostOnboardingNav';
 import { useActiveEmail } from '@/contexts/ActiveEmailContext';
 import { useSubscription } from '@/lib/subscription';
 import { UpgradeBadge } from '@/components/subscription/PlanBadge';
+import { SidebarAIHub } from './SidebarAIHub';
 import { useState, useEffect } from 'react';
 import {
   Collapsible,
@@ -42,6 +43,34 @@ function ProviderIcon({ provider, className }: { provider: 'google' | 'outlook';
   );
 }
 
+// Color map for section icons
+const sectionColors: Record<string, { bg: string; text: string }> = {
+  'Account Provisioning': { bg: 'bg-blue-500/15', text: 'text-blue-600' },
+  'Email & Calendar':     { bg: 'bg-orange-500/15', text: 'text-orange-500' },
+  'AI Settings':          { bg: 'bg-purple-500/15', text: 'text-purple-500' },
+  'AI Assistant':         { bg: 'bg-emerald-500/15', text: 'text-emerald-500' },
+  'Settings':             { bg: 'bg-slate-500/15', text: 'text-slate-500' },
+  'Reports':              { bg: 'bg-cyan-500/15', text: 'text-cyan-500' },
+  'Super Admin':          { bg: 'bg-red-500/15', text: 'text-red-500' },
+};
+
+// Color map for individual nav item icons
+const itemIconColors: Record<string, string> = {
+  '/integrations':            'text-blue-500',
+  '/integrations?tab=settings': 'text-orange-400',
+  '/categories':              'text-orange-500',
+  '/email-draft':             'text-purple-500',
+  '/email-draft?tab=auto-reply': 'text-violet-500',
+  '/email-draft?tab=labels':  'text-pink-400',
+  '/ai-daily-brief':          'text-emerald-500',
+  '/ai-chat':                 'text-teal-500',
+  '/settings?section=profile': 'text-slate-500',
+  '/settings?section=signature': 'text-indigo-400',
+  '/billing':                 'text-amber-500',
+  '/ai-activity':             'text-cyan-500',
+  '/super-admin':             'text-red-500',
+};
+
 interface NavSectionProps {
   title: string;
   icon: React.ElementType;
@@ -51,13 +80,14 @@ interface NavSectionProps {
 
 function NavSection({ title, icon: Icon, children, defaultOpen = false }: NavSectionProps) {
   const [isOpen, setIsOpen] = useState(defaultOpen);
+  const colors = sectionColors[title] || { bg: 'bg-secondary', text: 'text-foreground' };
   
   return (
     <Collapsible open={isOpen} onOpenChange={setIsOpen}>
       <CollapsibleTrigger className="flex items-center justify-between w-full px-3 py-2.5 rounded-lg text-sm font-semibold hover:bg-secondary transition-colors group">
         <div className="flex items-center gap-3">
-          <div className="p-1.5 rounded-lg bg-secondary">
-            <Icon className="w-4 h-4 text-foreground" />
+          <div className={cn("p-1.5 rounded-lg", colors.bg)}>
+            <Icon className={cn("w-4 h-4", colors.text)} />
           </div>
           <span className="text-foreground">{title}</span>
         </div>
@@ -81,6 +111,7 @@ function NavItem({ href, icon: Icon, children, showUpgradeBadge }: NavItemProps)
   const location = useLocation();
   const currentUrl = location.pathname + location.search;
   const isActive = currentUrl === href || (location.pathname === href.split('?')[0] && location.search === '?' + href.split('?')[1]);
+  const iconColor = itemIconColors[href] || 'text-muted-foreground';
   
   return (
     <NavLink
@@ -92,7 +123,7 @@ function NavItem({ href, icon: Icon, children, showUpgradeBadge }: NavItemProps)
           : 'text-muted-foreground hover:text-foreground hover:bg-secondary'
       )}
     >
-      <Icon className="w-4 h-4" />
+      <Icon className={cn("w-4 h-4", isActive ? 'text-primary' : iconColor)} />
       <span className="flex-1">{children}</span>
       {showUpgradeBadge && <UpgradeBadge />}
     </NavLink>
@@ -131,14 +162,10 @@ export function AppSidebar() {
     }
   }, [organization?.id]);
 
-  const { logoUrl, brandName } = useBranding();
-
   return (
-    <aside className="hidden lg:flex w-72 h-screen bg-[image:var(--gradient-card)] backdrop-blur-md border-r border-border/40 flex-col">
-      {/* Logo */}
-      <div className="p-5 border-b border-border flex justify-center">
-        <img src={logoUrl} alt={brandName} className="h-20 w-auto" />
-      </div>
+    <aside className="hidden lg:flex w-72 h-screen bg-[image:var(--gradient-card)] backdrop-blur-md border-r border-border/40 flex-col fixed left-0 top-0 z-30">
+      {/* AI Brain Hub replacing plain logo */}
+      <SidebarAIHub />
 
       {/* Active Email Selector */}
       <div className="px-4 py-3 border-b border-border" data-tour="email-selector">
@@ -183,8 +210,8 @@ export function AppSidebar() {
         )}
       </div>
 
-      {/* Scrollable nav */}
-      <div className="flex-1 overflow-y-auto min-h-0">
+      {/* Scrollable nav with visible scrollbar */}
+      <div className="flex-1 overflow-y-auto min-h-0 sidebar-scroll">
         <nav className="p-3 space-y-1.5">
           {/* Account Provisioning */}
           <NavSection title="Account Provisioning" icon={UserPlus} defaultOpen>
@@ -251,10 +278,27 @@ export function AppSidebar() {
           onClick={signOut}
           className="flex items-center gap-3 w-full px-3 py-2.5 rounded-lg text-sm font-medium text-muted-foreground hover:text-foreground hover:bg-secondary transition-colors"
         >
-          <LogOut className="w-4 h-4" />
+          <LogOut className="w-4 h-4 text-red-400" />
           Sign Out
         </button>
       </div>
+
+      {/* Sidebar scrollbar styling */}
+      <style>{`
+        .sidebar-scroll::-webkit-scrollbar {
+          width: 6px;
+        }
+        .sidebar-scroll::-webkit-scrollbar-track {
+          background: transparent;
+        }
+        .sidebar-scroll::-webkit-scrollbar-thumb {
+          background: hsl(var(--border));
+          border-radius: 3px;
+        }
+        .sidebar-scroll::-webkit-scrollbar-thumb:hover {
+          background: hsl(var(--muted-foreground) / 0.4);
+        }
+      `}</style>
     </aside>
   );
 }
