@@ -33,7 +33,7 @@ export function AppLayout() {
         <AppSidebar />
         
         {/* Main content offset by sidebar width on desktop */}
-        <div className="flex-1 flex flex-col min-h-0 lg:ml-72">
+        <div className="flex-1 flex flex-col min-h-0 lg:ml-80">
           <AppHeader />
           <main className="flex-1 overflow-auto p-4 lg:p-6 main-scroll">
             <Outlet />

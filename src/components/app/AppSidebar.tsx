@@ -272,13 +272,13 @@ export function AppSidebar() {
         </nav>
       </div>
 
-      {/* Sign Out */}
+      {/* Sign Out - compact, no duplicate avatar */}
       <div className="p-3 border-t border-border">
         <button
           onClick={signOut}
-          className="flex items-center gap-3 w-full px-3 py-2.5 rounded-lg text-sm font-medium text-muted-foreground hover:text-foreground hover:bg-secondary transition-colors"
+          className="flex items-center gap-3 w-full px-3 py-2 rounded-lg text-sm font-medium text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-colors"
         >
-          <LogOut className="w-4 h-4 text-red-400" />
+          <LogOut className="w-4 h-4" />
           Sign Out
         </button>
       </div>
