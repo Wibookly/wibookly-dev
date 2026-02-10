@@ -66,7 +66,9 @@ serve(async (req) => {
     // Decode state
     let stateData;
     try {
-      stateData = JSON.parse(atob(stateParam));
+      // Strip legacy "connect:" prefix if present
+      const raw = stateParam.startsWith('connect:') ? stateParam.slice(8) : stateParam;
+      stateData = JSON.parse(atob(raw));
     } catch (e) {
       console.error('Failed to decode state:', e);
       return redirectWithError('Invalid state parameter');
