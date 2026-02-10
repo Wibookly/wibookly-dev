@@ -968,7 +968,9 @@ function UnifiedAccountRow({
               <SelectContent className="bg-card z-50">
                 <SelectItem value="starter">Starter Free</SelectItem>
                 <SelectItem value="pro">Pro Free</SelectItem>
-                <SelectItem value="enterprise">Business</SelectItem>
+                <SelectItem value="starter_paid" disabled className="opacity-50">Starter $ (Stripe)</SelectItem>
+                <SelectItem value="pro_paid" disabled className="opacity-50">Pro $ (Stripe)</SelectItem>
+                <SelectItem value="enterprise">Business $ (Stripe)</SelectItem>
               </SelectContent>
             </Select>
             {planInfo.paid && (
