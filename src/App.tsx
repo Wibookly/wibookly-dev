@@ -30,9 +30,10 @@ const queryClient = new QueryClient();
 const App = () => (
   <QueryClientProvider client={queryClient}>
     <TooltipProvider>
-      <AuthProvider>
-        <ActiveEmailProvider>
-          <SubscriptionProvider>
+      <BrandingProvider>
+        <AuthProvider>
+          <ActiveEmailProvider>
+            <SubscriptionProvider>
             <Toaster />
             <Sonner />
             <BrowserRouter>
