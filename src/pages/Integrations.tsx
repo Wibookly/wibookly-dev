@@ -458,21 +458,21 @@ export default function Integrations() {
   const googleConnections = getConnectionsByProvider('google');
   const outlookConnections = getConnectionsByProvider('outlook');
 
-  // For free override users, detect provider from signup email and show as auto-connected
+  // Detect provider from signup email and show as auto-connected for ALL users
   const userEmail = profile?.email || '';
   const isGmailUser = userEmail.toLowerCase().endsWith('@gmail.com') || userEmail.toLowerCase().endsWith('@googlemail.com');
   const isOutlookUser = userEmail.toLowerCase().endsWith('@outlook.com') || userEmail.toLowerCase().endsWith('@hotmail.com') || userEmail.toLowerCase().endsWith('@live.com');
 
-  // Build fake connection entries for free users with no actual connections
-  const freeAutoGoogle = isFreeOverride && isGmailUser && googleConnections.length === 0
+  // Build auto-connection entries for users with no actual connections for their email provider
+  const autoGoogle = isGmailUser && googleConnections.length === 0
     ? [{ id: 'auto-google', provider: 'google', is_connected: true, connected_at: new Date().toISOString(), connected_email: userEmail, calendar_connected: false, calendar_connected_at: null }]
     : [];
-  const freeAutoOutlook = isFreeOverride && isOutlookUser && outlookConnections.length === 0
+  const autoOutlook = isOutlookUser && outlookConnections.length === 0
     ? [{ id: 'auto-outlook', provider: 'outlook', is_connected: true, connected_at: new Date().toISOString(), connected_email: userEmail, calendar_connected: false, calendar_connected_at: null }]
     : [];
 
-  const effectiveGoogleConnections = [...googleConnections, ...freeAutoGoogle];
-  const effectiveOutlookConnections = [...outlookConnections, ...freeAutoOutlook];
+  const effectiveGoogleConnections = [...googleConnections, ...autoGoogle];
+  const effectiveOutlookConnections = [...outlookConnections, ...autoOutlook];
 
   const integrations = useMemo(
     () => [
