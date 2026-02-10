@@ -32,14 +32,32 @@ export function AppLayout() {
         <MobileSidebar open={mobileMenuOpen} onClose={() => setMobileMenuOpen(false)} />
         <AppSidebar />
         
-        <div className="flex-1 flex flex-col min-h-0">
+        {/* Main content offset by sidebar width on desktop */}
+        <div className="flex-1 flex flex-col min-h-0 lg:ml-72">
           <AppHeader />
-          <main className="flex-1 overflow-auto p-4 lg:p-6">
+          <main className="flex-1 overflow-auto p-4 lg:p-6 main-scroll">
             <Outlet />
           </main>
         </div>
         <ProductTourOverlay />
       </div>
+
+      {/* Main area scrollbar styling */}
+      <style>{`
+        .main-scroll::-webkit-scrollbar {
+          width: 8px;
+        }
+        .main-scroll::-webkit-scrollbar-track {
+          background: hsl(var(--background) / 0.5);
+        }
+        .main-scroll::-webkit-scrollbar-thumb {
+          background: hsl(var(--border));
+          border-radius: 4px;
+        }
+        .main-scroll::-webkit-scrollbar-thumb:hover {
+          background: hsl(var(--muted-foreground) / 0.4);
+        }
+      `}</style>
     </ProductTourProvider>
   );
 }
