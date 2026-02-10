@@ -10,8 +10,9 @@ import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
 import { useToast } from '@/hooks/use-toast';
-import { Shield, Search, Trash2, Loader2, Palette, Globe, Image } from 'lucide-react';
+import { Shield, Search, Trash2, Loader2, Palette, Users, Mail, Building2, Pencil, X, Check } from 'lucide-react';
 import { PlanType } from '@/lib/subscription';
 
 interface UserWithOverride {
@@ -36,6 +37,21 @@ interface UserWithOverride {
     logo_url: string | null;
     is_enabled: boolean;
   };
+}
+
+interface UserConnection {
+  id: string;
+  provider: string;
+  connected_email: string | null;
+  is_connected: boolean;
+  connected_at: string | null;
+}
+
+interface Organization {
+  id: string;
+  name: string;
+  created_at: string;
+  member_count: number;
 }
 
 export default function SuperAdmin() {
@@ -74,17 +90,9 @@ export default function SuperAdmin() {
         .select('user_id, email, full_name, organization_id');
       if (profileError) throw profileError;
 
-      const { data: overrides } = await supabase
-        .from('user_plan_overrides')
-        .select('*');
-
-      const { data: subscriptions } = await supabase
-        .from('subscriptions')
-        .select('user_id, plan, status');
-
-      const { data: whiteLabels } = await supabase
-        .from('white_label_configs')
-        .select('*');
+      const { data: overrides } = await supabase.from('user_plan_overrides').select('*');
+      const { data: subscriptions } = await supabase.from('subscriptions').select('user_id, plan, status');
+      const { data: whiteLabels } = await supabase.from('white_label_configs').select('*');
 
       const merged: UserWithOverride[] = (profiles || []).map((p: any) => {
         const override = (overrides || []).find((o: any) => o.user_id === p.user_id);
@@ -120,17 +128,31 @@ export default function SuperAdmin() {
     }
   };
 
+  const callAdminFunction = async (body: Record<string, any>) => {
+    const { data: { session } } = await supabase.auth.getSession();
+    const res = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/admin-manage-users`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${session?.access_token}`,
+      },
+      body: JSON.stringify(body),
+    });
+    const result = await res.json();
+    if (!res.ok) throw new Error(result.error || 'Request failed');
+    return result;
+  };
+
+  // Plan override actions
   const grantOverride = async (targetUserId: string, plan: PlanType) => {
     setSaving(targetUserId);
     try {
-      const { error } = await supabase
-        .from('user_plan_overrides')
-        .upsert({
-          user_id: targetUserId,
-          granted_plan: plan,
-          granted_by: user!.id,
-          is_active: true,
-        }, { onConflict: 'user_id' });
+      const { error } = await supabase.from('user_plan_overrides').upsert({
+        user_id: targetUserId,
+        granted_plan: plan,
+        granted_by: user!.id,
+        is_active: true,
+      }, { onConflict: 'user_id' });
       if (error) throw error;
       toast({ title: 'Override granted', description: `User now has ${plan} plan access for free.` });
       fetchUsers();
@@ -144,10 +166,7 @@ export default function SuperAdmin() {
   const toggleOverride = async (targetUserId: string, isActive: boolean) => {
     setSaving(targetUserId);
     try {
-      const { error } = await supabase
-        .from('user_plan_overrides')
-        .update({ is_active: isActive })
-        .eq('user_id', targetUserId);
+      const { error } = await supabase.from('user_plan_overrides').update({ is_active: isActive }).eq('user_id', targetUserId);
       if (error) throw error;
       toast({ title: isActive ? 'Override enabled' : 'Override disabled' });
       fetchUsers();
@@ -161,10 +180,7 @@ export default function SuperAdmin() {
   const removeOverride = async (targetUserId: string) => {
     setSaving(targetUserId);
     try {
-      const { error } = await supabase
-        .from('user_plan_overrides')
-        .delete()
-        .eq('user_id', targetUserId);
+      const { error } = await supabase.from('user_plan_overrides').delete().eq('user_id', targetUserId);
       if (error) throw error;
       toast({ title: 'Override removed' });
       fetchUsers();
@@ -175,21 +191,19 @@ export default function SuperAdmin() {
     }
   };
 
-  // White Label actions
+  // White label actions
   const saveWhiteLabel = async (targetUserId: string, data: { subdomain_slug: string; brand_name: string; logo_url: string }) => {
     setSaving(targetUserId);
     try {
-      const { error } = await supabase
-        .from('white_label_configs')
-        .upsert({
-          user_id: targetUserId,
-          subdomain_slug: data.subdomain_slug || null,
-          brand_name: data.brand_name,
-          logo_url: data.logo_url || null,
-          is_enabled: true,
-        }, { onConflict: 'user_id' });
+      const { error } = await supabase.from('white_label_configs').upsert({
+        user_id: targetUserId,
+        subdomain_slug: data.subdomain_slug || null,
+        brand_name: data.brand_name,
+        logo_url: data.logo_url || null,
+        is_enabled: true,
+      }, { onConflict: 'user_id' });
       if (error) throw error;
-      toast({ title: 'White label saved', description: 'Branding config updated.' });
+      toast({ title: 'White label saved' });
       fetchUsers();
     } catch (err: any) {
       toast({ title: 'Error', description: err.message, variant: 'destructive' });
@@ -201,10 +215,7 @@ export default function SuperAdmin() {
   const toggleWhiteLabel = async (targetUserId: string, isEnabled: boolean) => {
     setSaving(targetUserId);
     try {
-      const { error } = await supabase
-        .from('white_label_configs')
-        .update({ is_enabled: isEnabled })
-        .eq('user_id', targetUserId);
+      const { error } = await supabase.from('white_label_configs').update({ is_enabled: isEnabled }).eq('user_id', targetUserId);
       if (error) throw error;
       toast({ title: isEnabled ? 'White label enabled' : 'White label disabled' });
       fetchUsers();
@@ -218,12 +229,23 @@ export default function SuperAdmin() {
   const removeWhiteLabel = async (targetUserId: string) => {
     setSaving(targetUserId);
     try {
-      const { error } = await supabase
-        .from('white_label_configs')
-        .delete()
-        .eq('user_id', targetUserId);
+      const { error } = await supabase.from('white_label_configs').delete().eq('user_id', targetUserId);
       if (error) throw error;
       toast({ title: 'White label removed' });
+      fetchUsers();
+    } catch (err: any) {
+      toast({ title: 'Error', description: err.message, variant: 'destructive' });
+    } finally {
+      setSaving(null);
+    }
+  };
+
+  // Account management actions
+  const deleteAccount = async (targetUserId: string) => {
+    setSaving(targetUserId);
+    try {
+      await callAdminFunction({ action: 'delete_account', target_user_id: targetUserId });
+      toast({ title: 'Account deleted', description: 'User and all associated data have been removed.' });
       fetchUsers();
     } catch (err: any) {
       toast({ title: 'Error', description: err.message, variant: 'destructive' });
@@ -250,14 +272,14 @@ export default function SuperAdmin() {
   );
 
   return (
-    <div className="max-w-5xl mx-auto space-y-6">
+    <div className="max-w-6xl mx-auto space-y-6">
       <div className="flex items-center gap-3">
         <div className="p-2 bg-primary/10 rounded-lg">
           <Shield className="w-6 h-6 text-primary" />
         </div>
         <div>
           <h1 className="text-2xl font-bold text-foreground">Super Admin</h1>
-          <p className="text-sm text-muted-foreground">Manage user access, plan overrides, and white-label branding</p>
+          <p className="text-sm text-muted-foreground">Manage users, organizations, plans, and branding</p>
         </div>
       </div>
 
@@ -272,11 +294,19 @@ export default function SuperAdmin() {
         />
       </div>
 
-      <Tabs defaultValue="overrides">
+      <Tabs defaultValue="accounts">
         <TabsList>
+          <TabsTrigger value="accounts">
+            <Users className="w-4 h-4 mr-2" />
+            Account Management
+          </TabsTrigger>
           <TabsTrigger value="overrides">
             <Shield className="w-4 h-4 mr-2" />
             Plan Overrides
+          </TabsTrigger>
+          <TabsTrigger value="organizations">
+            <Building2 className="w-4 h-4 mr-2" />
+            Organizations
           </TabsTrigger>
           <TabsTrigger value="whitelabel">
             <Palette className="w-4 h-4 mr-2" />
@@ -284,11 +314,56 @@ export default function SuperAdmin() {
           </TabsTrigger>
         </TabsList>
 
+        {/* Account Management Tab */}
+        <TabsContent value="accounts">
+          <Card>
+            <CardHeader className="pb-3">
+              <CardTitle className="text-lg">User Accounts</CardTitle>
+              <p className="text-sm text-muted-foreground">View user accounts, manage email connections, and delete accounts.</p>
+            </CardHeader>
+            <CardContent>
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>User</TableHead>
+                    <TableHead>Organization</TableHead>
+                    <TableHead>Email Connections</TableHead>
+                    <TableHead>Plan</TableHead>
+                    <TableHead className="w-[100px]">Actions</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {filteredUsers.map((u) => (
+                    <AccountRow
+                      key={u.user_id}
+                      user={u}
+                      saving={saving === u.user_id}
+                      currentUserId={user!.id}
+                      callAdminFunction={callAdminFunction}
+                      onDeleteAccount={() => deleteAccount(u.user_id)}
+                      onRefresh={fetchUsers}
+                      toast={toast}
+                    />
+                  ))}
+                  {filteredUsers.length === 0 && (
+                    <TableRow>
+                      <TableCell colSpan={5} className="text-center text-muted-foreground py-8">
+                        {searchQuery ? 'No users match your search' : 'No users found'}
+                      </TableCell>
+                    </TableRow>
+                  )}
+                </TableBody>
+              </Table>
+            </CardContent>
+          </Card>
+        </TabsContent>
+
         {/* Plan Overrides Tab */}
         <TabsContent value="overrides">
           <Card>
             <CardHeader className="pb-3">
               <CardTitle className="text-lg">User Plan Overrides</CardTitle>
+              <p className="text-sm text-muted-foreground">Grant users a plan for free — they get full plan access without paying.</p>
             </CardHeader>
             <CardContent>
               <Table>
@@ -366,12 +441,22 @@ export default function SuperAdmin() {
           </Card>
         </TabsContent>
 
+        {/* Organizations Tab */}
+        <TabsContent value="organizations">
+          <OrganizationsTab
+            callAdminFunction={callAdminFunction}
+            currentUserId={user!.id}
+            users={users}
+            toast={toast}
+          />
+        </TabsContent>
+
         {/* White Label Tab */}
         <TabsContent value="whitelabel">
           <Card>
             <CardHeader className="pb-3">
               <CardTitle className="text-lg">White Label Branding</CardTitle>
-              <p className="text-sm text-muted-foreground">Assign custom branding per user — their auth page and dashboard will show their logo instead of Wibookly.</p>
+              <p className="text-sm text-muted-foreground">Assign custom branding per user.</p>
             </CardHeader>
             <CardContent>
               <Table>
@@ -413,7 +498,342 @@ export default function SuperAdmin() {
   );
 }
 
-// Inline editable row for white label config
+// ===== Account Row with expandable connections =====
+function AccountRow({
+  user: u,
+  saving,
+  currentUserId,
+  callAdminFunction,
+  onDeleteAccount,
+  onRefresh,
+  toast,
+}: {
+  user: UserWithOverride;
+  saving: boolean;
+  currentUserId: string;
+  callAdminFunction: (body: Record<string, any>) => Promise<any>;
+  onDeleteAccount: () => void;
+  onRefresh: () => void;
+  toast: any;
+}) {
+  const [connections, setConnections] = useState<UserConnection[]>([]);
+  const [showConnections, setShowConnections] = useState(false);
+  const [loadingConns, setLoadingConns] = useState(false);
+  const [deletingConn, setDeletingConn] = useState<string | null>(null);
+  const isSelf = u.user_id === currentUserId;
+
+  const loadConnections = async () => {
+    if (showConnections) {
+      setShowConnections(false);
+      return;
+    }
+    setLoadingConns(true);
+    try {
+      const result = await callAdminFunction({ action: 'get_user_connections', target_user_id: u.user_id });
+      setConnections(result.connections || []);
+      setShowConnections(true);
+    } catch (err: any) {
+      toast({ title: 'Error', description: err.message, variant: 'destructive' });
+    } finally {
+      setLoadingConns(false);
+    }
+  };
+
+  const deleteConnection = async (connectionId: string) => {
+    setDeletingConn(connectionId);
+    try {
+      await callAdminFunction({ action: 'delete_connection', connection_id: connectionId });
+      toast({ title: 'Connection removed' });
+      setConnections(prev => prev.filter(c => c.id !== connectionId));
+      onRefresh();
+    } catch (err: any) {
+      toast({ title: 'Error', description: err.message, variant: 'destructive' });
+    } finally {
+      setDeletingConn(null);
+    }
+  };
+
+  const effectivePlan = u.override?.is_active ? u.override.granted_plan : u.subscription?.plan || 'starter';
+
+  return (
+    <>
+      <TableRow>
+        <TableCell>
+          <div>
+            <p className="text-sm font-medium">{u.full_name || 'No name'}</p>
+            <p className="text-xs text-muted-foreground">{u.email}</p>
+          </div>
+        </TableCell>
+        <TableCell>
+          <p className="text-xs text-muted-foreground truncate max-w-[120px]">{u.organization_id.slice(0, 8)}…</p>
+        </TableCell>
+        <TableCell>
+          <Button variant="outline" size="sm" onClick={loadConnections} disabled={loadingConns}>
+            {loadingConns ? <Loader2 className="w-3 h-3 animate-spin mr-1" /> : <Mail className="w-3 h-3 mr-1" />}
+            {showConnections ? 'Hide' : 'View'} Emails
+          </Button>
+        </TableCell>
+        <TableCell>
+          <Badge variant="outline" className="capitalize">{effectivePlan}</Badge>
+        </TableCell>
+        <TableCell>
+          {!isSelf && (
+            <AlertDialog>
+              <AlertDialogTrigger asChild>
+                <Button variant="ghost" size="icon" disabled={saving}>
+                  <Trash2 className="w-4 h-4 text-destructive" />
+                </Button>
+              </AlertDialogTrigger>
+              <AlertDialogContent>
+                <AlertDialogHeader>
+                  <AlertDialogTitle>Delete Account</AlertDialogTitle>
+                  <AlertDialogDescription>
+                    This will permanently delete <strong>{u.email}</strong> and all their data (connections, categories, AI settings, etc.). This cannot be undone.
+                  </AlertDialogDescription>
+                </AlertDialogHeader>
+                <AlertDialogFooter>
+                  <AlertDialogCancel>Cancel</AlertDialogCancel>
+                  <AlertDialogAction onClick={onDeleteAccount} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+                    Delete Account
+                  </AlertDialogAction>
+                </AlertDialogFooter>
+              </AlertDialogContent>
+            </AlertDialog>
+          )}
+          {isSelf && <span className="text-xs text-muted-foreground">You</span>}
+        </TableCell>
+      </TableRow>
+      {showConnections && (
+        <TableRow>
+          <TableCell colSpan={5} className="bg-muted/30 p-0">
+            <div className="px-6 py-3 space-y-2">
+              <p className="text-xs font-semibold text-muted-foreground uppercase">Connected Emails</p>
+              {connections.length === 0 ? (
+                <p className="text-xs text-muted-foreground">No email connections</p>
+              ) : (
+                connections.map((conn) => (
+                  <div key={conn.id} className="flex items-center justify-between gap-3 px-3 py-2 bg-card rounded-lg border border-border">
+                    <div className="flex items-center gap-2">
+                      <Badge variant="outline" className="capitalize text-xs">{conn.provider}</Badge>
+                      <span className="text-sm">{conn.connected_email || 'Unknown'}</span>
+                      {conn.is_connected ? (
+                        <Badge variant="default" className="text-xs">Active</Badge>
+                      ) : (
+                        <Badge variant="secondary" className="text-xs">Disconnected</Badge>
+                      )}
+                    </div>
+                    <AlertDialog>
+                      <AlertDialogTrigger asChild>
+                        <Button variant="ghost" size="sm" disabled={deletingConn === conn.id}>
+                          {deletingConn === conn.id ? <Loader2 className="w-3 h-3 animate-spin" /> : <Trash2 className="w-3 h-3 text-destructive" />}
+                        </Button>
+                      </AlertDialogTrigger>
+                      <AlertDialogContent>
+                        <AlertDialogHeader>
+                          <AlertDialogTitle>Delete Email Connection</AlertDialogTitle>
+                          <AlertDialogDescription>
+                            This will remove <strong>{conn.connected_email}</strong> and all associated data (categories, rules, drafts). This cannot be undone.
+                          </AlertDialogDescription>
+                        </AlertDialogHeader>
+                        <AlertDialogFooter>
+                          <AlertDialogCancel>Cancel</AlertDialogCancel>
+                          <AlertDialogAction onClick={() => deleteConnection(conn.id)} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+                            Delete Connection
+                          </AlertDialogAction>
+                        </AlertDialogFooter>
+                      </AlertDialogContent>
+                    </AlertDialog>
+                  </div>
+                ))
+              )}
+            </div>
+          </TableCell>
+        </TableRow>
+      )}
+    </>
+  );
+}
+
+// ===== Organizations Tab =====
+function OrganizationsTab({
+  callAdminFunction,
+  currentUserId,
+  users,
+  toast,
+}: {
+  callAdminFunction: (body: Record<string, any>) => Promise<any>;
+  currentUserId: string;
+  users: UserWithOverride[];
+  toast: any;
+}) {
+  const [organizations, setOrganizations] = useState<Organization[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [editingOrg, setEditingOrg] = useState<string | null>(null);
+  const [editName, setEditName] = useState('');
+  const [saving, setSaving] = useState<string | null>(null);
+
+  useEffect(() => {
+    loadOrganizations();
+  }, []);
+
+  const loadOrganizations = async () => {
+    setLoading(true);
+    try {
+      const result = await callAdminFunction({ action: 'get_organizations' });
+      setOrganizations(result.organizations || []);
+    } catch (err: any) {
+      toast({ title: 'Error', description: err.message, variant: 'destructive' });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const updateOrgName = async (orgId: string) => {
+    setSaving(orgId);
+    try {
+      await callAdminFunction({ action: 'update_organization', organization_id: orgId, name: editName });
+      toast({ title: 'Organization updated' });
+      setEditingOrg(null);
+      loadOrganizations();
+    } catch (err: any) {
+      toast({ title: 'Error', description: err.message, variant: 'destructive' });
+    } finally {
+      setSaving(null);
+    }
+  };
+
+  const deleteOrganization = async (orgId: string) => {
+    setSaving(orgId);
+    try {
+      await callAdminFunction({ action: 'delete_organization', organization_id: orgId });
+      toast({ title: 'Organization deleted', description: 'Organization and all members removed.' });
+      loadOrganizations();
+    } catch (err: any) {
+      toast({ title: 'Error', description: err.message, variant: 'destructive' });
+    } finally {
+      setSaving(null);
+    }
+  };
+
+  const callerOrgId = users.find(u => u.user_id === currentUserId)?.organization_id;
+
+  if (loading) {
+    return (
+      <Card>
+        <CardContent className="flex items-center justify-center py-12">
+          <Loader2 className="w-5 h-5 animate-spin text-muted-foreground" />
+        </CardContent>
+      </Card>
+    );
+  }
+
+  return (
+    <Card>
+      <CardHeader className="pb-3">
+        <CardTitle className="text-lg">Organizations</CardTitle>
+        <p className="text-sm text-muted-foreground">View, rename, or delete organizations and their members.</p>
+      </CardHeader>
+      <CardContent>
+        <Table>
+          <TableHeader>
+            <TableRow>
+              <TableHead>Name</TableHead>
+              <TableHead>ID</TableHead>
+              <TableHead>Members</TableHead>
+              <TableHead>Created</TableHead>
+              <TableHead className="w-[140px]">Actions</TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {organizations.map((org) => {
+              const isSelfOrg = org.id === callerOrgId;
+              return (
+                <TableRow key={org.id}>
+                  <TableCell>
+                    {editingOrg === org.id ? (
+                      <div className="flex items-center gap-1">
+                        <Input
+                          value={editName}
+                          onChange={(e) => setEditName(e.target.value)}
+                          className="w-[160px] h-8"
+                          disabled={saving === org.id}
+                        />
+                        <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => updateOrgName(org.id)} disabled={saving === org.id || !editName.trim()}>
+                          <Check className="w-3 h-3 text-primary" />
+                        </Button>
+                        <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => setEditingOrg(null)}>
+                          <X className="w-3 h-3" />
+                        </Button>
+                      </div>
+                    ) : (
+                      <div className="flex items-center gap-2">
+                        <span className="text-sm font-medium">{org.name}</span>
+                        {isSelfOrg && <Badge variant="outline" className="text-xs">Your org</Badge>}
+                      </div>
+                    )}
+                  </TableCell>
+                  <TableCell>
+                    <span className="text-xs text-muted-foreground font-mono">{org.id.slice(0, 8)}…</span>
+                  </TableCell>
+                  <TableCell>
+                    <Badge variant="secondary">{org.member_count}</Badge>
+                  </TableCell>
+                  <TableCell>
+                    <span className="text-xs text-muted-foreground">{new Date(org.created_at).toLocaleDateString()}</span>
+                  </TableCell>
+                  <TableCell>
+                    <div className="flex items-center gap-1">
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        onClick={() => { setEditingOrg(org.id); setEditName(org.name); }}
+                        disabled={saving === org.id}
+                      >
+                        <Pencil className="w-3 h-3" />
+                      </Button>
+                      {!isSelfOrg && (
+                        <AlertDialog>
+                          <AlertDialogTrigger asChild>
+                            <Button variant="ghost" size="icon" disabled={saving === org.id}>
+                              <Trash2 className="w-4 h-4 text-destructive" />
+                            </Button>
+                          </AlertDialogTrigger>
+                          <AlertDialogContent>
+                            <AlertDialogHeader>
+                              <AlertDialogTitle>Delete Organization</AlertDialogTitle>
+                              <AlertDialogDescription>
+                                This will permanently delete <strong>{org.name}</strong> and all {org.member_count} member(s), including their accounts and data. This cannot be undone.
+                              </AlertDialogDescription>
+                            </AlertDialogHeader>
+                            <AlertDialogFooter>
+                              <AlertDialogCancel>Cancel</AlertDialogCancel>
+                              <AlertDialogAction onClick={() => deleteOrganization(org.id)} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+                                Delete Organization
+                              </AlertDialogAction>
+                            </AlertDialogFooter>
+                          </AlertDialogContent>
+                        </AlertDialog>
+                      )}
+                    </div>
+                  </TableCell>
+                </TableRow>
+              );
+            })}
+            {organizations.length === 0 && (
+              <TableRow>
+                <TableCell colSpan={5} className="text-center text-muted-foreground py-8">
+                  No organizations found
+                </TableCell>
+              </TableRow>
+            )}
+          </TableBody>
+        </Table>
+      </CardContent>
+    </Card>
+  );
+}
+
+// ===== White Label Row =====
 function WhiteLabelRow({
   user: u,
   saving,
@@ -443,53 +863,26 @@ function WhiteLabelRow({
         </div>
       </TableCell>
       <TableCell>
-        <Input
-          value={brandName}
-          onChange={(e) => setBrandName(e.target.value)}
-          placeholder="Brand name"
-          className="w-[120px]"
-          disabled={saving}
-        />
+        <Input value={brandName} onChange={(e) => setBrandName(e.target.value)} placeholder="Brand name" className="w-[120px]" disabled={saving} />
       </TableCell>
       <TableCell>
         <div className="flex items-center gap-1">
-          <Input
-            value={subdomain}
-            onChange={(e) => setSubdomain(e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, ''))}
-            placeholder="slug"
-            className="w-[100px]"
-            disabled={saving}
-          />
+          <Input value={subdomain} onChange={(e) => setSubdomain(e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, ''))} placeholder="slug" className="w-[100px]" disabled={saving} />
           <span className="text-xs text-muted-foreground">.wibookly.ai</span>
         </div>
       </TableCell>
       <TableCell>
-        <Input
-          value={logoUrl}
-          onChange={(e) => setLogoUrl(e.target.value)}
-          placeholder="https://..."
-          className="w-[160px]"
-          disabled={saving}
-        />
+        <Input value={logoUrl} onChange={(e) => setLogoUrl(e.target.value)} placeholder="https://..." className="w-[160px]" disabled={saving} />
       </TableCell>
       <TableCell>
         {u.whiteLabel && (
-          <Switch
-            checked={u.whiteLabel.is_enabled}
-            onCheckedChange={onToggle}
-            disabled={saving}
-          />
+          <Switch checked={u.whiteLabel.is_enabled} onCheckedChange={onToggle} disabled={saving} />
         )}
       </TableCell>
       <TableCell>
         <div className="flex items-center gap-1">
           {hasChanges && (
-            <Button
-              size="sm"
-              variant="default"
-              onClick={() => onSave({ subdomain_slug: subdomain, brand_name: brandName, logo_url: logoUrl })}
-              disabled={saving || !brandName}
-            >
+            <Button size="sm" variant="default" onClick={() => onSave({ subdomain_slug: subdomain, brand_name: brandName, logo_url: logoUrl })} disabled={saving || !brandName}>
               Save
             </Button>
           )}
