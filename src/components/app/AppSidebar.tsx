@@ -1,5 +1,5 @@
-import { NavLink, useLocation } from 'react-router-dom';
-import { Plug, FolderOpen, Settings, LogOut, Sparkles, BarChart3, ChevronDown, Check, Mail, Calendar, Clock, Tag, Palette, User, PenTool, ListFilter, MessageSquare, Sun, Bot, UserPlus, Link2, Cog, Shield, CreditCard } from 'lucide-react';
+import { NavLink, useLocation, useNavigate } from 'react-router-dom';
+import { Plug, FolderOpen, Settings, LogOut, Sparkles, BarChart3, ChevronDown, Check, Mail, Calendar, Clock, Tag, Palette, User, PenTool, ListFilter, MessageSquare, Sun, Bot, UserPlus, Link2, Cog, Shield, CreditCard, Lock } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/lib/auth';
 import { cn } from '@/lib/utils';
@@ -8,6 +8,7 @@ import { OnboardingChecklist } from './OnboardingChecklist';
 import { PostOnboardingNav } from './PostOnboardingNav';
 import { useActiveEmail } from '@/contexts/ActiveEmailContext';
 import { useSubscription } from '@/lib/subscription';
+import { useOnboarding } from '@/contexts/OnboardingContext';
 import { UpgradeBadge } from '@/components/subscription/PlanBadge';
 import { useState, useEffect } from 'react';
 import {
@@ -21,6 +22,12 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from '@/components/ui/tooltip';
 
 function ProviderIcon({ provider, className }: { provider: 'google' | 'outlook'; className?: string }) {
   if (provider === 'google') {
@@ -104,14 +111,37 @@ interface NavItemProps {
   icon: React.ElementType;
   children: React.ReactNode;
   showUpgradeBadge?: boolean;
+  locked?: boolean;
 }
 
-function NavItem({ href, icon: Icon, children, showUpgradeBadge }: NavItemProps) {
+function NavItem({ href, icon: Icon, children, showUpgradeBadge, locked }: NavItemProps) {
   const location = useLocation();
+  const navigate = useNavigate();
+  const { currentStep } = useOnboarding();
   const currentUrl = location.pathname + location.search;
   const isActive = currentUrl === href || (location.pathname === href.split('?')[0] && location.search === '?' + href.split('?')[1]);
   const iconColor = itemIconColors[href] || 'text-muted-foreground';
-  
+
+  if (locked) {
+    return (
+      <TooltipProvider delayDuration={200}>
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <div
+              className="flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium text-muted-foreground/40 cursor-not-allowed"
+            >
+              <Lock className="w-4 h-4 text-muted-foreground/30" />
+              <span className="flex-1 line-through decoration-muted-foreground/20">{children}</span>
+            </div>
+          </TooltipTrigger>
+          <TooltipContent side="right">
+            <p className="text-xs">Complete Step {currentStep?.number}: {currentStep?.title} first</p>
+          </TooltipContent>
+        </Tooltip>
+      </TooltipProvider>
+    );
+  }
+
   return (
     <NavLink
       to={href}
@@ -134,7 +164,7 @@ export function AppSidebar() {
   const location = useLocation();
   const { connections, activeConnection, setActiveConnectionId, loading } = useActiveEmail();
   const { hasFeature } = useSubscription();
-  const [isOnboardingComplete, setIsOnboardingComplete] = useState(false);
+  const { isOnboardingComplete, currentStep, isActiveRoute } = useOnboarding();
   const [isSuperAdmin, setIsSuperAdmin] = useState(false);
 
   // Check if current user is super_admin
@@ -153,13 +183,11 @@ export function AppSidebar() {
   const needsUpgradeForAutoReply = !hasFeature('aiAutoReply');
   const needsUpgradeForAnalytics = !hasFeature('advancedAnalytics');
 
-  // Check if onboarding has been dismissed
-  useEffect(() => {
-    if (organization?.id) {
-      const dismissed = localStorage.getItem(`onboarding-dismissed-${organization.id}`);
-      setIsOnboardingComplete(dismissed === 'true');
-    }
-  }, [organization?.id]);
+  // Determine which routes are locked during onboarding
+  const isRouteLocked = (route: string) => {
+    if (isOnboardingComplete) return false;
+    return !isActiveRoute(route);
+  };
 
   return (
     <aside className="hidden lg:flex w-80 bg-[image:var(--gradient-card)] backdrop-blur-md border-r border-border/40 flex-col fixed left-0 top-16 bottom-0 z-30">
@@ -213,50 +241,50 @@ export function AppSidebar() {
           {/* Account Provisioning */}
           <NavSection title="Account Provisioning" icon={UserPlus} defaultOpen>
             <div data-tour="nav-connections">
-              <NavItem href="/integrations" icon={Link2}>Email & Calendar Connections</NavItem>
+              <NavItem href="/integrations" icon={Link2} locked={isRouteLocked('/integrations')}>Email & Calendar Connections</NavItem>
             </div>
           </NavSection>
 
           {/* Email & Calendar Settings */}
           <NavSection title="Email & Calendar" icon={Cog} defaultOpen>
-            <NavItem href="/integrations?tab=settings" icon={Clock}>Availability & Calendar</NavItem>
+            <NavItem href="/integrations?tab=settings" icon={Clock} locked={isRouteLocked('/integrations')}>Availability & Calendar</NavItem>
             <div data-tour="nav-categories">
-              <NavItem href="/categories" icon={Tag}>Email Categories</NavItem>
+              <NavItem href="/categories" icon={Tag} locked={isRouteLocked('/categories')}>Email Categories</NavItem>
             </div>
           </NavSection>
 
           {/* AI Settings */}
           <NavSection title="AI Settings" icon={Sparkles} defaultOpen>
             <div data-tour="nav-ai-drafts">
-              <NavItem href="/email-draft" icon={Sparkles}>AI Draft Settings</NavItem>
+              <NavItem href="/email-draft" icon={Sparkles} locked={isRouteLocked('/email-draft')}>AI Draft Settings</NavItem>
             </div>
-            <NavItem href="/email-draft?tab=auto-reply" icon={MessageSquare} showUpgradeBadge={needsUpgradeForAutoReply}>AI Auto Reply</NavItem>
-            <NavItem href="/email-draft?tab=labels" icon={Palette}>AI Label Colors</NavItem>
+            <NavItem href="/email-draft?tab=auto-reply" icon={MessageSquare} showUpgradeBadge={needsUpgradeForAutoReply} locked={isRouteLocked('/email-draft')}>AI Auto Reply</NavItem>
+            <NavItem href="/email-draft?tab=labels" icon={Palette} locked={isRouteLocked('/email-draft')}>AI Label Colors</NavItem>
           </NavSection>
 
           {/* AI Assistant */}
           <NavSection title="AI Assistant" icon={Bot} defaultOpen>
             <div data-tour="nav-daily-brief">
-              <NavItem href="/ai-daily-brief" icon={Sun}>My Daily Brief</NavItem>
+              <NavItem href="/ai-daily-brief" icon={Sun} locked={isRouteLocked('/ai-daily-brief')}>My Daily Brief</NavItem>
             </div>
             <div data-tour="nav-ai-chat">
-              <NavItem href="/ai-chat" icon={MessageSquare}>AI Chat</NavItem>
+              <NavItem href="/ai-chat" icon={MessageSquare} locked={isRouteLocked('/ai-chat')}>AI Chat</NavItem>
             </div>
           </NavSection>
 
           {/* Settings */}
           <NavSection title="Settings" icon={Settings} defaultOpen>
             <div data-tour="nav-profile">
-              <NavItem href="/settings?section=profile" icon={User}>My Profile</NavItem>
+              <NavItem href="/settings?section=profile" icon={User} locked={isRouteLocked('/settings')}>My Profile</NavItem>
             </div>
-            <NavItem href="/settings?section=signature" icon={PenTool}>My Signature</NavItem>
-            <NavItem href="/billing" icon={CreditCard}>Billing & Usage</NavItem>
+            <NavItem href="/settings?section=signature" icon={PenTool} locked={isRouteLocked('/settings')}>My Signature</NavItem>
+            <NavItem href="/billing" icon={CreditCard} locked={isRouteLocked('/billing')}>Billing & Usage</NavItem>
           </NavSection>
 
           {/* Reports */}
           <NavSection title="Reports" icon={BarChart3} defaultOpen>
             <div data-tour="nav-activity">
-              <NavItem href="/ai-activity" icon={BarChart3} showUpgradeBadge={needsUpgradeForAnalytics}>AI Activity</NavItem>
+              <NavItem href="/ai-activity" icon={BarChart3} showUpgradeBadge={needsUpgradeForAnalytics} locked={isRouteLocked('/ai-activity')}>AI Activity</NavItem>
             </div>
           </NavSection>
 

@@ -7,6 +7,8 @@ import { MobileHeader } from './MobileHeader';
 import { MobileSidebar } from './MobileSidebar';
 import { ProductTourOverlay } from './ProductTourOverlay';
 import { ProductTourProvider } from '@/contexts/ProductTourContext';
+import { OnboardingProvider } from '@/contexts/OnboardingContext';
+import { OnboardingStepBanner } from './OnboardingStepBanner';
 import { Loader2 } from 'lucide-react';
 
 export function AppLayout() {
@@ -26,45 +28,50 @@ export function AppLayout() {
   }
 
   return (
-    <ProductTourProvider>
-      <div className="min-h-screen flex flex-col ocean-bg">
-        <MobileHeader onMenuClick={() => setMobileMenuOpen(true)} />
-        <MobileSidebar open={mobileMenuOpen} onClose={() => setMobileMenuOpen(false)} />
-        
-        {/* Full-width header on top */}
-        <AppHeader />
-        
-        <div className="flex-1 flex flex-row">
-          <AppSidebar />
+    <OnboardingProvider>
+      <ProductTourProvider>
+        <div className="min-h-screen flex flex-col ocean-bg">
+          <MobileHeader onMenuClick={() => setMobileMenuOpen(true)} />
+          <MobileSidebar open={mobileMenuOpen} onClose={() => setMobileMenuOpen(false)} />
           
-          {/* Main content offset by sidebar width on desktop */}
-          <div className="flex-1 flex flex-col min-h-0 lg:ml-80">
-            <main className="flex-1 overflow-auto p-4 lg:p-8 main-scroll">
-              <div className="w-full">
-                <Outlet />
-              </div>
-            </main>
+          {/* Full-width header on top */}
+          <AppHeader />
+          
+          <div className="flex-1 flex flex-row">
+            <AppSidebar />
+            
+            {/* Main content offset by sidebar width on desktop */}
+            <div className="flex-1 flex flex-col min-h-0 lg:ml-80">
+              {/* Onboarding step banner */}
+              <OnboardingStepBanner />
+              
+              <main className="flex-1 overflow-auto p-4 lg:p-8 main-scroll">
+                <div className="w-full">
+                  <Outlet />
+                </div>
+              </main>
+            </div>
           </div>
+          <ProductTourOverlay />
         </div>
-        <ProductTourOverlay />
-      </div>
 
-      {/* Main area scrollbar styling */}
-      <style>{`
-        .main-scroll::-webkit-scrollbar {
-          width: 8px;
-        }
-        .main-scroll::-webkit-scrollbar-track {
-          background: hsl(var(--background) / 0.5);
-        }
-        .main-scroll::-webkit-scrollbar-thumb {
-          background: hsl(var(--border));
-          border-radius: 4px;
-        }
-        .main-scroll::-webkit-scrollbar-thumb:hover {
-          background: hsl(var(--muted-foreground) / 0.4);
-        }
-      `}</style>
-    </ProductTourProvider>
+        {/* Main area scrollbar styling */}
+        <style>{`
+          .main-scroll::-webkit-scrollbar {
+            width: 8px;
+          }
+          .main-scroll::-webkit-scrollbar-track {
+            background: hsl(var(--background) / 0.5);
+          }
+          .main-scroll::-webkit-scrollbar-thumb {
+            background: hsl(var(--border));
+            border-radius: 4px;
+          }
+          .main-scroll::-webkit-scrollbar-thumb:hover {
+            background: hsl(var(--muted-foreground) / 0.4);
+          }
+        `}</style>
+      </ProductTourProvider>
+    </OnboardingProvider>
   );
 }
