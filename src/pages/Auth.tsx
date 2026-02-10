@@ -209,7 +209,7 @@ export default function Auth() {
             </div>
           </div>
           <p className="text-xs text-muted-foreground leading-relaxed max-w-md text-center">
-            Wibookly has undergone a SOC 2® Type 1 examination and complies with GDPR, CCPA, and CASA Tier 3 requirements. By signing up, you agree to the Wibookly{' '}
+            {brandName} has undergone a SOC 2® Type 1 examination and complies with GDPR, CCPA, and CASA Tier 3 requirements. By signing up, you agree to the {brandName}{' '}
             <Link to="/privacy" className="text-primary hover:underline">Privacy Policy</Link> and{' '}
             <Link to="/terms" className="text-primary hover:underline">Terms of Service</Link>.
           </p>
