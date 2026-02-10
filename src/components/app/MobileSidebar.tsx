@@ -1,5 +1,5 @@
 import { NavLink, useLocation } from 'react-router-dom';
-import { LayoutDashboard, Plug, FolderOpen, Settings, LogOut, Sparkles, BarChart3 } from 'lucide-react';
+import { LayoutDashboard, Plug, FolderOpen, Settings, LogOut, Sparkles, BarChart3, CreditCard } from 'lucide-react';
 import { useAuth } from '@/lib/auth';
 import { cn } from '@/lib/utils';
 import { useBranding } from '@/contexts/BrandingContext';
