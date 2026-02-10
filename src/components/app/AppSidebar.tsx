@@ -1,5 +1,5 @@
 import { NavLink, useLocation } from 'react-router-dom';
-import { Plug, FolderOpen, Settings, LogOut, Sparkles, BarChart3, ChevronDown, Check, Mail, Calendar, Clock, Tag, Palette, User, PenTool, ListFilter, MessageSquare, Sun, Bot, UserPlus, Link2, Cog, Shield } from 'lucide-react';
+import { Plug, FolderOpen, Settings, LogOut, Sparkles, BarChart3, ChevronDown, Check, Mail, Calendar, Clock, Tag, Palette, User, PenTool, ListFilter, MessageSquare, Sun, Bot, UserPlus, Link2, Cog, Shield, CreditCard } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/lib/auth';
 import { cn } from '@/lib/utils';
@@ -226,6 +226,7 @@ export function AppSidebar() {
               <NavItem href="/settings?section=profile" icon={User}>My Profile</NavItem>
             </div>
             <NavItem href="/settings?section=signature" icon={PenTool}>My Signature</NavItem>
+            <NavItem href="/billing" icon={CreditCard}>Billing & Usage</NavItem>
           </NavSection>
 
           {/* Reports */}
