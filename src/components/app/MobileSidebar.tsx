@@ -2,7 +2,7 @@ import { NavLink, useLocation } from 'react-router-dom';
 import { LayoutDashboard, Plug, FolderOpen, Settings, LogOut, Sparkles, BarChart3 } from 'lucide-react';
 import { useAuth } from '@/lib/auth';
 import { cn } from '@/lib/utils';
-import wibooklyLogo from '@/assets/wibookly-logo.png';
+import { useBranding } from '@/contexts/BrandingContext';
 import { OnboardingChecklist } from './OnboardingChecklist';
 import { Sheet, SheetContent, SheetHeader } from '@/components/ui/sheet';
 import { useConnectedEmails } from '@/hooks/useConnectedEmails';
@@ -30,12 +30,14 @@ export function MobileSidebar({ open, onClose }: MobileSidebarProps) {
     onClose();
   };
 
+  const { logoUrl, brandName } = useBranding();
+
   return (
     <Sheet open={open} onOpenChange={onClose}>
       <SheetContent side="left" className="w-72 p-0 flex flex-col bg-card">
         <SheetHeader className="p-4 border-b border-border">
           <div className="flex items-center justify-between">
-            <img src={wibooklyLogo} alt="Wibookly" className="h-12 w-auto" />
+            <img src={logoUrl} alt={brandName} className="h-12 w-auto" />
           </div>
         </SheetHeader>
 

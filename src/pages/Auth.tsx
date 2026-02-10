@@ -3,7 +3,7 @@ import { useNavigate, Link, useSearchParams } from 'react-router-dom';
 import { useAuth } from '@/lib/auth';
 import { Button } from '@/components/ui/button';
 import { Loader2 } from 'lucide-react';
-import wibooklyLogo from '@/assets/wibookly-logo.png';
+import { useBranding } from '@/contexts/BrandingContext';
 import { testimonials } from '@/data/testimonials';
 
 const GoogleIcon = () => (
@@ -25,6 +25,7 @@ const OutlookIcon = () => (
 
 export default function Auth() {
   const { user, loading, signInWithCognito } = useAuth();
+  const { brandName, logoUrl, isWhiteLabeled } = useBranding();
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
   const mode = searchParams.get('mode') || 'signin';
@@ -70,7 +71,7 @@ export default function Auth() {
       <div className="flex-1 flex flex-col justify-between p-8 md:p-12 lg:p-16">
         <div className="flex items-center justify-between">
           <Link to="/" className="flex items-center">
-            <img src={wibooklyLogo} alt="Wibookly" className="h-32 w-auto" />
+            <img src={logoUrl} alt={brandName} className="h-32 w-auto" />
           </Link>
           <Link
             to="/"
@@ -89,19 +90,19 @@ export default function Auth() {
               <>
                 Get started with
                 <br />
-                <span className="text-primary">Wibookly</span>
+                <span className="text-primary">{brandName}</span>
               </>
             ) : (
               <>
                 Welcome back to
                 <br />
-                <span className="text-primary">Wibookly</span>
+                <span className="text-primary">{brandName}</span>
               </>
             )}
           </h1>
           <p className="mt-4 text-muted-foreground">
             {isSignUp
-              ? <>Create your account to get started with Wibookly.</>
+              ? <>Create your account to get started with {brandName}.</>
               : <>Sign in to continue managing your inbox with AI.</>
             }
           </p>
@@ -208,7 +209,7 @@ export default function Auth() {
             </div>
           </div>
           <p className="text-xs text-muted-foreground leading-relaxed max-w-md text-center">
-            Wibookly has undergone a SOC 2® Type 1 examination and complies with GDPR, CCPA, and CASA Tier 3 requirements. By signing up, you agree to the Wibookly{' '}
+            {brandName} has undergone a SOC 2® Type 1 examination and complies with GDPR, CCPA, and CASA Tier 3 requirements. By signing up, you agree to the {brandName}{' '}
             <Link to="/privacy" className="text-primary hover:underline">Privacy Policy</Link> and{' '}
             <Link to="/terms" className="text-primary hover:underline">Terms of Service</Link>.
           </p>

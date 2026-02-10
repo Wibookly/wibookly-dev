@@ -5,6 +5,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { AuthProvider } from "@/lib/auth";
 import { ActiveEmailProvider } from "@/contexts/ActiveEmailContext";
+import { BrandingProvider } from "@/contexts/BrandingContext";
 import { SubscriptionProvider } from "@/lib/subscription";
 import Landing from "./pages/Landing";
 import Auth from "./pages/Auth";
@@ -29,9 +30,10 @@ const queryClient = new QueryClient();
 const App = () => (
   <QueryClientProvider client={queryClient}>
     <TooltipProvider>
-      <AuthProvider>
-        <ActiveEmailProvider>
-          <SubscriptionProvider>
+      <BrandingProvider>
+        <AuthProvider>
+          <ActiveEmailProvider>
+            <SubscriptionProvider>
             <Toaster />
             <Sonner />
             <BrowserRouter>
@@ -58,9 +60,10 @@ const App = () => (
                 <Route path="*" element={<NotFound />} />
               </Routes>
             </BrowserRouter>
-          </SubscriptionProvider>
-        </ActiveEmailProvider>
-      </AuthProvider>
+            </SubscriptionProvider>
+          </ActiveEmailProvider>
+        </AuthProvider>
+      </BrandingProvider>
     </TooltipProvider>
   </QueryClientProvider>
 );
