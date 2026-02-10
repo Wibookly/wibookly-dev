@@ -9,7 +9,7 @@ import { PostOnboardingNav } from './PostOnboardingNav';
 import { useActiveEmail } from '@/contexts/ActiveEmailContext';
 import { useSubscription } from '@/lib/subscription';
 import { UpgradeBadge } from '@/components/subscription/PlanBadge';
-import { SidebarAIHub } from './SidebarAIHub';
+import { useState, useEffect } from 'react';
 import { useState, useEffect } from 'react';
 import {
   Collapsible,
