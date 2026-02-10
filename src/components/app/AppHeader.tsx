@@ -177,7 +177,7 @@ export function AppHeader() {
 
       {/* Left: Wibookly Logo */}
       <div className="flex items-center px-5 relative z-10 shrink-0">
-        <img src={logoUrl} alt={brandName} className="h-10 w-auto" />
+        <img src={logoUrl} alt={brandName} className="h-[200px] w-auto" />
       </div>
 
       {/* Center: Quote with elegant font */}
