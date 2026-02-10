@@ -930,6 +930,39 @@ export type Database = {
           },
         ]
       }
+      white_label_configs: {
+        Row: {
+          brand_name: string
+          created_at: string
+          id: string
+          is_enabled: boolean
+          logo_url: string | null
+          subdomain_slug: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          brand_name?: string
+          created_at?: string
+          id?: string
+          is_enabled?: boolean
+          logo_url?: string | null
+          subdomain_slug?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          brand_name?: string
+          created_at?: string
+          id?: string
+          is_enabled?: boolean
+          logo_url?: string | null
+          subdomain_slug?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
@@ -969,6 +1002,14 @@ export type Database = {
           id: string
           name: string
           role: string
+        }[]
+      }
+      get_white_label_by_subdomain: {
+        Args: { _slug: string }
+        Returns: {
+          brand_name: string
+          is_enabled: boolean
+          logo_url: string
         }[]
       }
       has_role: {
