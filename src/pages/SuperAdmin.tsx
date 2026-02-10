@@ -947,11 +947,9 @@ function UnifiedAccountRow({
               <SelectTrigger className="w-[120px] h-8" style={{ borderColor: planInfo.color }}>
                 <SelectValue />
               </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="starter">
-                  <span className="flex items-center gap-1">Starter Free</span>
-                </SelectItem>
-                <SelectItem value="pro">Pro</SelectItem>
+              <SelectContent className="bg-card z-50">
+                <SelectItem value="starter">Starter Free</SelectItem>
+                <SelectItem value="pro">Pro Free</SelectItem>
                 <SelectItem value="enterprise">Business</SelectItem>
               </SelectContent>
             </Select>
