@@ -378,11 +378,22 @@ export function OnboardingChecklist({ onStepClick, onOpenPlanModal }: Onboarding
           position: relative;
           animation: onboarding-glow 2s ease-in-out infinite;
           border-color: hsl(48 96% 53%) !important;
-          box-shadow: 0 0 0 2px hsl(48 96% 53% / 0.3), 0 0 20px hsl(48 96% 53% / 0.15);
+          box-shadow: 0 0 0 3px hsl(48 96% 53% / 0.4), 0 0 30px hsl(48 96% 53% / 0.2);
+        }
+        .onboarding-highlight-strong {
+          position: relative;
+          animation: onboarding-glow-strong 1.5s ease-in-out infinite;
+          border: 2px solid hsl(48 96% 53%) !important;
+          border-radius: 12px;
+          box-shadow: 0 0 0 4px hsl(48 96% 53% / 0.5), 0 0 40px hsl(48 96% 53% / 0.3), inset 0 0 20px hsl(48 96% 53% / 0.05);
         }
         @keyframes onboarding-glow {
-          0%, 100% { box-shadow: 0 0 0 2px hsl(48 96% 53% / 0.3), 0 0 20px hsl(48 96% 53% / 0.15); }
-          50% { box-shadow: 0 0 0 4px hsl(48 96% 53% / 0.5), 0 0 30px hsl(48 96% 53% / 0.25); }
+          0%, 100% { box-shadow: 0 0 0 3px hsl(48 96% 53% / 0.4), 0 0 30px hsl(48 96% 53% / 0.2); }
+          50% { box-shadow: 0 0 0 6px hsl(48 96% 53% / 0.6), 0 0 50px hsl(48 96% 53% / 0.35); }
+        }
+        @keyframes onboarding-glow-strong {
+          0%, 100% { box-shadow: 0 0 0 4px hsl(48 96% 53% / 0.5), 0 0 40px hsl(48 96% 53% / 0.3), inset 0 0 20px hsl(48 96% 53% / 0.05); }
+          50% { box-shadow: 0 0 0 8px hsl(48 96% 53% / 0.7), 0 0 60px hsl(48 96% 53% / 0.45), inset 0 0 30px hsl(48 96% 53% / 0.08); }
         }
         .onboarding-pulse-ring {
           box-shadow: 0 0 0 0 hsl(48 96% 53% / 0.7);
@@ -390,7 +401,7 @@ export function OnboardingChecklist({ onStepClick, onOpenPlanModal }: Onboarding
         }
         @keyframes onboarding-ring-pulse {
           0% { box-shadow: 0 0 0 0 hsl(48 96% 53% / 0.7); }
-          70% { box-shadow: 0 0 0 6px hsl(48 96% 53% / 0); }
+          70% { box-shadow: 0 0 0 8px hsl(48 96% 53% / 0); }
           100% { box-shadow: 0 0 0 0 hsl(48 96% 53% / 0); }
         }
       `}</style>
@@ -438,9 +449,10 @@ export function OnboardingChecklist({ onStepClick, onOpenPlanModal }: Onboarding
           )}
         >
           <div className="p-2 pt-0">
-            {requiredSteps.map((step) => {
+            {requiredSteps.map((step, stepIndex) => {
               const wasJustCompleted = step.isComplete && hasAnimated.current.has(step.id);
               const isNextIncomplete = step.id === firstIncompleteRequiredId;
+              const stepNumber = stepIndex + 1;
               
               return (
                 <button
@@ -448,18 +460,21 @@ export function OnboardingChecklist({ onStepClick, onOpenPlanModal }: Onboarding
                   onClick={() => handleStepClick(step)}
                   className={cn(
                     'w-full flex items-center gap-3 p-2.5 rounded-md text-left transition-all duration-200',
-                    isNextIncomplete && 'bg-accent/50',
-                    !isNextIncomplete && 'hover:bg-muted/50',
+                    isNextIncomplete && 'bg-accent/50 onboarding-highlight-strong',
+                    !isNextIncomplete && !step.isComplete && 'opacity-50',
+                    !isNextIncomplete && step.isComplete && 'hover:bg-muted/50',
                     wasJustCompleted && 'animate-scale-in'
                   )}
+                  disabled={!step.isComplete && !isNextIncomplete}
                 >
                   <StepIndicator step={step} isNextIncomplete={isNextIncomplete} />
                   
                   <div className="flex-1 min-w-0">
                     <p className={cn(
                       'text-sm font-medium transition-all duration-200',
-                      step.isComplete && 'text-muted-foreground'
+                      step.isComplete && 'text-muted-foreground line-through'
                     )}>
+                      <span className="text-xs font-bold mr-1.5">{stepNumber}.</span>
                       {step.title}
                     </p>
                     <p className="text-xs text-muted-foreground truncate">

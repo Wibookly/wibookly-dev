@@ -2,6 +2,7 @@ import { useState, useEffect, useMemo } from 'react';
 import { useAuth } from '@/lib/auth';
 import { useActiveEmail } from '@/contexts/ActiveEmailContext';
 import { useSubscription } from '@/lib/subscription';
+import { useOnboarding } from '@/contexts/OnboardingContext';
 import { supabase } from '@/integrations/supabase/client';
 import { UserAvatarDropdown } from '@/components/app/UserAvatarDropdown';
 import { SubscriptionCard } from '@/components/subscription/SubscriptionCard';
@@ -85,6 +86,7 @@ export default function Integrations() {
   const { organization, profile, loading: authLoading } = useAuth();
   const { activeConnection, loading: emailLoading } = useActiveEmail();
   const { canConnectMoreMailboxes, getMailboxLimit, refreshSubscription, plan, status, startCheckout, isFreeOverride } = useSubscription();
+  const { currentStep, isOnboardingComplete, refreshProgress: refreshOnboarding } = useOnboarding();
   const hasActiveSub = status === 'active' || status === 'trialing';
   const { toast } = useToast();
   const { logAttempt } = useConnectAttemptLogger();
@@ -116,6 +118,13 @@ export default function Integrations() {
   // Meeting duration state
   const [meetingDuration, setMeetingDuration] = useState(30);
   const [savingDuration, setSavingDuration] = useState(false);
+
+  // Auto-refresh onboarding progress when connections change
+  useEffect(() => {
+    if (connections.length > 0) {
+      refreshOnboarding();
+    }
+  }, [connections.length]);
 
   // Fetch availability and meeting duration when active connection changes
   useEffect(() => {
@@ -540,6 +549,8 @@ export default function Integrations() {
     return <GoogleOAuthErrorScreen errorMessage={googleErrorMessage} onBack={() => setShowGoogleError(false)} />;
   }
 
+
+
   return (
     <div className="min-h-full p-4 lg:p-6">
       <PlanSelectionModal open={showPlanModal} onOpenChange={setShowPlanModal} />
@@ -555,7 +566,7 @@ export default function Integrations() {
       
       {/* Subscription Card — hidden for free override users */}
       {!isFreeOverride && (
-        <div className="mb-6" data-onboarding="subscription-card">
+        <div className={`mb-6 transition-all duration-300 ${!isOnboardingComplete && currentStep?.id === 'subscribe' ? 'onboarding-highlight-strong' : ''}`} data-onboarding="subscription-card">
           <SubscriptionCard />
         </div>
       )}
