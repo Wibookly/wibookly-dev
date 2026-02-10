@@ -24,6 +24,7 @@ import AIChat from "./pages/AIChat";
 import AIDailyBrief from "./pages/AIDailyBrief";
 import Pricing from "./pages/Pricing";
 import SuperAdmin from "./pages/SuperAdmin";
+import Billing from "./pages/Billing";
 
 const queryClient = new QueryClient();
 
