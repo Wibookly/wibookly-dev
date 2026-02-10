@@ -88,6 +88,7 @@ export function SubscriptionProvider({ children }: { children: ReactNode }) {
     currentPeriodEnd: null,
     loading: true,
   });
+  const [isFreeOverride, setIsFreeOverride] = useState(false);
 
   const fetchSubscription = useCallback(async () => {
     if (!session?.access_token) {
