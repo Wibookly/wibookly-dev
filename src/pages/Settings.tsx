@@ -1014,19 +1014,22 @@ CEO, Company Name
         <section className="space-y-4 mt-8 pt-6 border-t border-border">
           <h2 className="text-lg font-semibold">Onboarding</h2>
           <p className="text-sm text-muted-foreground">
-            Access your setup checklist to update or review your configuration steps.
+            Access your setup checklist or relaunch the guided product tour.
           </p>
-          <Button
-            variant="outline"
-            onClick={() => {
-              if (organization?.id) {
-                localStorage.removeItem(`onboarding-dismissed-${organization.id}`);
-                window.location.reload();
-              }
-            }}
-          >
-            Show Onboarding Checklist
-          </Button>
+          <div className="flex flex-wrap gap-3">
+            <Button
+              variant="outline"
+              onClick={() => {
+                if (organization?.id) {
+                  localStorage.removeItem(`onboarding-dismissed-${organization.id}`);
+                  window.location.reload();
+                }
+              }}
+            >
+              Show Onboarding Checklist
+            </Button>
+            <RestartTourButton />
+          </div>
         </section>
         </div>
       </div>
