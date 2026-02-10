@@ -408,7 +408,7 @@ async function fetchMicrosoftEmail(accessToken: string): Promise<string | null> 
 }
 
 function getAppUrl(): string {
-  return 'https://jbzctydskdpzrejvpwpn.lovable.app';
+  return 'https://wibookly-dev.lovable.app';
 }
 
 /**
