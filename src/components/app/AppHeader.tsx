@@ -8,10 +8,28 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
-import { LogOut, User, Sparkles } from 'lucide-react';
+import { LogOut, User, Sun, Moon, Sunrise, Sunset } from 'lucide-react';
 import { useActiveEmail } from '@/contexts/ActiveEmailContext';
 import { useEffect, useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
+
+function getTimeOfDay() {
+  const hour = new Date().getHours();
+  if (hour >= 5 && hour < 12) return 'morning';
+  if (hour >= 12 && hour < 17) return 'afternoon';
+  if (hour >= 17 && hour < 21) return 'evening';
+  return 'night';
+}
+
+function TimeIcon({ className }: { className?: string }) {
+  const tod = getTimeOfDay();
+  switch (tod) {
+    case 'morning': return <Sunrise className={className} style={{ color: 'hsl(38 92% 50%)' }} />;
+    case 'afternoon': return <Sun className={className} style={{ color: 'hsl(38 80% 55%)' }} />;
+    case 'evening': return <Sunset className={className} style={{ color: 'hsl(25 90% 55%)' }} />;
+    case 'night': return <Moon className={className} style={{ color: 'hsl(230 60% 65%)' }} />;
+  }
+}
 
 export function AppHeader() {
   const { profile, signOut } = useAuth();
@@ -24,7 +42,6 @@ export function AppHeader() {
     ? profile.full_name.split(' ').map(n => n[0]).join('').toUpperCase()
     : profile?.email?.[0]?.toUpperCase() || 'U';
 
-  // Fetch profile photo from email_profiles table
   useEffect(() => {
     if (!activeConnection) return;
     supabase
@@ -40,18 +57,21 @@ export function AppHeader() {
   }, [activeConnection]);
 
   const getGreeting = () => {
-    const hour = new Date().getHours();
-    if (hour < 12) return 'Good morning';
-    if (hour < 17) return 'Good afternoon';
-    return 'Good evening';
+    const tod = getTimeOfDay();
+    switch (tod) {
+      case 'morning': return 'Good morning';
+      case 'afternoon': return 'Good afternoon';
+      case 'evening': return 'Good evening';
+      case 'night': return 'Good night';
+    }
   };
 
   return (
     <header className="hidden lg:flex h-16 border-b border-border/40 bg-card/30 backdrop-blur-sm px-6 items-center justify-between sticky top-0 z-20">
-      {/* Left: Greeting */}
+      {/* Left: Greeting with time-based icon */}
       <div className="flex items-center gap-3">
         <div className="p-2 rounded-xl bg-primary/10">
-          <Sparkles className="w-5 h-5 text-primary" />
+          <TimeIcon className="w-5 h-5" />
         </div>
         <div>
           <h2 className="text-lg font-semibold text-foreground">
@@ -61,7 +81,7 @@ export function AppHeader() {
         </div>
       </div>
 
-      {/* Right: Avatar dropdown only (single instance) */}
+      {/* Right: Avatar dropdown */}
       <DropdownMenu>
         <DropdownMenuTrigger asChild>
           <button className="flex items-center gap-3 hover:opacity-80 transition-opacity">

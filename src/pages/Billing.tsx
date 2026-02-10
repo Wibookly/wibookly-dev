@@ -236,7 +236,7 @@ export default function Billing() {
   }
 
   return (
-    <div className="max-w-3xl mx-auto space-y-6">
+    <div className="max-w-5xl mx-auto space-y-6">
       <h1 className="text-2xl font-bold text-foreground">Billing & Usage</h1>
 
       {/* Subscription Card */}
@@ -376,11 +376,12 @@ export default function Billing() {
 
             {/* Actions */}
             <div className="flex items-center gap-3 pt-2">
-              <Button onClick={handleSave} disabled={saving || !hasUnsavedChanges}>
-                {saving ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : null}
+              <Button onClick={handleSave} disabled={saving || !hasUnsavedChanges} className="bg-orange-500 hover:bg-orange-600 text-white">
+                {saving ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Zap className="w-4 h-4 mr-2" />}
                 Save Changes
               </Button>
-              <Button variant="secondary" onClick={handleReset} disabled={!hasUnsavedChanges}>
+              <Button variant="outline" onClick={handleReset} disabled={!hasUnsavedChanges}>
+                <RotateCcw className="w-4 h-4 mr-2" />
                 Reset Changes
               </Button>
             </div>
