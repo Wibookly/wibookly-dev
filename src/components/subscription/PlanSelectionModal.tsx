@@ -148,7 +148,7 @@ export function PlanSelectionModal({ open, onOpenChange }: PlanSelectionModalPro
                 </div>
 
                 {/* Features */}
-                <div className="flex-1 space-y-1.5 mb-4">
+                <div className="flex-1 space-y-1 mb-3">
                   {plan.features.map((feature) => (
                     <div key={feature} className="flex items-start gap-1.5 text-xs">
                       <Check className="w-3.5 h-3.5 text-primary mt-0.5 shrink-0" />
