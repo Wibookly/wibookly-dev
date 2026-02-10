@@ -107,6 +107,7 @@ export function SubscriptionProvider({ children }: { children: ReactNode }) {
       if (overrideData?.is_active && overrideData.granted_plan) {
         const overridePlan = overrideData.granted_plan as PlanType;
         if (overridePlan in PLAN_CONFIG) {
+          setIsFreeOverride(true);
           setState({
             plan: overridePlan,
             status: 'active',
@@ -118,6 +119,7 @@ export function SubscriptionProvider({ children }: { children: ReactNode }) {
           return; // Skip Stripe check entirely
         }
       }
+      setIsFreeOverride(false);
 
       if (!organization?.id) {
         setState(prev => ({ ...prev, loading: false }));
