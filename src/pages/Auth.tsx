@@ -71,7 +71,7 @@ export default function Auth() {
       <div className="flex-1 flex flex-col justify-between p-8 md:p-12 lg:p-16">
         <div className="flex items-center justify-between">
           <Link to="/" className="flex items-center">
-            <img src={wibooklyLogo} alt="Wibookly" className="h-32 w-auto" />
+            <img src={logoUrl} alt={brandName} className="h-32 w-auto" />
           </Link>
           <Link
             to="/"
