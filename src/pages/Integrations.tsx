@@ -537,10 +537,12 @@ export default function Integrations() {
         <OnboardingChecklist onOpenPlanModal={() => setShowPlanModal(true)} />
       </div>
       
-      {/* Subscription Card */}
-      <div className="mb-6" data-onboarding="subscription-card">
-        <SubscriptionCard />
-      </div>
+      {/* Subscription Card — hidden for free override users */}
+      {!isFreeOverride && (
+        <div className="mb-6" data-onboarding="subscription-card">
+          <SubscriptionCard />
+        </div>
+      )}
 
       <section data-onboarding="email-providers" data-tour="email-providers" className="animate-fade-in bg-card/80 backdrop-blur-sm rounded-xl border border-border shadow-lg p-6" aria-busy={loading ? 'true' : 'false'}>
         <header className="mb-8">
