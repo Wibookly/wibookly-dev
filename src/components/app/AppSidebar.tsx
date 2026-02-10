@@ -164,8 +164,6 @@ export function AppSidebar() {
 
   return (
     <aside className="hidden lg:flex w-80 bg-[image:var(--gradient-card)] backdrop-blur-md border-r border-border/40 flex-col fixed left-0 top-16 bottom-0 z-30">
-      {/* AI Brain Hub replacing plain logo */}
-      <SidebarAIHub />
 
       {/* Active Email Selector */}
       <div className="px-4 py-3 border-b border-border" data-tour="email-selector">
