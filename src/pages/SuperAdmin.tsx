@@ -316,48 +316,52 @@ export default function SuperAdmin() {
           </TabsTrigger>
         </TabsList>
 
-        {/* Account Management Tab */}
         <TabsContent value="accounts">
-          <Card>
-            <CardHeader className="pb-3">
-              <CardTitle className="text-lg">User Accounts</CardTitle>
-              <p className="text-sm text-muted-foreground">View user accounts, manage email connections, and delete accounts.</p>
-            </CardHeader>
-            <CardContent>
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>User</TableHead>
-                    <TableHead>Organization</TableHead>
-                    <TableHead>Email Connections</TableHead>
-                    <TableHead>Plan</TableHead>
-                    <TableHead className="w-[100px]">Actions</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {filteredUsers.map((u) => (
-                    <AccountRow
-                      key={u.user_id}
-                      user={u}
-                      saving={saving === u.user_id}
-                      currentUserId={user!.id}
-                      callAdminFunction={callAdminFunction}
-                      onDeleteAccount={() => deleteAccount(u.user_id)}
-                      onRefresh={fetchUsers}
-                      toast={toast}
-                    />
-                  ))}
-                  {filteredUsers.length === 0 && (
+          <div className="space-y-4">
+            {/* Create User Card */}
+            <CreateUserCard callAdminFunction={callAdminFunction} onCreated={fetchUsers} toast={toast} />
+
+            <Card>
+              <CardHeader className="pb-3">
+                <CardTitle className="text-lg">User Accounts</CardTitle>
+                <p className="text-sm text-muted-foreground">Manage accounts, email connections, passwords, and access.</p>
+              </CardHeader>
+              <CardContent>
+                <Table>
+                  <TableHeader>
                     <TableRow>
-                      <TableCell colSpan={5} className="text-center text-muted-foreground py-8">
-                        {searchQuery ? 'No users match your search' : 'No users found'}
-                      </TableCell>
+                      <TableHead>User</TableHead>
+                      <TableHead>Status</TableHead>
+                      <TableHead>Connections</TableHead>
+                      <TableHead>Plan</TableHead>
+                      <TableHead className="w-[180px]">Actions</TableHead>
                     </TableRow>
-                  )}
-                </TableBody>
-              </Table>
-            </CardContent>
-          </Card>
+                  </TableHeader>
+                  <TableBody>
+                    {filteredUsers.map((u) => (
+                      <AccountRow
+                        key={u.user_id}
+                        user={u}
+                        saving={saving === u.user_id}
+                        currentUserId={user!.id}
+                        callAdminFunction={callAdminFunction}
+                        onDeleteAccount={() => deleteAccount(u.user_id)}
+                        onRefresh={fetchUsers}
+                        toast={toast}
+                      />
+                    ))}
+                    {filteredUsers.length === 0 && (
+                      <TableRow>
+                        <TableCell colSpan={5} className="text-center text-muted-foreground py-8">
+                          {searchQuery ? 'No users match your search' : 'No users found'}
+                        </TableCell>
+                      </TableRow>
+                    )}
+                  </TableBody>
+                </Table>
+              </CardContent>
+            </Card>
+          </div>
         </TabsContent>
 
         {/* Plan Overrides Tab */}
