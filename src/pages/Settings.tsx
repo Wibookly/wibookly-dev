@@ -124,6 +124,21 @@ const formatPhoneNumber = (value: string): string => {
 
 type SettingsSection = 'profile' | 'signature';
 
+function RestartTourButton() {
+  // Use try/catch so it works even outside ProductTourProvider
+  try {
+    const { startTour } = useProductTour();
+    return (
+      <Button variant="outline" onClick={startTour}>
+        <RotateCcw className="w-4 h-4 mr-2" />
+        Restart Product Tour
+      </Button>
+    );
+  } catch {
+    return null;
+  }
+}
+
 const SETTINGS_SECTIONS = [
   { value: 'profile' as const, label: 'Update Profile', icon: Mail },
   { value: 'signature' as const, label: 'Update Signature', icon: Mail },
