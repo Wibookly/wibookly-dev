@@ -305,7 +305,7 @@ export default function EmailDraft() {
       
       <div className="max-w-5xl space-y-6">
         {/* Page header with gradient accent */}
-        <div className="relative overflow-hidden rounded-xl bg-card/80 backdrop-blur-sm border border-border shadow-lg p-6">
+        <div className="relative overflow-hidden rounded-xl bg-card/80 backdrop-blur-sm border border-border shadow-lg p-6" data-tour="writing-style">
           <div className="absolute inset-0 bg-gradient-to-br from-primary/5 to-transparent" />
           <div className="relative">
             <h1 className="text-2xl font-bold bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent">

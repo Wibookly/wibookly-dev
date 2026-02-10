@@ -542,7 +542,7 @@ export default function Integrations() {
         <SubscriptionCard />
       </div>
 
-      <section data-onboarding="email-providers" className="animate-fade-in bg-card/80 backdrop-blur-sm rounded-xl border border-border shadow-lg p-6" aria-busy={loading ? 'true' : 'false'}>
+      <section data-onboarding="email-providers" data-tour="email-providers" className="animate-fade-in bg-card/80 backdrop-blur-sm rounded-xl border border-border shadow-lg p-6" aria-busy={loading ? 'true' : 'false'}>
         <header className="mb-8">
           <div className="flex items-center justify-between">
             <div>
@@ -658,7 +658,7 @@ export default function Integrations() {
       </AlertDialog>
 
       {currentTab === 'settings' && (
-        <div className="space-y-8">
+        <div className="space-y-8" data-tour="calendar-section">
           {/* Availability Hours Section */}
           <div className="space-y-4">
             <div className="flex items-center gap-2 mb-4">
