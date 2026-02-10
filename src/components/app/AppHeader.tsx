@@ -1,5 +1,7 @@
 import { useAuth } from '@/lib/auth';
 import { Sun, Moon, Sunrise, Sunset } from 'lucide-react';
+import { useBranding } from '@/contexts/BrandingContext';
+import { UserAvatarDropdown } from './UserAvatarDropdown';
 
 function getTimeOfDay() {
   const hour = new Date().getHours();
@@ -19,20 +21,18 @@ function TimeIcon({ className }: { className?: string }) {
   }
 }
 
-const HEADER_PARTICLES = [
-  { icon: '✉️', delay: 0, y: 20, dur: 5 },
-  { icon: '📝', delay: 1.5, y: 55, dur: 6 },
-  { icon: '💬', delay: 3, y: 35, dur: 4.5 },
-  { icon: '📧', delay: 0.7, y: 70, dur: 5.5 },
-  { icon: '🤖', delay: 2.2, y: 15, dur: 5.2 },
-  { icon: '📨', delay: 4, y: 50, dur: 4.8 },
-  { icon: '⚡', delay: 1, y: 80, dur: 5.8 },
-  { icon: '📋', delay: 3.5, y: 40, dur: 4.2 },
-  { icon: '🔔', delay: 2.8, y: 65, dur: 5.3 },
+const FLOATING_OBJECTS = [
+  { icon: '✉️', delay: 0, y: 30, dur: 6, size: 16 },
+  { icon: '📧', delay: 2, y: 55, dur: 5.5, size: 14 },
+  { icon: '📨', delay: 4, y: 70, dur: 5, size: 15 },
+  { icon: '✉️', delay: 1.5, y: 20, dur: 6.5, size: 13 },
+  { icon: '📧', delay: 3.5, y: 45, dur: 5.8, size: 16 },
+  { icon: '📨', delay: 0.8, y: 75, dur: 5.2, size: 14 },
 ];
 
 export function AppHeader() {
   const { profile } = useAuth();
+  const { logoUrl, brandName } = useBranding();
   const firstName = profile?.full_name?.trim().split(' ')[0] || 'there';
 
   const getGreeting = () => {
@@ -47,7 +47,7 @@ export function AppHeader() {
 
   return (
     <header className="hidden lg:flex h-16 border-b border-border/40 bg-card/30 backdrop-blur-sm items-center sticky top-0 z-20 relative overflow-hidden">
-      {/* Animated data streams across the full header */}
+      {/* Animated data streams */}
       <svg className="absolute inset-0 w-full h-full pointer-events-none" preserveAspectRatio="none">
         <defs>
           <linearGradient id="hdr-stream-1" x1="0%" y1="0%" x2="100%" y2="0%">
@@ -62,20 +62,13 @@ export function AppHeader() {
             <stop offset="100%" stopColor="hsl(38 92% 50%)" stopOpacity="0" />
           </linearGradient>
         </defs>
-        {/* Forward stream */}
-        <line x1="0" y1="24" x2="100%" y2="28"
-          stroke="url(#hdr-stream-1)" strokeWidth="1" strokeDasharray="8 6"
-          style={{ animation: 'hdr-dash 4s linear infinite' }} />
-        <line x1="0" y1="42" x2="100%" y2="38"
-          stroke="url(#hdr-stream-2)" strokeWidth="1" strokeDasharray="6 8"
-          style={{ animation: 'hdr-dash-rev 5s linear infinite' }} />
-        <line x1="0" y1="56" x2="100%" y2="52"
-          stroke="url(#hdr-stream-1)" strokeWidth="0.8" strokeDasharray="4 6"
-          style={{ animation: 'hdr-dash 6s linear infinite', animationDelay: '-2s' }} />
+        <line x1="0" y1="24" x2="100%" y2="28" stroke="url(#hdr-stream-1)" strokeWidth="1" strokeDasharray="8 6" style={{ animation: 'hdr-dash 4s linear infinite' }} />
+        <line x1="0" y1="42" x2="100%" y2="38" stroke="url(#hdr-stream-2)" strokeWidth="1" strokeDasharray="6 8" style={{ animation: 'hdr-dash-rev 5s linear infinite' }} />
+        <line x1="0" y1="56" x2="100%" y2="52" stroke="url(#hdr-stream-1)" strokeWidth="0.8" strokeDasharray="4 6" style={{ animation: 'hdr-dash 6s linear infinite', animationDelay: '-2s' }} />
       </svg>
 
-      {/* Floating particles across header (left→right and right→left) */}
-      {HEADER_PARTICLES.map((p, i) => (
+      {/* Floating envelope objects flowing L→R and R→L */}
+      {FLOATING_OBJECTS.map((p, i) => (
         <div
           key={i}
           className="absolute pointer-events-none select-none"
@@ -83,7 +76,7 @@ export function AppHeader() {
             top: `${p.y}%`,
             left: i % 2 === 0 ? '0' : 'auto',
             right: i % 2 === 1 ? '0' : 'auto',
-            fontSize: '11px',
+            fontSize: `${p.size}px`,
             animation: `${i % 2 === 0 ? 'hdr-fly-right' : 'hdr-fly-left'} ${p.dur}s ease-in-out infinite`,
             animationDelay: `${p.delay}s`,
             opacity: 0,
@@ -94,8 +87,13 @@ export function AppHeader() {
         </div>
       ))}
 
-      {/* Left: Greeting */}
-      <div className="flex items-center gap-3 px-6 relative z-10">
+      {/* Left: Logo */}
+      <div className="flex items-center px-5 relative z-10 shrink-0">
+        <img src={logoUrl} alt={brandName} className="h-12 w-auto" />
+      </div>
+
+      {/* Center: Greeting */}
+      <div className="flex-1 flex items-center justify-center gap-3 relative z-10">
         <div className="p-2 rounded-xl bg-primary/10">
           <TimeIcon className="w-5 h-5" />
         </div>
@@ -105,6 +103,11 @@ export function AppHeader() {
           </h2>
           <p className="text-xs text-muted-foreground">Here's what's happening with your inbox today</p>
         </div>
+      </div>
+
+      {/* Right: User profile */}
+      <div className="flex items-center px-5 relative z-10 shrink-0">
+        <UserAvatarDropdown />
       </div>
 
       {/* Animations */}
