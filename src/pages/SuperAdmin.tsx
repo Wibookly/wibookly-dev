@@ -801,8 +801,8 @@ function CreateUserCard({
               <SelectTrigger><SelectValue /></SelectTrigger>
               <SelectContent>
                 <SelectItem value="none">Starter Free</SelectItem>
-                <SelectItem value="starter">Starter $</SelectItem>
-                <SelectItem value="pro">Pro</SelectItem>
+                <SelectItem value="starter">Starter Free (Override)</SelectItem>
+                <SelectItem value="pro">Pro Free (Override)</SelectItem>
                 <SelectItem value="enterprise">Business</SelectItem>
               </SelectContent>
             </Select>
