@@ -315,8 +315,12 @@ export default function SuperAdmin() {
     return <Navigate to="/integrations" replace />;
   }
 
-  // Apply filters
-  const filteredUsers = users.filter(u => {
+  // Separate super admins from subscribers
+  const superAdminUsers = users.filter(u => superAdminIds.has(u.user_id));
+  const subscriberUsers = users.filter(u => !superAdminIds.has(u.user_id));
+
+  // Apply filters only to subscribers
+  const filteredUsers = subscriberUsers.filter(u => {
     // Search
     const matchesSearch = u.email.toLowerCase().includes(searchQuery.toLowerCase()) ||
       (u.full_name || '').toLowerCase().includes(searchQuery.toLowerCase());
