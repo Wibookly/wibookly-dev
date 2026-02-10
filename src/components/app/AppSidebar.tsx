@@ -188,7 +188,9 @@ export function AppSidebar() {
         <nav className="p-3 space-y-1.5">
           {/* Account Provisioning */}
           <NavSection title="Account Provisioning" icon={UserPlus} defaultOpen>
-            <NavItem href="/integrations" icon={Link2}>Email & Calendar Connections</NavItem>
+            <div data-tour="nav-connections">
+              <NavItem href="/integrations" icon={Link2}>Email & Calendar Connections</NavItem>
+            </div>
           </NavSection>
 
           {/* Email & Calendar Settings */}
