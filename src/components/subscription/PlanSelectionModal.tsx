@@ -105,7 +105,7 @@ export function PlanSelectionModal({ open, onOpenChange }: PlanSelectionModalPro
               <div
                 key={plan.id}
                 className={cn(
-                  'relative rounded-lg border p-4 flex flex-col',
+                  'relative rounded-lg border p-3 flex flex-col',
                   plan.popular
                     ? 'border-primary shadow-md ring-1 ring-primary/20'
                     : 'border-border',
