@@ -87,6 +87,7 @@ export default function SuperAdmin() {
   const { toast } = useToast();
   const [isSuperAdmin, setIsSuperAdmin] = useState<boolean | null>(null);
   const [users, setUsers] = useState<UserWithOverride[]>([]);
+  const [superAdminIds, setSuperAdminIds] = useState<Set<string>>(new Set());
   const [organizations, setOrganizations] = useState<Organization[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
@@ -130,6 +131,11 @@ export default function SuperAdmin() {
       const { data: overrides } = await supabase.from('user_plan_overrides').select('*');
       const { data: subscriptions } = await supabase.from('subscriptions').select('user_id, plan, status');
       const { data: whiteLabels } = await supabase.from('white_label_configs').select('*');
+      
+      // Fetch super admin roles
+      const { data: roles } = await supabase.from('user_roles').select('user_id, role').eq('role', 'super_admin');
+      const saIds = new Set((roles || []).map((r: any) => r.user_id));
+      setSuperAdminIds(saIds);
 
       const merged: UserWithOverride[] = (profiles || []).map((p: any) => {
         const override = (overrides || []).find((o: any) => o.user_id === p.user_id);
@@ -309,8 +315,12 @@ export default function SuperAdmin() {
     return <Navigate to="/integrations" replace />;
   }
 
-  // Apply filters
-  const filteredUsers = users.filter(u => {
+  // Separate super admins from subscribers
+  const superAdminUsers = users.filter(u => superAdminIds.has(u.user_id));
+  const subscriberUsers = users.filter(u => !superAdminIds.has(u.user_id));
+
+  // Apply filters only to subscribers
+  const filteredUsers = subscriberUsers.filter(u => {
     // Search
     const matchesSearch = u.email.toLowerCase().includes(searchQuery.toLowerCase()) ||
       (u.full_name || '').toLowerCase().includes(searchQuery.toLowerCase());
@@ -334,27 +344,27 @@ export default function SuperAdmin() {
     return true;
   });
 
-  // Summary stats
+  // Summary stats (subscribers only, excluding super admins)
   const totalOrgs = organizations.length;
-  const totalUsers = users.length;
-  const activeUsers = users.filter(u => u.subscription?.status === 'active' || u.override?.is_active).length;
-  const totalEmails = users.length;
+  const totalUsers = subscriberUsers.length;
+  const activeUsers = subscriberUsers.filter(u => u.subscription?.status === 'active' || u.override?.is_active).length;
+  const totalEmails = subscriberUsers.length;
   const planCounts = {
-    starterFree: users.filter(u => {
+    starterFree: subscriberUsers.filter(u => {
       const info = getPlanDisplayInfo(u);
       const p = u.override?.is_active ? u.override.granted_plan : u.subscription?.plan || 'starter';
       return p === 'starter' && !info.paid;
     }).length,
-    starterPaid: users.filter(u => {
+    starterPaid: subscriberUsers.filter(u => {
       const info = getPlanDisplayInfo(u);
       const p = u.override?.is_active ? u.override.granted_plan : u.subscription?.plan || 'starter';
       return p === 'starter' && info.paid;
     }).length,
-    pro: users.filter(u => {
+    pro: subscriberUsers.filter(u => {
       const p = u.override?.is_active ? u.override.granted_plan : u.subscription?.plan || 'starter';
       return p === 'pro';
     }).length,
-    business: users.filter(u => {
+    business: subscriberUsers.filter(u => {
       const p = u.override?.is_active ? u.override.granted_plan : u.subscription?.plan || 'starter';
       return p === 'enterprise';
     }).length,
@@ -372,6 +382,41 @@ export default function SuperAdmin() {
           <p className="text-sm text-muted-foreground">Manage subscribers, organizations, plans, and branding</p>
         </div>
       </div>
+
+      {/* Super Admin Card - separate section */}
+      <Card className="border-2" style={{ borderColor: 'hsl(0 72% 51% / 0.3)' }}>
+        <CardHeader className="pb-3">
+          <CardTitle className="text-lg flex items-center gap-2">
+            <Shield className="w-5 h-5" style={{ color: 'hsl(0 72% 51%)' }} />
+            Platform Super Admins
+          </CardTitle>
+          <p className="text-sm text-muted-foreground">Full platform access — manage all subscribers, organizations, and settings.</p>
+        </CardHeader>
+        <CardContent>
+          <div className="space-y-3">
+            {superAdminUsers.map(sa => (
+              <div key={sa.user_id} className="flex items-center gap-4 p-3 rounded-lg bg-secondary/50 border border-border">
+                <div className="p-2 rounded-full" style={{ background: 'hsl(0 72% 51% / 0.1)' }}>
+                  <Shield className="w-5 h-5" style={{ color: 'hsl(0 72% 51%)' }} />
+                </div>
+                <div className="flex-1">
+                  <p className="text-sm font-semibold text-foreground">{sa.full_name || 'Unknown'}</p>
+                  <p className="text-xs text-muted-foreground">{sa.email}</p>
+                </div>
+                <Badge variant="outline" className="border-2 font-semibold" style={{ borderColor: 'hsl(0 72% 51% / 0.4)', color: 'hsl(0 72% 51%)' }}>
+                  Super Admin
+                </Badge>
+                <Badge variant="secondary" className="text-xs">
+                  Active
+                </Badge>
+              </div>
+            ))}
+            {superAdminUsers.length === 0 && (
+              <p className="text-sm text-muted-foreground">No super admins found</p>
+            )}
+          </div>
+        </CardContent>
+      </Card>
 
       <Tabs defaultValue="subscribers">
         <TabsList>
