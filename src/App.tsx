@@ -57,6 +57,7 @@ const App = () => (
                   <Route path="/ai-chat" element={<AIChat />} />
                   <Route path="/ai-daily-brief" element={<AIDailyBrief />} />
                   <Route path="/super-admin" element={<SuperAdmin />} />
+                  <Route path="/billing" element={<Billing />} />
                 </Route>
                 <Route path="*" element={<NotFound />} />
               </Routes>

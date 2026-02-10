@@ -226,6 +226,7 @@ export function AppSidebar() {
               <NavItem href="/settings?section=profile" icon={User}>My Profile</NavItem>
             </div>
             <NavItem href="/settings?section=signature" icon={PenTool}>My Signature</NavItem>
+            <NavItem href="/billing" icon={CreditCard}>Billing & Usage</NavItem>
           </NavSection>
 
           {/* Reports */}

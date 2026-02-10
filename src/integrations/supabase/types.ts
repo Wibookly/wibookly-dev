@@ -359,6 +359,50 @@ export type Database = {
         }
         Relationships: []
       }
+      daily_usage: {
+        Row: {
+          additional_drafts_used: number
+          additional_messages_used: number
+          ai_messages_used: number
+          auto_drafts_used: number
+          created_at: string
+          id: string
+          organization_id: string
+          usage_date: string
+          user_id: string
+        }
+        Insert: {
+          additional_drafts_used?: number
+          additional_messages_used?: number
+          ai_messages_used?: number
+          auto_drafts_used?: number
+          created_at?: string
+          id?: string
+          organization_id: string
+          usage_date?: string
+          user_id: string
+        }
+        Update: {
+          additional_drafts_used?: number
+          additional_messages_used?: number
+          ai_messages_used?: number
+          auto_drafts_used?: number
+          created_at?: string
+          id?: string
+          organization_id?: string
+          usage_date?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "daily_usage_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       email_profiles: {
         Row: {
           connection_id: string
@@ -480,6 +524,53 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "jobs_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      monthly_usage_charges: {
+        Row: {
+          additional_drafts_total: number
+          additional_messages_total: number
+          created_at: string
+          id: string
+          month_year: string
+          organization_id: string
+          stripe_invoice_id: string | null
+          total_charges: number
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          additional_drafts_total?: number
+          additional_messages_total?: number
+          created_at?: string
+          id?: string
+          month_year: string
+          organization_id: string
+          stripe_invoice_id?: string | null
+          total_charges?: number
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          additional_drafts_total?: number
+          additional_messages_total?: number
+          created_at?: string
+          id?: string
+          month_year?: string
+          organization_id?: string
+          stripe_invoice_id?: string | null
+          total_charges?: number
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "monthly_usage_charges_organization_id_fkey"
             columns: ["organization_id"]
             isOneToOne: false
             referencedRelation: "organizations"
@@ -796,6 +887,50 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "subscriptions_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: true
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      usage_preferences: {
+        Row: {
+          additional_drafts_limit: number
+          additional_messages_limit: number
+          created_at: string
+          id: string
+          monthly_spend_cap: number
+          organization_id: string
+          updated_at: string
+          usage_billing_enabled: boolean
+          user_id: string
+        }
+        Insert: {
+          additional_drafts_limit?: number
+          additional_messages_limit?: number
+          created_at?: string
+          id?: string
+          monthly_spend_cap?: number
+          organization_id: string
+          updated_at?: string
+          usage_billing_enabled?: boolean
+          user_id: string
+        }
+        Update: {
+          additional_drafts_limit?: number
+          additional_messages_limit?: number
+          created_at?: string
+          id?: string
+          monthly_spend_cap?: number
+          organization_id?: string
+          updated_at?: string
+          usage_billing_enabled?: boolean
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "usage_preferences_organization_id_fkey"
             columns: ["organization_id"]
             isOneToOne: true
             referencedRelation: "organizations"
