@@ -89,12 +89,39 @@ export function SubscriptionProvider({ children }: { children: ReactNode }) {
   });
 
   const fetchSubscription = useCallback(async () => {
-    if (!organization?.id || !session?.access_token) {
+    if (!session?.access_token) {
       setState(prev => ({ ...prev, loading: false }));
       return;
     }
 
     try {
+      // Check for super-admin plan override first
+      const { data: overrideData } = await supabase
+        .from('user_plan_overrides')
+        .select('granted_plan, is_active')
+        .eq('user_id', session.user.id)
+        .maybeSingle();
+
+      if (overrideData?.is_active && overrideData.granted_plan) {
+        const overridePlan = overrideData.granted_plan as PlanType;
+        if (overridePlan in PLAN_CONFIG) {
+          setState({
+            plan: overridePlan,
+            status: 'active',
+            stripeCustomerId: null,
+            stripeSubscriptionId: null,
+            currentPeriodEnd: null,
+            loading: false,
+          });
+          return; // Skip Stripe check entirely
+        }
+      }
+
+      if (!organization?.id) {
+        setState(prev => ({ ...prev, loading: false }));
+        return;
+      }
+
       const { data: subData } = await supabase
         .from('subscriptions')
         .select('*')
