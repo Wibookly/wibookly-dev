@@ -973,7 +973,7 @@ function UnifiedAccountRow({
               }}
               disabled={saving}
             >
-              <SelectTrigger className="w-[120px] h-8" style={{ borderColor: planInfo.color }}>
+              <SelectTrigger className="w-[150px] h-8" style={{ borderColor: planInfo.color }}>
                 <SelectValue />
               </SelectTrigger>
               <SelectContent className="bg-card z-50">
