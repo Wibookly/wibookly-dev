@@ -131,6 +131,11 @@ export default function SuperAdmin() {
       const { data: overrides } = await supabase.from('user_plan_overrides').select('*');
       const { data: subscriptions } = await supabase.from('subscriptions').select('user_id, plan, status');
       const { data: whiteLabels } = await supabase.from('white_label_configs').select('*');
+      
+      // Fetch super admin roles
+      const { data: roles } = await supabase.from('user_roles').select('user_id, role').eq('role', 'super_admin');
+      const saIds = new Set((roles || []).map((r: any) => r.user_id));
+      setSuperAdminIds(saIds);
 
       const merged: UserWithOverride[] = (profiles || []).map((p: any) => {
         const override = (overrides || []).find((o: any) => o.user_id === p.user_id);
