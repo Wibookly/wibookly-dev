@@ -550,12 +550,6 @@ export default function Integrations() {
   }
 
 
-  // Auto-refresh onboarding progress when connections change
-  useEffect(() => {
-    if (connections.length > 0) {
-      refreshOnboarding();
-    }
-  }, [connections.length]);
 
   return (
     <div className="min-h-full p-4 lg:p-6">
