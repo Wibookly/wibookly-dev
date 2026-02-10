@@ -99,11 +99,24 @@ function NavItem({ href, icon: Icon, children, showUpgradeBadge }: NavItemProps)
 }
 
 export function AppSidebar() {
-  const { signOut, organization } = useAuth();
+  const { signOut, user, organization } = useAuth();
   const location = useLocation();
   const { connections, activeConnection, setActiveConnectionId, loading } = useActiveEmail();
   const { hasFeature } = useSubscription();
   const [isOnboardingComplete, setIsOnboardingComplete] = useState(false);
+  const [isSuperAdmin, setIsSuperAdmin] = useState(false);
+
+  // Check if current user is super_admin
+  useEffect(() => {
+    if (!user) return;
+    supabase
+      .from('user_roles')
+      .select('role')
+      .eq('user_id', user.id)
+      .eq('role', 'super_admin')
+      .maybeSingle()
+      .then(({ data }) => setIsSuperAdmin(!!data));
+  }, [user]);
 
   // Check feature access for upgrade badges
   const needsUpgradeForAutoReply = !hasFeature('aiAutoReply');
