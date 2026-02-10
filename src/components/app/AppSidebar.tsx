@@ -218,6 +218,13 @@ export function AppSidebar() {
           <NavSection title="Reports" icon={BarChart3} defaultOpen>
             <NavItem href="/ai-activity" icon={BarChart3} showUpgradeBadge={needsUpgradeForAnalytics}>AI Activity</NavItem>
           </NavSection>
+
+          {/* Super Admin - only visible to super_admin users */}
+          {isSuperAdmin && (
+            <NavSection title="Super Admin" icon={Shield} defaultOpen>
+              <NavItem href="/super-admin" icon={Shield}>User Overrides</NavItem>
+            </NavSection>
+          )}
         </nav>
       </div>
 
