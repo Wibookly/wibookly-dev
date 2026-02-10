@@ -90,19 +90,19 @@ export default function Auth() {
               <>
                 Get started with
                 <br />
-                <span className="text-primary">Wibookly</span>
+                <span className="text-primary">{brandName}</span>
               </>
             ) : (
               <>
                 Welcome back to
                 <br />
-                <span className="text-primary">Wibookly</span>
+                <span className="text-primary">{brandName}</span>
               </>
             )}
           </h1>
           <p className="mt-4 text-muted-foreground">
             {isSignUp
-              ? <>Create your account to get started with Wibookly.</>
+              ? <>Create your account to get started with {brandName}.</>
               : <>Sign in to continue managing your inbox with AI.</>
             }
           </p>
