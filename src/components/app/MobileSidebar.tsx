@@ -30,12 +30,14 @@ export function MobileSidebar({ open, onClose }: MobileSidebarProps) {
     onClose();
   };
 
+  const { logoUrl, brandName } = useBranding();
+
   return (
     <Sheet open={open} onOpenChange={onClose}>
       <SheetContent side="left" className="w-72 p-0 flex flex-col bg-card">
         <SheetHeader className="p-4 border-b border-border">
           <div className="flex items-center justify-between">
-            <img src={wibooklyLogo} alt="Wibookly" className="h-12 w-auto" />
+            <img src={logoUrl} alt={brandName} className="h-12 w-auto" />
           </div>
         </SheetHeader>
 
