@@ -4,6 +4,8 @@ import { useAuth } from '@/lib/auth';
 import { AppSidebar } from './AppSidebar';
 import { MobileHeader } from './MobileHeader';
 import { MobileSidebar } from './MobileSidebar';
+import { ProductTourOverlay } from './ProductTourOverlay';
+import { ProductTourProvider } from '@/contexts/ProductTourContext';
 import { Loader2 } from 'lucide-react';
 
 export function AppLayout() {
