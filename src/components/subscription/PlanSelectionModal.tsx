@@ -55,7 +55,7 @@ export function PlanSelectionModal({ open, onOpenChange }: PlanSelectionModalPro
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
+      <DialogContent className="max-w-4xl max-h-[85vh] overflow-y-auto p-4">
         <DialogHeader>
           <DialogTitle className="text-2xl text-center">Choose Your Plan</DialogTitle>
           <DialogDescription className="text-center">

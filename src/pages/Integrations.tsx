@@ -911,12 +911,13 @@ export default function Integrations() {
                 </div>
 
                 <div>
+                  {/* Hide connect button for free override users who already have auto-connected entry */}
+                  {!(isFreeOverride && integration.connections.length > 0) && (
                   <Button
                     size="sm"
                     disabled={!integration.available || connecting === integration.id}
                     onClick={() => {
-                      if (!hasActiveSub) {
-                        // No subscription — open plan selection modal
+                      if (!hasActiveSub && !isFreeOverride) {
                         setShowPlanModal(true);
                       } else {
                         setConfirmProvider(integration.id);
@@ -928,7 +929,7 @@ export default function Integrations() {
                         <Loader2 className="mr-2 w-3 h-3 animate-spin" />
                         Connecting...
                       </>
-                    ) : !hasActiveSub ? (
+                    ) : !hasActiveSub && !isFreeOverride ? (
                       <>
                         Subscribe to Connect
                         <ExternalLink className="ml-2 w-3 h-3" />
@@ -942,6 +943,7 @@ export default function Integrations() {
                       'Coming Soon'
                     )}
                   </Button>
+                  )}
                 </div>
               </div>
             </article>
