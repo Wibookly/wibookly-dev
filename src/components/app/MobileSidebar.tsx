@@ -1,5 +1,5 @@
 import { NavLink, useLocation } from 'react-router-dom';
-import { LayoutDashboard, Plug, FolderOpen, Settings, LogOut, Sparkles, BarChart3 } from 'lucide-react';
+import { LayoutDashboard, Plug, FolderOpen, Settings, LogOut, Sparkles, BarChart3, CreditCard } from 'lucide-react';
 import { useAuth } from '@/lib/auth';
 import { cn } from '@/lib/utils';
 import { useBranding } from '@/contexts/BrandingContext';
@@ -14,6 +14,7 @@ const navItems = [
   { title: 'AI Drafts', href: '/email-draft', icon: Sparkles },
   { title: 'AI Activity', href: '/ai-activity', icon: BarChart3 },
   { title: 'Settings', href: '/settings', icon: Settings },
+  { title: 'Billing & Usage', href: '/billing', icon: CreditCard },
 ];
 
 interface MobileSidebarProps {
