@@ -22,6 +22,7 @@ import NotFound from "./pages/NotFound";
 import AIChat from "./pages/AIChat";
 import AIDailyBrief from "./pages/AIDailyBrief";
 import Pricing from "./pages/Pricing";
+import SuperAdmin from "./pages/SuperAdmin";
 
 const queryClient = new QueryClient();
 
