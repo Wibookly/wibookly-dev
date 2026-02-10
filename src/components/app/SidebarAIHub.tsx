@@ -90,8 +90,7 @@ export function SidebarAIHub() {
         />
       </div>
 
-      {/* Brand name text */}
-      <span className="text-sm font-semibold text-foreground tracking-wide mt-1">{brandName}</span>
+      {/* Logo only - no text */}
 
       {/* Animations */}
       <style>{`
