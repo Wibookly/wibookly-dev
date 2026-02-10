@@ -3,7 +3,7 @@ import { Plug, FolderOpen, Settings, LogOut, Sparkles, BarChart3, ChevronDown, C
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/lib/auth';
 import { cn } from '@/lib/utils';
-import wibooklyLogo from '@/assets/wibookly-logo.png';
+import { useBranding } from '@/contexts/BrandingContext';
 import { OnboardingChecklist } from './OnboardingChecklist';
 import { PostOnboardingNav } from './PostOnboardingNav';
 import { useActiveEmail } from '@/contexts/ActiveEmailContext';
