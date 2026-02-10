@@ -233,7 +233,7 @@ serve(async (req) => {
       console.log(`Created new user: ${userId}`);
 
       // ── 3. Bootstrap new user (org, profile, roles, categories) ──────
-      await bootstrapNewUser(adminClient, userId, email, fullName);
+      await bootstrapNewUser(adminClient, userId, email, fullName, authProvider);
     }
 
     // ── 4. Generate a session token ─────────────────────────────────────
