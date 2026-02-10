@@ -25,6 +25,7 @@ const OutlookIcon = () => (
 
 export default function Auth() {
   const { user, loading, signInWithCognito } = useAuth();
+  const { brandName, logoUrl, isWhiteLabeled } = useBranding();
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
   const mode = searchParams.get('mode') || 'signin';
