@@ -257,6 +257,7 @@ export function SubscriptionProvider({ children }: { children: ReactNode }) {
     <SubscriptionContext.Provider
       value={{
         ...state,
+        isFreeOverride,
         refreshSubscription: fetchSubscription,
         canConnectMoreMailboxes,
         hasFeature,
