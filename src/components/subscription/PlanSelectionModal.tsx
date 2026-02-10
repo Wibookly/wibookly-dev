@@ -91,7 +91,7 @@ export function PlanSelectionModal({ open, onOpenChange }: PlanSelectionModalPro
         </div>
 
         {/* Plans Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-2">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-3 mt-2">
           {PRICING_PLANS.map((plan) => {
             const Icon = PLAN_ICONS[plan.id] || Zap;
             const isCurrentPlan = hasActiveSub && currentPlan === plan.id;
