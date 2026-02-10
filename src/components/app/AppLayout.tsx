@@ -32,6 +32,7 @@ export function AppLayout() {
         <AppSidebar />
         
         <div className="flex-1 flex flex-col min-h-0">
+          <AppHeader />
           <main className="flex-1 overflow-auto p-4 lg:p-6">
             <Outlet />
           </main>
