@@ -44,7 +44,9 @@ serve(async (req) => {
     let earlyAppUrl: string | undefined;
     if (stateParam) {
       try {
-        const earlyState = JSON.parse(atob(stateParam));
+        // Strip legacy "connect:" prefix if present
+        const raw = stateParam.startsWith('connect:') ? stateParam.slice(8) : stateParam;
+        const earlyState = JSON.parse(atob(raw));
         earlyProvider = earlyState.provider;
         earlyAppUrl = resolveAppUrl(earlyState.appOrigin);
       } catch {}
