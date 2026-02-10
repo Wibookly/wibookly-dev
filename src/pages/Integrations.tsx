@@ -86,6 +86,7 @@ export default function Integrations() {
   const { organization, profile, loading: authLoading } = useAuth();
   const { activeConnection, loading: emailLoading } = useActiveEmail();
   const { canConnectMoreMailboxes, getMailboxLimit, refreshSubscription, plan, status, startCheckout, isFreeOverride } = useSubscription();
+  const { currentStep, isOnboardingComplete, refreshProgress: refreshOnboarding } = useOnboarding();
   const hasActiveSub = status === 'active' || status === 'trialing';
   const { toast } = useToast();
   const { logAttempt } = useConnectAttemptLogger();
