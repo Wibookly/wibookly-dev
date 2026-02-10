@@ -214,7 +214,6 @@ Deno.serve(async (req) => {
           .select("id, name, created_at");
         if (error) throw error;
 
-        // Get member counts
         const orgsWithCounts = await Promise.all(
           (data || []).map(async (org: any) => {
             const { count } = await adminClient
@@ -230,10 +229,128 @@ Deno.serve(async (req) => {
         });
       }
 
+      case "create_user": {
+        const { email, password, full_name, plan_override } = body;
+        if (!email || !password) throw new Error("email and password required");
+
+        // Create auth user (auto-confirm email)
+        const { data: newUser, error: createError } = await adminClient.auth.admin.createUser({
+          email,
+          password,
+          email_confirm: true,
+        });
+        if (createError) throw createError;
+        const newUserId = newUser.user.id;
+
+        // Create organization
+        const { data: org, error: orgError } = await adminClient
+          .from("organizations")
+          .insert({ name: full_name ? `${full_name}'s Organization` : `${email}'s Organization` })
+          .select("id")
+          .single();
+        if (orgError) throw orgError;
+
+        // Create user profile
+        await adminClient.from("user_profiles").insert({
+          user_id: newUserId,
+          organization_id: org.id,
+          email,
+          full_name: full_name || null,
+        });
+
+        // Create organization member
+        await adminClient.from("organization_members").insert({
+          user_id: newUserId,
+          organization_id: org.id,
+          role: "admin",
+        });
+
+        // Create user role
+        await adminClient.from("user_roles").insert({
+          user_id: newUserId,
+          organization_id: org.id,
+          role: "admin",
+        });
+
+        // Create subscription record
+        await adminClient.from("subscriptions").insert({
+          user_id: newUserId,
+          organization_id: org.id,
+          plan: "starter",
+          status: "active",
+        });
+
+        // If a plan override is specified, grant it
+        if (plan_override && plan_override !== "none") {
+          await adminClient.from("user_plan_overrides").insert({
+            user_id: newUserId,
+            granted_plan: plan_override,
+            granted_by: caller.id,
+            is_active: true,
+          });
+        }
+
+        return new Response(JSON.stringify({ success: true, user_id: newUserId }), {
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+
+      case "reset_password": {
+        const { target_user_id, new_password } = body;
+        if (!target_user_id || !new_password) throw new Error("target_user_id and new_password required");
+
+        const { error } = await adminClient.auth.admin.updateUserById(target_user_id, {
+          password: new_password,
+        });
+        if (error) throw error;
+
+        return new Response(JSON.stringify({ success: true }), {
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+
+      case "toggle_ban": {
+        const { target_user_id, ban } = body;
+        if (!target_user_id) throw new Error("target_user_id required");
+        if (target_user_id === caller.id) throw new Error("Cannot lock your own account");
+
+        if (ban) {
+          const { error } = await adminClient.auth.admin.updateUserById(target_user_id, {
+            ban_duration: "876000h", // ~100 years = effectively permanent
+          });
+          if (error) throw error;
+        } else {
+          const { error } = await adminClient.auth.admin.updateUserById(target_user_id, {
+            ban_duration: "none",
+          });
+          if (error) throw error;
+        }
+
+        return new Response(JSON.stringify({ success: true }), {
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+
+      case "get_user_status": {
+        const { target_user_id } = body;
+        if (!target_user_id) throw new Error("target_user_id required");
+
+        const { data: userData, error } = await adminClient.auth.admin.getUserById(target_user_id);
+        if (error) throw error;
+
+        return new Response(JSON.stringify({
+          banned_until: userData.user.banned_until,
+          last_sign_in_at: userData.user.last_sign_in_at,
+          created_at: userData.user.created_at,
+        }), {
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+
       default:
         return new Response(JSON.stringify({ error: `Unknown action: ${action}` }), {
           status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
-        });
+        })
     }
   } catch (err: any) {
     return new Response(JSON.stringify({ error: err.message }), {
