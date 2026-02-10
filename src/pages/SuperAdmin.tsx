@@ -935,7 +935,14 @@ function UnifiedAccountRow({
     }
   };
 
-  const effectivePlan = u.override?.is_active ? u.override.granted_plan : u.subscription?.plan || 'starter';
+  const isFreeOverride = !!u.override?.is_active;
+  const rawPlan = u.override?.is_active ? u.override.granted_plan : u.subscription?.plan || 'starter';
+  // Build a select-compatible value distinguishing paid vs free
+  const selectPlanValue = rawPlan === 'enterprise' 
+    ? 'enterprise' 
+    : isFreeOverride 
+      ? rawPlan  // 'starter' or 'pro' (free override)
+      : (u.subscription?.status === 'active' ? `${rawPlan}_paid` : rawPlan);
 
   return (
     <>
