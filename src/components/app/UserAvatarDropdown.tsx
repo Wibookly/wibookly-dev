@@ -1,5 +1,5 @@
 import { useAuth } from '@/lib/auth';
-import { Avatar, AvatarFallback } from '@/components/ui/avatar';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -9,28 +9,55 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { LogOut, User } from 'lucide-react';
+import { useActiveEmail } from '@/contexts/ActiveEmailContext';
+import { useEffect, useState } from 'react';
+import { supabase } from '@/integrations/supabase/client';
 
 export function UserAvatarDropdown() {
   const { profile, signOut } = useAuth();
+  const { activeConnection } = useActiveEmail();
+  const [profilePhotoUrl, setProfilePhotoUrl] = useState<string | null>(null);
 
-  // Extract first name from full_name (first word only) - no email fallback
   const getFirstName = () => {
     if (profile?.full_name) {
-      const nameParts = profile.full_name.trim().split(' ');
-      return nameParts[0] || 'User';
+      return profile.full_name.trim().split(' ')[0] || 'User';
     }
     return 'User';
   };
   
   const firstName = getFirstName();
 
+  const initials = profile?.full_name
+    ? profile.full_name.split(' ').map(n => n[0]).join('').toUpperCase()
+    : 'U';
+
+  // Fetch profile photo from email_profiles table
+  useEffect(() => {
+    if (!activeConnection) return;
+    supabase
+      .from('email_profiles')
+      .select('profile_photo_url')
+      .eq('connection_id', activeConnection.id)
+      .maybeSingle()
+      .then(({ data }) => {
+        if (data?.profile_photo_url) {
+          setProfilePhotoUrl(data.profile_photo_url);
+        }
+      });
+  }, [activeConnection]);
+
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
         <button className="flex items-center gap-2 hover:opacity-80 transition-opacity">
-          <div className="h-9 px-4 flex items-center justify-center shadow-md border-2 border-white rounded-full bg-primary text-primary-foreground text-sm font-medium">
-            {firstName}
-          </div>
+          <Avatar className="h-9 w-9 border-2 border-primary/30">
+            {profilePhotoUrl && (
+              <AvatarImage src={profilePhotoUrl} alt={firstName} />
+            )}
+            <AvatarFallback className="bg-primary text-primary-foreground text-sm font-medium">
+              {initials}
+            </AvatarFallback>
+          </Avatar>
         </button>
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end" className="w-56">

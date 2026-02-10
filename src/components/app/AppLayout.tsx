@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { Outlet, Navigate } from 'react-router-dom';
 import { useAuth } from '@/lib/auth';
 import { AppSidebar } from './AppSidebar';
+import { AppHeader } from './AppHeader';
 import { MobileHeader } from './MobileHeader';
 import { MobileSidebar } from './MobileSidebar';
 import { ProductTourOverlay } from './ProductTourOverlay';
@@ -32,6 +33,7 @@ export function AppLayout() {
         <AppSidebar />
         
         <div className="flex-1 flex flex-col min-h-0">
+          <AppHeader />
           <main className="flex-1 overflow-auto p-4 lg:p-6">
             <Outlet />
           </main>
