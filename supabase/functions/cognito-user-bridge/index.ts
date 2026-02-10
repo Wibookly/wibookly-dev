@@ -307,7 +307,8 @@ async function bootstrapNewUser(
   adminClient: ReturnType<typeof createClient>,
   userId: string,
   email: string,
-  fullName: string
+  fullName: string,
+  authProvider?: string
 ) {
   try {
     // Create organization
@@ -339,6 +340,45 @@ async function bootstrapNewUser(
       role: "admin",
     });
 
+    // Auto-create provider connection if signed up via Google or Microsoft
+    if (authProvider === "google" || authProvider === "microsoft") {
+      const providerName = authProvider === "microsoft" ? "outlook" : "google";
+      const { error: connError } = await adminClient
+        .from("provider_connections")
+        .insert({
+          user_id: userId,
+          organization_id: orgId,
+          provider: providerName,
+          connected_email: email,
+          is_connected: true,
+          connected_at: new Date().toISOString(),
+        });
+
+      if (connError) {
+        console.error("Failed to auto-create provider connection:", connError.message);
+      } else {
+        console.log(`Auto-connected ${providerName} for ${email}`);
+
+        // Also create an email_profiles entry for the connection
+        const { data: connData } = await adminClient
+          .from("provider_connections")
+          .select("id")
+          .eq("user_id", userId)
+          .eq("provider", providerName)
+          .maybeSingle();
+
+        if (connData) {
+          await adminClient.from("email_profiles").insert({
+            user_id: userId,
+            organization_id: orgId,
+            connection_id: connData.id,
+            full_name: fullName,
+            signature_enabled: false,
+          });
+        }
+      }
+    }
+
     // Create default categories
     const defaultCategories = [
       { name: "Urgent", color: "#ef4444", sort_order: 0 },
@@ -365,7 +405,7 @@ async function bootstrapNewUser(
       writing_style: "professional",
     });
 
-    console.log(`Bootstrapped new user: org=${orgId}, profile created`);
+    console.log(`Bootstrapped new user: org=${orgId}, profile created, provider=${authProvider || 'none'}`);
   } catch (error) {
     console.error("Error bootstrapping new user:", error);
   }
