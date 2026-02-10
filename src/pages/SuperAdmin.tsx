@@ -676,10 +676,17 @@ export default function SuperAdmin() {
               </div>
             </div>
             <div className="flex items-center gap-3">
+              <div className="w-3 h-3 rounded-full" style={{ background: 'hsl(280 70% 60% / 0.4)' }} />
+              <div>
+                <p className="text-sm font-medium text-foreground">Pro Free</p>
+                <p className="text-xs text-muted-foreground">{planCounts.proFree} subscribers</p>
+              </div>
+            </div>
+            <div className="flex items-center gap-3">
               <div className="w-3 h-3 rounded-full" style={{ background: 'hsl(280 70% 60%)' }} />
               <div>
-                <p className="text-sm font-medium text-foreground">Pro</p>
-                <p className="text-xs text-muted-foreground">{planCounts.pro} subscribers</p>
+                <p className="text-sm font-medium text-foreground">Pro $</p>
+                <p className="text-xs text-muted-foreground">{planCounts.proPaid} subscribers</p>
               </div>
             </div>
             <div className="flex items-center gap-3">
