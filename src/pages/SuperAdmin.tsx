@@ -476,11 +476,12 @@ export default function SuperAdmin() {
                   <SelectTrigger className="w-[160px] h-9">
                     <SelectValue placeholder="All Plans" />
                   </SelectTrigger>
-                  <SelectContent>
+                  <SelectContent className="bg-card z-50">
                     <SelectItem value="all">All Plans</SelectItem>
                     <SelectItem value="starter_free">Starter Free</SelectItem>
                     <SelectItem value="starter_paid">Starter $</SelectItem>
-                    <SelectItem value="pro">Pro</SelectItem>
+                    <SelectItem value="pro_free">Pro Free</SelectItem>
+                    <SelectItem value="pro_paid">Pro $</SelectItem>
                     <SelectItem value="enterprise">Business</SelectItem>
                   </SelectContent>
                 </Select>
