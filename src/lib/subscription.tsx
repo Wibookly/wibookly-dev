@@ -66,6 +66,7 @@ export interface SubscriptionState {
 }
 
 interface SubscriptionContextType extends SubscriptionState {
+  isFreeOverride: boolean;
   refreshSubscription: () => Promise<void>;
   canConnectMoreMailboxes: (currentCount: number) => boolean;
   hasFeature: (feature: keyof typeof PLAN_CONFIG.starter.features) => boolean;
