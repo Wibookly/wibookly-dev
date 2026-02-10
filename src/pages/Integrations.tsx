@@ -542,7 +542,7 @@ export default function Integrations() {
         <SubscriptionCard />
       </div>
 
-      <section data-onboarding="email-providers" className="animate-fade-in bg-card/80 backdrop-blur-sm rounded-xl border border-border shadow-lg p-6" aria-busy={loading ? 'true' : 'false'}>
+      <section data-onboarding="email-providers" data-tour="email-providers" className="animate-fade-in bg-card/80 backdrop-blur-sm rounded-xl border border-border shadow-lg p-6" aria-busy={loading ? 'true' : 'false'}>
         <header className="mb-8">
           <div className="flex items-center justify-between">
             <div>
