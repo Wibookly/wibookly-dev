@@ -561,7 +561,7 @@ export default function SuperAdmin() {
                 currentUserId={user!.id}
                 users={users}
                 organizations={organizations}
-                onRefresh={loadOrganizations}
+                onRefresh={() => { loadOrganizations(); fetchUsers(); }}
                 toast={toast}
               />
             </CardContent>

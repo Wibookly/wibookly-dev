@@ -33,10 +33,10 @@ export function OnboardingStepBanner() {
         <div className="flex items-center gap-4">
           {/* Step counter badge */}
           <div 
-            className="flex-shrink-0 flex items-center gap-2 px-3 py-1.5 rounded-full border-2 border-[hsl(48_96%_53%)] bg-[hsl(48_96%_53%/0.15)] cursor-pointer"
+            className="flex-shrink-0 flex items-center gap-2 px-3 py-1.5 rounded-full border-2 border-[hsl(24_95%_53%)] bg-[hsl(24_95%_53%/0.15)] cursor-pointer"
             onClick={handleGoToStep}
           >
-            <span className="text-sm font-bold text-[hsl(48_96%_53%)]">
+            <span className="text-sm font-bold text-[hsl(24_95%_53%)]">
               Step {currentStep?.number || 0}
             </span>
             <span className="text-xs text-muted-foreground">
@@ -64,7 +64,7 @@ export function OnboardingStepBanner() {
                   step.isComplete
                     ? 'bg-primary border-primary text-primary-foreground'
                     : i === currentStepIndex
-                      ? 'border-[hsl(48_96%_53%)] bg-[hsl(48_96%_53%/0.15)] text-[hsl(48_96%_53%)] animate-pulse'
+                      ? 'border-[hsl(24_95%_53%)] bg-[hsl(24_95%_53%/0.15)] text-[hsl(24_95%_53%)] animate-pulse'
                       : 'border-muted bg-muted/50 text-muted-foreground'
                 )}
               >

@@ -3,6 +3,16 @@ import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/lib/auth';
 import { useSubscription } from '@/lib/subscription';
 
+// Check if user has super_admin or admin role
+async function checkIsAdmin(userId: string): Promise<boolean> {
+  const { data } = await supabase
+    .from('user_roles')
+    .select('role')
+    .eq('user_id', userId)
+    .in('role', ['super_admin', 'admin']);
+  return (data?.length || 0) > 0;
+}
+
 export interface OnboardingStepDef {
   id: string;
   number: number;
@@ -44,13 +54,20 @@ const STEP_DEFINITIONS: Omit<OnboardingStepDef, 'isComplete'>[] = [
 ];
 
 export function OnboardingProvider({ children }: { children: ReactNode }) {
-  const { organization, profile } = useAuth();
+  const { user, organization, profile } = useAuth();
   const { status, isFreeOverride } = useSubscription();
   const hasActiveSub = status === 'active' || status === 'trialing';
+  const [isAdmin, setIsAdmin] = useState<boolean | null>(null);
   const [steps, setSteps] = useState<OnboardingStepDef[]>(
     STEP_DEFINITIONS.map(s => ({ ...s, isComplete: s.id === 'account' }))
   );
   const [loading, setLoading] = useState(true);
+
+  // Check admin role
+  useEffect(() => {
+    if (!user?.id) { setIsAdmin(false); return; }
+    checkIsAdmin(user.id).then(setIsAdmin);
+  }, [user?.id]);
 
   const fetchProgress = useCallback(async () => {
     if (!organization?.id) return;
@@ -98,9 +115,9 @@ export function OnboardingProvider({ children }: { children: ReactNode }) {
     fetchProgress();
   }, [fetchProgress]);
 
-  const currentStep = steps.find(s => !s.isComplete) || null;
+  const currentStep = isAdmin ? null : (steps.find(s => !s.isComplete) || null);
   const currentStepIndex = currentStep ? steps.findIndex(s => s.id === currentStep.id) : steps.length;
-  const isOnboardingComplete = !currentStep;
+  const isOnboardingComplete = isAdmin || !currentStep;
 
   const isActiveRoute = (route: string) => {
     if (isOnboardingComplete) return true;
