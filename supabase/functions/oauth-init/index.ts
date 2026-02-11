@@ -98,8 +98,7 @@ serve(async (req) => {
 
     // Connect flows redirect directly to the oauth-callback edge function,
     // which exchanges the code for tokens and redirects back to the app.
-    const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
-    const callbackUrl = `${supabaseUrl}/functions/v1/oauth-callback`;
+    const callbackUrl = 'https://app.wibookly.ai/auth/callback';
 
     console.log(`[oauth-init] Flow: Connect ${provider} (NOT Cognito)`);
     console.log(`[oauth-init] redirect_uri: ${callbackUrl}`);

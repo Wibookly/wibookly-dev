@@ -42,6 +42,14 @@ export default function AuthCallback() {
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
+    // Handle "connected" query param (redirect from oauth-callback edge function)
+    const connectedProvider = searchParams.get('connected');
+    if (connectedProvider) {
+      console.log('[AuthCallback] Provider connected:', connectedProvider);
+      navigate('/integrations?connected=' + connectedProvider, { replace: true });
+      return;
+    }
+
     // Primary: use React Router's searchParams
     let code = searchParams.get('code');
     let stateParam = searchParams.get('state');
@@ -73,8 +81,28 @@ export default function AuthCallback() {
       return;
     }
 
-    // ── Retrieve PKCE verifier ──
-    // Priority: 1) state parameter (guaranteed to survive redirects), 2) storage fallback
+    // ── Detect Connect flow vs Cognito login flow ──
+    // Connect flows have a state param containing { provider, userId, organizationId }
+    // Cognito flows have a state param containing { v: <pkce_verifier> }
+    if (stateParam) {
+      try {
+        const raw = stateParam.startsWith('connect:') ? stateParam.slice(8) : stateParam;
+        const parsed = JSON.parse(atob(raw));
+        
+        // If state contains provider + userId, this is a Connect flow
+        // Proxy the request to the oauth-callback edge function
+        if (parsed?.provider && parsed?.userId) {
+          console.log('[AuthCallback] Detected Connect flow for provider:', parsed.provider);
+          const edgeFnUrl = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/oauth-callback?code=${encodeURIComponent(code)}&state=${encodeURIComponent(stateParam)}`;
+          window.location.href = edgeFnUrl;
+          return;
+        }
+      } catch (e) {
+        console.warn('[AuthCallback] State parse attempt for connect detection:', e);
+      }
+    }
+
+    // ── Cognito Login Flow: Retrieve PKCE verifier ──
     let codeVerifier: string | null = null;
 
     if (stateParam) {
