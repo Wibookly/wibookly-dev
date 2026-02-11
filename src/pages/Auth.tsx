@@ -31,7 +31,9 @@ export default function Auth() {
   const mode = searchParams.get('mode') || 'signin';
   const isSignUp = mode === 'signup';
 
-  const [currentTestimonial, setCurrentTestimonial] = useState(0);
+  const [currentTestimonial, setCurrentTestimonial] = useState(() =>
+    Math.floor(Math.random() * testimonials.length)
+  );
   const [fadeState, setFadeState] = useState<'in' | 'out'>('in');
 
   useEffect(() => {
@@ -57,8 +59,24 @@ export default function Auth() {
 
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center ocean-bg">
-        <Loader2 className="w-6 h-6 animate-spin text-muted-foreground" />
+      <div className="min-h-screen flex flex-col items-center justify-center ocean-bg gap-8">
+        <img src={logoUrl} alt={brandName} className="h-48 w-auto" />
+        <Loader2 className="w-8 h-8 animate-spin text-primary" />
+        <p className="text-sm text-muted-foreground">Signing you in…</p>
+        {/* Compliance badges */}
+        <div className="flex items-center gap-8 mt-4">
+          {['CASA', 'GDPR', 'CCPA', 'SOC 2'].map((badge) => (
+            <div key={badge} className="flex flex-col items-center text-center">
+              <div className="w-10 h-10 flex items-center justify-center mb-1">
+                <svg viewBox="0 0 40 40" className="w-8 h-8" fill="none">
+                  <path d="M20 3L5 10V19C5 28.94 11.4 38.12 20 40C28.6 38.12 35 28.94 35 19V10L20 3Z" fill="hsl(var(--primary) / 0.12)" stroke="hsl(var(--primary))" strokeWidth="1.5"/>
+                  <path d="M15 20L18.5 23.5L26 16" stroke="hsl(var(--primary))" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"/>
+                </svg>
+              </div>
+              <span className="text-[10px] font-semibold text-foreground">{badge}</span>
+            </div>
+          ))}
+        </div>
       </div>
     );
   }
@@ -71,7 +89,7 @@ export default function Auth() {
       <div className="flex-1 flex flex-col justify-between p-8 md:p-12 lg:p-16">
         <div className="flex items-center justify-between">
           <Link to="/" className="flex items-center">
-            <img src={logoUrl} alt={brandName} className="h-32 w-auto" />
+            <img src={logoUrl} alt={brandName} className="h-40 w-auto" />
           </Link>
           <Link
             to="/"
@@ -218,8 +236,8 @@ export default function Auth() {
 
       {/* Right — Rotating testimonials (hidden on mobile) */}
       <div className="hidden lg:flex flex-1 items-center justify-center p-12 relative">
-        {/* Subtle overlay for depth */}
-        <div className="absolute inset-0 bg-foreground/[0.03] backdrop-blur-[1px]" />
+        {/* Subtle overlay — lighter in dark mode */}
+        <div className="absolute inset-0 bg-foreground/[0.02] dark:bg-primary/[0.03] backdrop-blur-[1px]" />
         
         <div
           className={`relative z-10 max-w-md glass-panel p-10 transition-opacity duration-400 ${
@@ -248,9 +266,6 @@ export default function Auth() {
           </div>
 
           <div className="flex items-center justify-center gap-3 mt-6">
-            <span className="text-xs text-muted-foreground tabular-nums">
-              {currentTestimonial + 1} / {testimonials.length}
-            </span>
             <div className="flex items-center gap-1">
               {Array.from({ length: 5 }).map((_, i) => {
                 const segment = Math.floor(currentTestimonial / (testimonials.length / 5));
