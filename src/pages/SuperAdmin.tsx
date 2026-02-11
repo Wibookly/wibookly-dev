@@ -297,8 +297,11 @@ export default function SuperAdmin() {
     setSaving(targetUserId);
     try {
       await callAdminFunction({ action: 'delete_account', target_user_id: targetUserId });
+      // Immediately remove from local state for instant UI feedback
+      setUsers(prev => prev.filter(u => u.user_id !== targetUserId));
       toast({ title: 'Account deleted' });
-      fetchUsers();
+      // Also refresh organizations since member counts may have changed
+      loadOrganizations();
     } catch (err: any) {
       toast({ title: 'Error', description: err.message, variant: 'destructive' });
     } finally {
@@ -1192,7 +1195,8 @@ function OrganizationsTab({
     try {
       await callAdminFunction({ action: 'delete_organization', organization_id: orgId });
       toast({ title: 'Organization deleted' });
-      onRefresh();
+      // Refresh after a small delay to allow DB to propagate
+      setTimeout(() => onRefresh(), 500);
     } catch (err: any) {
       toast({ title: 'Error', description: err.message, variant: 'destructive' });
     } finally {
