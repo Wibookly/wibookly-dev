@@ -10,7 +10,8 @@ import { useActiveEmail } from '@/contexts/ActiveEmailContext';
 import { useSubscription } from '@/lib/subscription';
 import { useOnboarding } from '@/contexts/OnboardingContext';
 import { UpgradeBadge } from '@/components/subscription/PlanBadge';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, createContext, useContext } from 'react';
+import { ChevronsUpDown } from 'lucide-react';
 import {
   Collapsible,
   CollapsibleContent,
@@ -77,6 +78,9 @@ const itemIconColors: Record<string, string> = {
   '/super-admin':             'text-red-500',
 };
 
+// Context for expand/collapse all
+const SidebarExpandContext = createContext<{ allExpanded: boolean | null }>({ allExpanded: null });
+
 interface NavSectionProps {
   title: string;
   icon: React.ElementType;
@@ -86,7 +90,12 @@ interface NavSectionProps {
 
 function NavSection({ title, icon: Icon, children, defaultOpen = false }: NavSectionProps) {
   const [isOpen, setIsOpen] = useState(defaultOpen);
+  const { allExpanded } = useContext(SidebarExpandContext);
   const colors = sectionColors[title] || { bg: 'bg-secondary', text: 'text-foreground' };
+
+  useEffect(() => {
+    if (allExpanded !== null) setIsOpen(allExpanded);
+  }, [allExpanded]);
   
   return (
     <Collapsible open={isOpen} onOpenChange={setIsOpen}>
@@ -166,7 +175,14 @@ export function AppSidebar() {
   const { hasFeature } = useSubscription();
   const { isOnboardingComplete, currentStep, isActiveRoute } = useOnboarding();
   const [isSuperAdmin, setIsSuperAdmin] = useState(false);
+  const [expandToggle, setExpandToggle] = useState<boolean | null>(null);
+  const [expandCount, setExpandCount] = useState(0);
 
+  const handleToggleAll = () => {
+    const next = expandToggle === null ? false : !expandToggle;
+    setExpandToggle(next);
+    setExpandCount(c => c + 1);
+  };
   // Check if current user is super_admin
   useEffect(() => {
     if (!user) return;
@@ -237,7 +253,17 @@ export function AppSidebar() {
 
       {/* Scrollable nav with visible scrollbar */}
       <div className="flex-1 overflow-y-auto min-h-0 sidebar-scroll">
-        <nav className="p-3 space-y-1.5">
+        <div className="px-3 pt-3 pb-1 flex justify-end">
+          <button
+            onClick={handleToggleAll}
+            className="flex items-center gap-1.5 px-2 py-1 rounded-md text-xs font-medium text-muted-foreground hover:text-foreground hover:bg-secondary transition-colors"
+          >
+            <ChevronsUpDown className="w-3.5 h-3.5" />
+            {expandToggle === false ? 'Expand All' : 'Collapse All'}
+          </button>
+        </div>
+        <SidebarExpandContext.Provider value={{ allExpanded: expandToggle === null ? null : expandToggle }}>
+        <nav className="px-3 pb-3 space-y-1.5">
           {/* Account Provisioning */}
           <NavSection title="Account Provisioning" icon={UserPlus} defaultOpen>
             <div data-tour="nav-connections">
@@ -295,6 +321,7 @@ export function AppSidebar() {
             </NavSection>
           )}
         </nav>
+        </SidebarExpandContext.Provider>
       </div>
 
       {/* Sign Out - compact, no duplicate avatar */}
