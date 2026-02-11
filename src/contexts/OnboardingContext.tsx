@@ -102,7 +102,9 @@ export function OnboardingProvider({ children }: { children: ReactNode }) {
         if (s.id === 'calendars') isComplete = hasCalendarConnected;
         if (s.id === 'categories') isComplete = (categoriesCount || 0) > 0;
         if (s.id === 'signature') isComplete = !!emailProfile?.signature_enabled;
-        return { ...s, isComplete };
+        const title = s.id === 'subscribe' && isFreeOverride ? 'Plan Assigned' : s.title;
+        const description = s.id === 'subscribe' && isFreeOverride ? 'Your plan has been assigned' : s.description;
+        return { ...s, isComplete, title, description };
       }));
     } catch (error) {
       console.error('Error fetching onboarding progress:', error);

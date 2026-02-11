@@ -29,7 +29,7 @@ interface OnboardingChecklistProps {
 
 export function OnboardingChecklist({ onStepClick, onOpenPlanModal }: OnboardingChecklistProps) {
   const { organization, profile } = useAuth();
-  const { status } = useSubscription();
+  const { status, isFreeOverride } = useSubscription();
   const hasActiveSub = status === 'active' || status === 'trialing';
   const navigate = useNavigate();
   const location = useLocation();
@@ -52,8 +52,8 @@ export function OnboardingChecklist({ onStepClick, onOpenPlanModal }: Onboarding
     },
     {
       id: 'subscribe',
-      title: 'Choose a Plan',
-      description: 'Subscribe to unlock features',
+      title: isFreeOverride ? 'Plan Assigned' : 'Choose a Plan',
+      description: isFreeOverride ? 'Your plan has been assigned' : 'Subscribe to unlock features',
       icon: CreditCard,
       href: '/integrations',
       isComplete: false,
@@ -187,7 +187,7 @@ export function OnboardingChecklist({ onStepClick, onOpenPlanModal }: Onboarding
         setSteps(prev => prev.map(step => {
           let isComplete = step.isComplete;
           if (step.id === 'account') isComplete = true;
-          if (step.id === 'subscribe') isComplete = hasActiveSub;
+          if (step.id === 'subscribe') isComplete = hasActiveSub || isFreeOverride;
           if (step.id === 'email') isComplete = hasEmailConnected;
           if (step.id === 'calendars') isComplete = hasCalendarConnected;
           if (step.id === 'categories') isComplete = (categoriesCount || 0) > 0;
