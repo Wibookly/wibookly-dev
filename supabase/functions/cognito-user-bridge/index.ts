@@ -197,43 +197,68 @@ serve(async (req) => {
       Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
     );
 
-    // Search by email
-    const { data: allUsers } = await adminClient.auth.admin.listUsers({
-      page: 1,
-      perPage: 1000,
-    });
-    const existingUser = allUsers?.users?.find(
-      (u) => u.email?.toLowerCase() === email
-    );
+    // First check if a user_profile already exists for this email
+    const { data: existingProfile } = await adminClient
+      .from("user_profiles")
+      .select("user_id")
+      .eq("email", email)
+      .maybeSingle();
 
     let userId: string;
 
-    if (existingUser) {
-      userId = existingUser.id;
-      console.log(`Found existing user: ${userId}`);
+    if (existingProfile) {
+      // User already exists in our system — reuse their auth user
+      userId = existingProfile.user_id;
+      console.log(`Found existing user via profile: ${userId}`);
     } else {
-      // Create new user (email auto-confirmed, no password needed)
-      const { data: newUser, error: createError } =
-        await adminClient.auth.admin.createUser({
-          email,
-          email_confirm: true,
-          user_metadata: {
-            full_name: fullName,
-            cognito_sub: cognitoSub,
-            auth_provider: authProvider,
-          },
-        });
+      // Check auth.users by email as fallback
+      const { data: allUsers } = await adminClient.auth.admin.listUsers({
+        page: 1,
+        perPage: 1000,
+      });
+      const existingUser = allUsers?.users?.find(
+        (u) => u.email?.toLowerCase() === email
+      );
 
-      if (createError) {
-        console.error("Failed to create user:", createError.message);
-        return jsonError(`Failed to create user: ${createError.message}`, 500);
+      if (existingUser) {
+        userId = existingUser.id;
+        console.log(`Found existing auth user: ${userId}`);
+        
+        // Check if profile exists for this user_id (might be missing)
+        const { data: profileCheck } = await adminClient
+          .from("user_profiles")
+          .select("id")
+          .eq("user_id", userId)
+          .maybeSingle();
+        
+        if (!profileCheck) {
+          // Profile missing for existing auth user — bootstrap it
+          await bootstrapNewUser(adminClient, userId, email, fullName, authProvider);
+        }
+      } else {
+        // Create new user (email auto-confirmed, no password needed)
+        const { data: newUser, error: createError } =
+          await adminClient.auth.admin.createUser({
+            email,
+            email_confirm: true,
+            user_metadata: {
+              full_name: fullName,
+              cognito_sub: cognitoSub,
+              auth_provider: authProvider,
+            },
+          });
+
+        if (createError) {
+          console.error("Failed to create user:", createError.message);
+          return jsonError(`Failed to create user: ${createError.message}`, 500);
+        }
+
+        userId = newUser.user.id;
+        console.log(`Created new user: ${userId}`);
+
+        // ── 3. Bootstrap new user (org, profile, roles, categories) ──────
+        await bootstrapNewUser(adminClient, userId, email, fullName, authProvider);
       }
-
-      userId = newUser.user.id;
-      console.log(`Created new user: ${userId}`);
-
-      // ── 3. Bootstrap new user (org, profile, roles, categories) ──────
-      await bootstrapNewUser(adminClient, userId, email, fullName, authProvider);
     }
 
     // ── 4. Generate a session token ─────────────────────────────────────
