@@ -76,13 +76,13 @@ function getPlanDisplayInfo(user: UserWithOverride) {
     return { label: 'Business $', color: 'hsl(38 92% 50%)', bg: 'hsl(38 92% 50% / 0.12)', paid: true };
   }
   if (effectivePlan === 'pro') {
-    return { label: isFreeOverride ? 'Pro Free' : 'Pro $', color: 'hsl(280 70% 60%)', bg: 'hsl(280 70% 60% / 0.12)', paid: !isFreeOverride };
+    return { label: isFreeOverride ? 'Pro' : 'Pro $', color: 'hsl(280 70% 60%)', bg: 'hsl(280 70% 60% / 0.12)', paid: !isFreeOverride };
   }
   // Starter
   if (hasPaidSubscription && subPlan === 'starter' && !isFreeOverride) {
     return { label: 'Starter $', color: 'hsl(210 80% 55%)', bg: 'hsl(210 80% 55% / 0.12)', paid: true };
   }
-  return { label: 'Starter Free', color: 'hsl(var(--muted-foreground))', bg: 'hsl(var(--muted-foreground) / 0.08)', paid: false };
+  return { label: 'Starter', color: 'hsl(var(--muted-foreground))', bg: 'hsl(var(--muted-foreground) / 0.08)', paid: false };
 }
 
 export default function SuperAdmin() {
@@ -488,11 +488,11 @@ export default function SuperAdmin() {
                   </SelectTrigger>
                   <SelectContent className="bg-card z-50">
                     <SelectItem value="all">All Plans</SelectItem>
-                    <SelectItem value="starter_free">Starter Free</SelectItem>
+                    <SelectItem value="starter_free">Starter</SelectItem>
                     <SelectItem value="starter_paid">Starter $</SelectItem>
-                    <SelectItem value="pro_free">Pro Free</SelectItem>
+                    <SelectItem value="pro_free">Pro</SelectItem>
                     <SelectItem value="pro_paid">Pro $</SelectItem>
-                    <SelectItem value="enterprise">Business</SelectItem>
+                    <SelectItem value="enterprise">Business $</SelectItem>
                   </SelectContent>
                 </Select>
                 <Select value={filterStatus} onValueChange={setFilterStatus}>
@@ -664,7 +664,7 @@ export default function SuperAdmin() {
             <div className="flex items-center gap-3">
               <div className="w-3 h-3 rounded-full bg-muted-foreground/40" />
               <div>
-                <p className="text-sm font-medium text-foreground">Starter Free</p>
+                <p className="text-sm font-medium text-foreground">Starter</p>
                 <p className="text-xs text-muted-foreground">{planCounts.starterFree} subscribers</p>
               </div>
             </div>
@@ -681,7 +681,7 @@ export default function SuperAdmin() {
             <div className="flex items-center gap-3">
               <div className="w-3 h-3 rounded-full" style={{ background: 'hsl(280 70% 60% / 0.4)' }} />
               <div>
-                <p className="text-sm font-medium text-foreground">Pro Free</p>
+                <p className="text-sm font-medium text-foreground">Pro</p>
                 <p className="text-xs text-muted-foreground">{planCounts.proFree} subscribers</p>
               </div>
             </div>
@@ -695,7 +695,7 @@ export default function SuperAdmin() {
             <div className="flex items-center gap-3">
               <div className="w-3 h-3 rounded-full" style={{ background: 'hsl(38 92% 50%)' }} />
               <div>
-                <p className="text-sm font-medium text-foreground">Business</p>
+                <p className="text-sm font-medium text-foreground">Business $</p>
                 <p className="text-xs text-muted-foreground">{planCounts.business} subscribers</p>
               </div>
             </div>
@@ -803,10 +803,10 @@ function CreateUserCard({
             <Select value={planOverride} onValueChange={setPlanOverride}>
               <SelectTrigger><SelectValue /></SelectTrigger>
               <SelectContent>
-                <SelectItem value="none">Starter Free</SelectItem>
-                <SelectItem value="starter">Starter Free (Override)</SelectItem>
-                <SelectItem value="pro">Pro Free (Override)</SelectItem>
-                <SelectItem value="enterprise">Business</SelectItem>
+                <SelectItem value="none">Starter</SelectItem>
+                <SelectItem value="starter">Starter (Override)</SelectItem>
+                <SelectItem value="pro">Pro (Override)</SelectItem>
+                <SelectItem value="enterprise">Business $</SelectItem>
               </SelectContent>
             </Select>
           </div>
