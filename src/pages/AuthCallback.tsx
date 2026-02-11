@@ -198,6 +198,10 @@ export default function AuthCallback() {
 
     if (!bridgeResponse.ok) {
       const errBody = await bridgeResponse.json().catch(() => ({}));
+      if (errBody.error === 'account_suspended') {
+        setError(`__SUSPENDED__${errBody.message || 'Your account has been suspended. If you have any questions, please reach out to support@wibookly.ai'}`);
+        return;
+      }
       throw new Error(errBody.error || 'Failed to bridge authentication');
     }
 
@@ -221,6 +225,41 @@ export default function AuthCallback() {
   };
 
   // ── Render ────────────────────────────────────────────────────────
+
+  const isSuspended = error?.startsWith('__SUSPENDED__');
+  const suspendedMessage = isSuspended ? error.replace('__SUSPENDED__', '') : null;
+
+  if (isSuspended) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-destructive/10 via-background to-accent/20 flex flex-col items-center justify-center p-6">
+        <div className="w-full max-w-md bg-card/80 backdrop-blur-sm p-8 rounded-2xl shadow-lg border border-border/50 text-center">
+          <img src={wibooklyLogo} alt="Wibookly" className="h-20 w-auto mx-auto mb-6" />
+          <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-destructive/10 flex items-center justify-center">
+            <svg className="w-8 h-8 text-destructive" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <circle cx="12" cy="12" r="10"/>
+              <line x1="4.93" y1="4.93" x2="19.07" y2="19.07"/>
+            </svg>
+          </div>
+          <h1 className="text-2xl font-bold text-foreground mb-2">Account Suspended</h1>
+          <p className="text-muted-foreground mb-6 leading-relaxed">
+            {suspendedMessage}
+          </p>
+          <a
+            href="mailto:support@wibookly.ai"
+            className="inline-flex items-center gap-2 px-6 py-3 bg-primary text-primary-foreground rounded-xl font-medium hover:bg-primary/90 transition-colors"
+          >
+            Contact Support
+          </a>
+          <button
+            onClick={() => navigate('/auth', { replace: true })}
+            className="block mx-auto mt-4 text-sm text-muted-foreground hover:text-foreground transition-colors"
+          >
+            ← Back to sign in
+          </button>
+        </div>
+      </div>
+    );
+  }
 
   if (error) {
     return (

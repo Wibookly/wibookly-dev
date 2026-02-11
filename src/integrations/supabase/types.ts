@@ -978,12 +978,14 @@ export type Database = {
           email_signature: string | null
           full_name: string | null
           id: string
+          is_suspended: boolean
           mobile: string | null
           organization_id: string
           phone: string | null
           signature_color: string | null
           signature_font: string | null
           signature_logo_url: string | null
+          suspended_reason: string | null
           title: string | null
           updated_at: string
           user_id: string
@@ -995,12 +997,14 @@ export type Database = {
           email_signature?: string | null
           full_name?: string | null
           id?: string
+          is_suspended?: boolean
           mobile?: string | null
           organization_id: string
           phone?: string | null
           signature_color?: string | null
           signature_font?: string | null
           signature_logo_url?: string | null
+          suspended_reason?: string | null
           title?: string | null
           updated_at?: string
           user_id: string
@@ -1012,12 +1016,14 @@ export type Database = {
           email_signature?: string | null
           full_name?: string | null
           id?: string
+          is_suspended?: boolean
           mobile?: string | null
           organization_id?: string
           phone?: string | null
           signature_color?: string | null
           signature_font?: string | null
           signature_logo_url?: string | null
+          suspended_reason?: string | null
           title?: string | null
           updated_at?: string
           user_id?: string
