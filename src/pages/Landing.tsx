@@ -21,7 +21,7 @@ export default function Landing() {
   };
 
   return (
-    <div className="min-h-screen ocean-bg">
+    <div className="min-h-screen ocean-bg overflow-x-hidden">
       <Header onSignInClick={handleSignIn} onGetStartedClick={handleGetStarted} />
       <main>
         <div className="section-divider">
