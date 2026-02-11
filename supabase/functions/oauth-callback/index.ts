@@ -324,7 +324,7 @@ serve(async (req) => {
 async function exchangeGoogleCode(code: string, supabaseUrl: string) {
   const clientId = Deno.env.get('GOOGLE_CLIENT_ID');
   const clientSecret = Deno.env.get('GOOGLE_CLIENT_SECRET');
-  const callbackUrl = `${supabaseUrl}/functions/v1/oauth-callback`;
+  const callbackUrl = 'https://app.wibookly.ai/auth/callback';
 
   console.log('Exchanging Google authorization code');
 
@@ -352,7 +352,7 @@ async function exchangeGoogleCode(code: string, supabaseUrl: string) {
 async function exchangeMicrosoftCode(code: string, supabaseUrl: string) {
   const clientId = Deno.env.get('MICROSOFT_CLIENT_ID');
   const clientSecret = Deno.env.get('MICROSOFT_CLIENT_SECRET');
-  const callbackUrl = `${supabaseUrl}/functions/v1/oauth-callback`;
+  const callbackUrl = 'https://app.wibookly.ai/auth/callback';
 
   console.log('Exchanging Microsoft authorization code');
 
