@@ -97,7 +97,28 @@ export function SubscriptionProvider({ children }: { children: ReactNode }) {
     }
 
     try {
-      // Check for super-admin plan override first
+      // Check if user is super_admin — they get full Pro access automatically
+      const { data: superAdminCheck } = await supabase
+        .from('user_roles')
+        .select('role')
+        .eq('user_id', session.user.id)
+        .eq('role', 'super_admin')
+        .maybeSingle();
+
+      if (superAdminCheck) {
+        setIsFreeOverride(true);
+        setState({
+          plan: 'pro',
+          status: 'active',
+          stripeCustomerId: null,
+          stripeSubscriptionId: null,
+          currentPeriodEnd: null,
+          loading: false,
+        });
+        return;
+      }
+
+      // Check for plan override
       const { data: overrideData } = await supabase
         .from('user_plan_overrides')
         .select('granted_plan, is_active')
@@ -116,7 +137,7 @@ export function SubscriptionProvider({ children }: { children: ReactNode }) {
             currentPeriodEnd: null,
             loading: false,
           });
-          return; // Skip Stripe check entirely
+          return;
         }
       }
       setIsFreeOverride(false);
