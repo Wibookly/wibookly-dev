@@ -12,7 +12,7 @@ export function MobileHeader({ onMenuClick }: MobileHeaderProps) {
   
   return (
     <header className="lg:hidden flex items-center justify-between px-4 py-3 border-b border-border bg-card">
-      <img src={logoUrl} alt={brandName} className="h-12 w-auto" />
+      <img src={logoUrl} alt={brandName} className="h-12 w-auto logo-holo" />
       <div className="flex items-center gap-2">
         <ThemeToggle />
         <Button variant="ghost" size="icon" onClick={onMenuClick}>
