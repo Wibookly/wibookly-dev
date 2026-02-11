@@ -966,10 +966,33 @@ function UnifiedAccountRow({
           <div className="flex items-center gap-1.5">
             <Select
               value={selectPlanValue}
-              onValueChange={(val) => {
-                // Only allow free overrides (starter, pro, enterprise)
-                if (val === 'starter_paid' || val === 'pro_paid') return;
-                onGrantOverride(u.user_id, val as PlanType);
+              onValueChange={async (val) => {
+                // Free overrides
+                if (val === 'starter' || val === 'pro') {
+                  onGrantOverride(u.user_id, val as PlanType);
+                  return;
+                }
+                // Paid Stripe plans
+                if (val === 'starter_paid' || val === 'pro_paid' || val === 'enterprise') {
+                  const stripePlan = val === 'starter_paid' ? 'starter' : val === 'pro_paid' ? 'pro' : 'enterprise';
+                  try {
+                    const { data: { session } } = await supabase.auth.getSession();
+                    const res = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/admin-assign-stripe-plan`, {
+                      method: 'POST',
+                      headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${session?.access_token}`,
+                      },
+                      body: JSON.stringify({ target_user_id: u.user_id, plan: stripePlan }),
+                    });
+                    const result = await res.json();
+                    if (!res.ok) throw new Error(result.error || 'Failed to assign plan');
+                    toast({ title: 'Paid plan assigned', description: `${u.email} is now on ${stripePlan} (Stripe).` });
+                    onRefresh();
+                  } catch (err: any) {
+                    toast({ title: 'Error', description: err.message, variant: 'destructive' });
+                  }
+                }
               }}
               disabled={saving}
             >
@@ -979,8 +1002,8 @@ function UnifiedAccountRow({
               <SelectContent className="bg-card z-50">
                 <SelectItem value="starter">Starter Free</SelectItem>
                 <SelectItem value="pro">Pro Free</SelectItem>
-                <SelectItem value="starter_paid" disabled className="opacity-50">Starter $ (Stripe)</SelectItem>
-                <SelectItem value="pro_paid" disabled className="opacity-50">Pro $ (Stripe)</SelectItem>
+                <SelectItem value="starter_paid">Starter $ (Stripe)</SelectItem>
+                <SelectItem value="pro_paid">Pro $ (Stripe)</SelectItem>
                 <SelectItem value="enterprise">Business $ (Stripe)</SelectItem>
               </SelectContent>
             </Select>
