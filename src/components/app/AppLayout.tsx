@@ -41,12 +41,12 @@ export function AppLayout() {
             <AppSidebar />
             
             {/* Main content offset by sidebar width on desktop */}
-            <div className="flex-1 flex flex-col min-h-0 lg:ml-80">
+            <div className="flex-1 flex flex-col min-h-0 lg:ml-80 overflow-hidden">
               {/* Onboarding step banner */}
               <OnboardingStepBanner />
               
               <main className="flex-1 overflow-auto p-4 lg:p-8 main-scroll">
-                <div className="w-full">
+                <div className="w-full h-full">
                   <Outlet />
                 </div>
               </main>
