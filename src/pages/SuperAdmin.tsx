@@ -990,7 +990,7 @@ function UnifiedAccountRow({
                     });
                     const result = await res.json();
                     if (!res.ok) throw new Error(result.error || 'Failed to assign plan');
-                    toast({ title: 'Paid plan assigned', description: `${u.email} is now on ${stripePlan} (Stripe).` });
+                    toast({ title: 'Paid plan assigned', description: `${u.email} is now on ${stripePlan} (Paid).` });
                     onRefresh();
                   } catch (err: any) {
                     toast({ title: 'Error', description: err.message, variant: 'destructive' });
@@ -1005,9 +1005,9 @@ function UnifiedAccountRow({
               <SelectContent className="bg-card z-50">
                 <SelectItem value="starter">Starter Free</SelectItem>
                 <SelectItem value="pro">Pro Free</SelectItem>
-                <SelectItem value="starter_paid">Starter $ (Stripe)</SelectItem>
-                <SelectItem value="pro_paid">Pro $ (Stripe)</SelectItem>
-                <SelectItem value="enterprise">Business $ (Stripe)</SelectItem>
+                <SelectItem value="starter_paid">Starter $ (Paid)</SelectItem>
+                <SelectItem value="pro_paid">Pro $ (Paid)</SelectItem>
+                <SelectItem value="enterprise">Business $ (Paid)</SelectItem>
               </SelectContent>
             </Select>
             {planInfo.paid && (
