@@ -2,6 +2,7 @@ import { useAuth } from '@/lib/auth';
 import { Sun, Moon, Sunrise, Sunset } from 'lucide-react';
 import { useBranding } from '@/contexts/BrandingContext';
 import { UserAvatarDropdown } from './UserAvatarDropdown';
+import { ThemeToggle } from './ThemeToggle';
 
 function getTimeOfDay() {
   const hour = new Date().getHours();
@@ -195,6 +196,7 @@ export function AppHeader() {
         <span className="text-sm font-semibold text-foreground whitespace-nowrap">
           {getGreeting()}, {firstName}
         </span>
+        <ThemeToggle />
         <UserAvatarDropdown />
       </div>
 
