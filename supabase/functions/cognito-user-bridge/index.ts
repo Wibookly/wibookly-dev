@@ -205,7 +205,7 @@ serve(async (req) => {
       .maybeSingle();
 
     let userId: string;
-
+    let isNewUser = false;
     if (existingProfile) {
       // User already exists in our system — reuse their auth user
       userId = existingProfile.user_id;
@@ -254,6 +254,7 @@ serve(async (req) => {
         }
 
         userId = newUser.user.id;
+        isNewUser = true;
         console.log(`Created new user: ${userId}`);
 
         // ── 3. Bootstrap new user (org, profile, roles, categories) ──────
@@ -285,7 +286,7 @@ serve(async (req) => {
         token_hash: tokenHash,
         type: "magiclink",
         user_id: userId,
-        is_new_user: !existingUser,
+        is_new_user: isNewUser,
       }),
       {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
