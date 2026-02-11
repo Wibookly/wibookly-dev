@@ -337,101 +337,202 @@ async function bootstrapNewUser(
   authProvider?: string
 ) {
   try {
-    // Create organization
-    const { data: orgData, error: orgError } = await adminClient
-      .from("organizations")
-      .insert({ name: `${fullName}'s Workspace` })
-      .select()
-      .single();
+    // ── Check if user already has an organization (avoid duplicates) ──
+    const { data: existingOrg } = await adminClient
+      .from("user_profiles")
+      .select("organization_id")
+      .eq("user_id", userId)
+      .maybeSingle();
 
-    if (orgError) {
-      console.error("Failed to create organization:", orgError.message);
+    if (existingOrg) {
+      console.log(`User ${userId} already has org ${existingOrg.organization_id}, skipping bootstrap`);
       return;
     }
 
-    const orgId = orgData.id;
+    // Also check organization_members to catch edge cases
+    const { data: existingMembership } = await adminClient
+      .from("organization_members")
+      .select("organization_id")
+      .eq("user_id", userId)
+      .maybeSingle();
 
-    // Create user profile
-    await adminClient.from("user_profiles").insert({
-      user_id: userId,
-      organization_id: orgId,
-      email,
-      full_name: fullName,
-    });
+    let orgId: string;
 
-    // Create user role (admin)
-    await adminClient.from("user_roles").insert({
-      user_id: userId,
-      organization_id: orgId,
-      role: "admin",
-    });
+    if (existingMembership) {
+      orgId = existingMembership.organization_id;
+      console.log(`User ${userId} has existing membership in org ${orgId}, reusing`);
+    } else {
+      // Check user_roles too
+      const { data: existingRole } = await adminClient
+        .from("user_roles")
+        .select("organization_id")
+        .eq("user_id", userId)
+        .maybeSingle();
+
+      if (existingRole) {
+        orgId = existingRole.organization_id;
+        console.log(`User ${userId} has existing role in org ${orgId}, reusing`);
+      } else {
+        // Create new organization only if none exists
+        const { data: orgData, error: orgError } = await adminClient
+          .from("organizations")
+          .insert({ name: `${fullName}'s Workspace` })
+          .select()
+          .single();
+
+        if (orgError) {
+          console.error("Failed to create organization:", orgError.message);
+          return;
+        }
+        orgId = orgData.id;
+        console.log(`Created new org ${orgId} for user ${userId}`);
+      }
+    }
+
+    // Create user profile (upsert to avoid conflicts)
+    const { error: profileError } = await adminClient
+      .from("user_profiles")
+      .upsert({
+        user_id: userId,
+        organization_id: orgId,
+        email,
+        full_name: fullName,
+      }, { onConflict: "user_id" });
+
+    if (profileError) {
+      // If upsert fails due to no unique constraint on user_id, try insert
+      await adminClient.from("user_profiles").insert({
+        user_id: userId,
+        organization_id: orgId,
+        email,
+        full_name: fullName,
+      });
+    }
+
+    // Create user role (admin) — only if one doesn't exist
+    const { data: roleCheck } = await adminClient
+      .from("user_roles")
+      .select("id")
+      .eq("user_id", userId)
+      .eq("organization_id", orgId)
+      .maybeSingle();
+
+    if (!roleCheck) {
+      await adminClient.from("user_roles").insert({
+        user_id: userId,
+        organization_id: orgId,
+        role: "admin",
+      });
+    }
+
+    // Create organization membership — only if one doesn't exist
+    const { data: memCheck } = await adminClient
+      .from("organization_members")
+      .select("id")
+      .eq("user_id", userId)
+      .eq("organization_id", orgId)
+      .maybeSingle();
+
+    if (!memCheck) {
+      await adminClient.from("organization_members").insert({
+        user_id: userId,
+        organization_id: orgId,
+        role: "admin",
+      });
+    }
 
     // Auto-create provider connection if signed up via Google or Microsoft
     if (authProvider === "google" || authProvider === "microsoft") {
       const providerName = authProvider === "microsoft" ? "outlook" : "google";
-      const { error: connError } = await adminClient
+
+      // Check if connection already exists
+      const { data: existingConn } = await adminClient
         .from("provider_connections")
-        .insert({
-          user_id: userId,
-          organization_id: orgId,
-          provider: providerName,
-          connected_email: email,
-          is_connected: true,
-          connected_at: new Date().toISOString(),
-        });
+        .select("id")
+        .eq("user_id", userId)
+        .eq("provider", providerName)
+        .maybeSingle();
 
-      if (connError) {
-        console.error("Failed to auto-create provider connection:", connError.message);
-      } else {
-        console.log(`Auto-connected ${providerName} for ${email}`);
-
-        // Also create an email_profiles entry for the connection
-        const { data: connData } = await adminClient
+      if (!existingConn) {
+        const { error: connError } = await adminClient
           .from("provider_connections")
-          .select("id")
-          .eq("user_id", userId)
-          .eq("provider", providerName)
-          .maybeSingle();
-
-        if (connData) {
-          await adminClient.from("email_profiles").insert({
+          .insert({
             user_id: userId,
             organization_id: orgId,
-            connection_id: connData.id,
-            full_name: fullName,
-            signature_enabled: false,
+            provider: providerName,
+            connected_email: email,
+            is_connected: true,
+            connected_at: new Date().toISOString(),
           });
+
+        if (connError) {
+          console.error("Failed to auto-create provider connection:", connError.message);
+        } else {
+          console.log(`Auto-connected ${providerName} for ${email}`);
+
+          const { data: connData } = await adminClient
+            .from("provider_connections")
+            .select("id")
+            .eq("user_id", userId)
+            .eq("provider", providerName)
+            .maybeSingle();
+
+          if (connData) {
+            await adminClient.from("email_profiles").insert({
+              user_id: userId,
+              organization_id: orgId,
+              connection_id: connData.id,
+              full_name: fullName,
+              signature_enabled: false,
+            });
+          }
         }
       }
     }
 
-    // Create default categories
-    const defaultCategories = [
-      { name: "Urgent", color: "#ef4444", sort_order: 0 },
-      { name: "Follow Up", color: "#f97316", sort_order: 1 },
-      { name: "Approvals", color: "#eab308", sort_order: 2 },
-      { name: "Events", color: "#22c55e", sort_order: 3 },
-      { name: "Customers", color: "#3b82f6", sort_order: 4 },
-      { name: "Vendors", color: "#8b5cf6", sort_order: 5 },
-      { name: "Internal", color: "#ec4899", sort_order: 6 },
-      { name: "Projects", color: "#06b6d4", sort_order: 7 },
-      { name: "Finance", color: "#84cc16", sort_order: 8 },
-      { name: "FYI", color: "#6b7280", sort_order: 9 },
-    ];
-
-    await adminClient
+    // Create default categories only if none exist for this org
+    const { data: existingCats } = await adminClient
       .from("categories")
-      .insert(
-        defaultCategories.map((cat) => ({ ...cat, organization_id: orgId }))
-      );
+      .select("id")
+      .eq("organization_id", orgId)
+      .limit(1);
 
-    // Create default AI settings
-    await adminClient.from("ai_settings").insert({
-      organization_id: orgId,
-      writing_style: "professional",
-    });
+    if (!existingCats || existingCats.length === 0) {
+      const defaultCategories = [
+        { name: "Urgent", color: "#ef4444", sort_order: 0 },
+        { name: "Follow Up", color: "#f97316", sort_order: 1 },
+        { name: "Approvals", color: "#eab308", sort_order: 2 },
+        { name: "Events", color: "#22c55e", sort_order: 3 },
+        { name: "Customers", color: "#3b82f6", sort_order: 4 },
+        { name: "Vendors", color: "#8b5cf6", sort_order: 5 },
+        { name: "Internal", color: "#ec4899", sort_order: 6 },
+        { name: "Projects", color: "#06b6d4", sort_order: 7 },
+        { name: "Finance", color: "#84cc16", sort_order: 8 },
+        { name: "FYI", color: "#6b7280", sort_order: 9 },
+      ];
 
-    console.log(`Bootstrapped new user: org=${orgId}, profile created, provider=${authProvider || 'none'}`);
+      await adminClient
+        .from("categories")
+        .insert(
+          defaultCategories.map((cat) => ({ ...cat, organization_id: orgId }))
+        );
+    }
+
+    // Create default AI settings only if none exist
+    const { data: existingSettings } = await adminClient
+      .from("ai_settings")
+      .select("id")
+      .eq("organization_id", orgId)
+      .maybeSingle();
+
+    if (!existingSettings) {
+      await adminClient.from("ai_settings").insert({
+        organization_id: orgId,
+        writing_style: "professional",
+      });
+    }
+
+    console.log(`Bootstrapped user: org=${orgId}, profile created, provider=${authProvider || 'none'}`);
   } catch (error) {
     console.error("Error bootstrapping new user:", error);
   }
