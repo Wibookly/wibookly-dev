@@ -262,7 +262,28 @@ serve(async (req) => {
       }
     }
 
-    // ── 4. Generate a session token ─────────────────────────────────────
+    // ── 4. Check if user is suspended ──────────────────────────────────
+    const { data: suspendCheck } = await adminClient
+      .from("user_profiles")
+      .select("is_suspended, suspended_reason")
+      .eq("user_id", userId)
+      .maybeSingle();
+
+    if (suspendCheck?.is_suspended) {
+      console.log(`User ${userId} is suspended. Blocking login.`);
+      return new Response(
+        JSON.stringify({
+          error: "account_suspended",
+          message: suspendCheck.suspended_reason || "Your account has been suspended. If you have any questions, please reach out to support@wibookly.ai",
+        }),
+        {
+          status: 403,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        }
+      );
+    }
+
+    // ── 5. Generate a session token ─────────────────────────────────────
     const { data: linkData, error: linkError } =
       await adminClient.auth.admin.generateLink({
         type: "magiclink",
