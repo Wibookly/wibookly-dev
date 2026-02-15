@@ -1,9 +1,8 @@
 import { createContext, useContext, useEffect, useState, ReactNode } from 'react';
-import { User, Session } from '@supabase/supabase-js';
-import { supabase } from '@/integrations/supabase/client';
 import { COGNITO_CONFIG } from './cognito-config';
 import { generateCodeVerifier, generateCodeChallenge } from './pkce';
 import { savePkceVerifier, clearPkceVerifier } from './pkce-storage';
+import { getStoredTokens, clearTokens, api, type CognitoTokens } from './aws-api';
 
 interface UserProfile {
   id: string;
@@ -20,112 +19,125 @@ interface Organization {
 }
 
 interface AuthContextType {
-  user: User | null;
-  session: Session | null;
+  user: CognitoUser | null;
+  tokens: CognitoTokens | null;
   profile: UserProfile | null;
   organization: Organization | null;
   loading: boolean;
+  isAuthenticated: boolean;
   signInWithCognito: (provider?: 'google' | 'microsoft') => Promise<void>;
   signOut: () => Promise<void>;
   setSelectedOrganization: (orgId: string) => void;
+  /** Call after token exchange to bootstrap the session */
+  bootstrapSession: (tokens: CognitoTokens) => Promise<void>;
+}
+
+/** Minimal user object decoded from the Cognito id_token */
+export interface CognitoUser {
+  /** Cognito subject (unique user ID) */
+  sub: string;
+  /** Alias for sub — used everywhere the old Supabase user.id was used */
+  id: string;
+  email: string;
+  name?: string;
+}
+
+function decodeJwtPayload(jwt: string): Record<string, unknown> | null {
+  try {
+    const parts = jwt.split('.');
+    if (parts.length !== 3) return null;
+    const b64 = parts[1].replace(/-/g, '+').replace(/_/g, '/');
+    const padded = b64.padEnd(b64.length + ((4 - (b64.length % 4)) % 4), '=');
+    return JSON.parse(atob(padded));
+  } catch {
+    return null;
+  }
+}
+
+function userFromIdToken(idToken: string): CognitoUser | null {
+  const payload = decodeJwtPayload(idToken);
+  if (!payload) return null;
+  const sub = payload.sub as string;
+  return {
+    sub,
+    id: sub,
+    email: (payload.email as string) || '',
+    name: (payload.name as string) || (payload['cognito:username'] as string) || undefined,
+  };
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export function AuthProvider({ children }: { children: ReactNode }) {
-  const [user, setUser] = useState<User | null>(null);
-  const [session, setSession] = useState<Session | null>(null);
+  const [user, setUser] = useState<CognitoUser | null>(null);
+  const [tokens, setTokens] = useState<CognitoTokens | null>(null);
   const [profile, setProfile] = useState<UserProfile | null>(null);
   const [organization, setOrganization] = useState<Organization | null>(null);
   const [loading, setLoading] = useState(true);
 
+  const isAuthenticated = !!tokens?.access_token;
+
+  // On mount, check for existing tokens in localStorage
   useEffect(() => {
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
-      setSession(session);
-      setUser(session?.user ?? null);
-
-      if (session?.user) {
-        setTimeout(() => {
-          fetchUserData(session.user.id);
-        }, 0);
-      } else {
-        setProfile(null);
-        setOrganization(null);
-        setLoading(false);
-      }
-    });
-
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      setSession(session);
-      setUser(session?.user ?? null);
-      if (session?.user) {
-        fetchUserData(session.user.id);
-      } else {
-        setLoading(false);
-      }
-    });
-
-    return () => subscription.unsubscribe();
+    const stored = getStoredTokens();
+    if (stored?.access_token && stored?.id_token) {
+      const cognitoUser = userFromIdToken(stored.id_token);
+      setTokens(stored);
+      setUser(cognitoUser);
+      fetchUserData().finally(() => setLoading(false));
+    } else {
+      setLoading(false);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  const fetchUserData = async (userId: string) => {
+  const fetchUserData = async () => {
     try {
-      const { data: profileRows } = await supabase.rpc('get_my_profile');
-      const profileData = profileRows?.[0];
-
+      const profileData = await api<UserProfile>('/users/me');
       if (profileData) {
-        setProfile({
-          id: profileData.id,
-          user_id: profileData.user_id,
-          organization_id: profileData.organization_id,
-          email: profileData.email,
-          full_name: profileData.full_name,
-          title: profileData.title ?? null
-        });
+        setProfile(profileData);
 
-        const { data: orgData } = await supabase
-          .from('organizations')
-          .select('*')
-          .eq('id', profileData.organization_id)
-          .maybeSingle();
-
+        const orgData = await api<Organization>(`/organizations/${profileData.organization_id}`);
         if (orgData) {
-          setOrganization(orgData as Organization);
+          setOrganization(orgData);
         }
       }
     } catch (error) {
       console.error('Error fetching user data:', error);
+    }
+  };
+
+  /**
+   * Called by AuthCallback after a successful token exchange.
+   * Stores tokens, derives user, fetches profile, then done.
+   */
+  const bootstrapSession = async (newTokens: CognitoTokens) => {
+    setTokens(newTokens);
+    const cognitoUser = userFromIdToken(newTokens.id_token);
+    setUser(cognitoUser);
+
+    try {
+      await fetchUserData();
+    } catch (err) {
+      console.error('[Auth] bootstrapSession fetch error:', err);
     } finally {
       setLoading(false);
     }
   };
 
   /**
-   * Redirect to AWS Cognito Hosted UI for Google authentication.
-   *
-   * PKCE lifecycle:
-   *   1. Generate code_verifier (random 43-char string)
-   *   2. Generate code_challenge (SHA-256 → base64url)
-   *   3. Store verifier in sessionStorage as "cognito_code_verifier"
-   *   4. Redirect to Cognito with code_challenge + S256
-   *   5. AuthCallback reads verifier, passes it in token exchange, then removes it
+   * Redirect to AWS Cognito Hosted UI for authentication.
+   * Uses PKCE flow — no client secret needed.
    */
   const signInWithCognito = async (provider?: 'google' | 'microsoft') => {
     console.log(`[Auth] Flow: Cognito login/signup via ${provider || 'default'}`);
-    console.log('[Auth] redirect_uri:', COGNITO_CONFIG.redirectUri);
 
-    // 1. Generate PKCE verifier (sync)
     const codeVerifier = generateCodeVerifier();
-
-    // 2. Store verifier in localStorage + cookie as backup
     savePkceVerifier(codeVerifier);
-    console.log('[PKCE] generated verifier length:', codeVerifier.length);
 
-    // 3. Derive challenge (async)
     const codeChallenge = await generateCodeChallenge(codeVerifier);
 
-    // 4. Encode verifier in state parameter — guaranteed to survive redirects
-    //    since Cognito echoes it back in the callback URL.
+    // Encode verifier in state so it survives cross-origin redirects
     const statePayload = btoa(JSON.stringify({ v: codeVerifier }));
 
     const params = new URLSearchParams({
@@ -144,44 +156,30 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       params.set('identity_provider', COGNITO_CONFIG.identityProviders.google);
     }
 
-    const authorizeUrl = `${COGNITO_CONFIG.authorizeEndpoint}?${params.toString()}`;
-    console.log('[Auth] Redirecting to Cognito:', authorizeUrl.substring(0, 120) + '…');
-    window.location.href = authorizeUrl;
+    window.location.href = `${COGNITO_CONFIG.authorizeEndpoint}?${params.toString()}`;
   };
 
   const signOut = async () => {
-    try {
-      localStorage.removeItem('cognito_tokens');
-      clearPkceVerifier();
+    clearTokens();
+    clearPkceVerifier();
 
-      await supabase.auth.signOut();
+    setProfile(null);
+    setOrganization(null);
+    setUser(null);
+    setTokens(null);
 
-      setProfile(null);
-      setOrganization(null);
-      setUser(null);
-      setSession(null);
-
-      const logoutParams = new URLSearchParams({
-        client_id: COGNITO_CONFIG.clientId,
-        logout_uri: COGNITO_CONFIG.logoutUri,
-      });
-      window.location.href = `${COGNITO_CONFIG.logoutEndpoint}?${logoutParams.toString()}`;
-    } catch (error) {
-      console.error('Sign out error:', error);
-      window.location.href = '/auth';
-    }
+    const logoutParams = new URLSearchParams({
+      client_id: COGNITO_CONFIG.clientId,
+      logout_uri: COGNITO_CONFIG.logoutUri,
+    });
+    window.location.href = `${COGNITO_CONFIG.logoutEndpoint}?${logoutParams.toString()}`;
   };
 
   const setSelectedOrganization = async (orgId: string) => {
     try {
-      const { data: orgData } = await supabase
-        .from('organizations')
-        .select('*')
-        .eq('id', orgId)
-        .maybeSingle();
-
+      const orgData = await api<Organization>(`/organizations/${orgId}`);
       if (orgData) {
-        setOrganization(orgData as Organization);
+        setOrganization(orgData);
       }
     } catch (error) {
       console.error('Error setting organization:', error);
@@ -190,8 +188,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   return (
     <AuthContext.Provider value={{
-      user, session, profile, organization, loading,
-      signInWithCognito, signOut, setSelectedOrganization
+      user, tokens, profile, organization, loading, isAuthenticated,
+      signInWithCognito, signOut, setSelectedOrganization, bootstrapSession,
     }}>
       {children}
     </AuthContext.Provider>

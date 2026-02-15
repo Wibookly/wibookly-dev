@@ -1,6 +1,6 @@
 import { createContext, useContext, useEffect, useState, ReactNode, useCallback } from 'react';
-import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/lib/auth';
+import { api, getAccessToken } from '@/lib/aws-api';
 
 // Plan configuration with Stripe product/price IDs
 export const PLAN_CONFIG = {
@@ -37,13 +37,13 @@ export const PLAN_CONFIG = {
     },
   },
   enterprise: {
-    name: 'Business',
-    price: 42.50,
-    monthlyPriceId: 'price_1SyhgUAESvm0s6Eq8WbV6wWE',
+    name: 'Enterprise',
+    price: null,
+    monthlyPriceId: null,
     annualPriceId: null,
-    productId: 'prod_TwasTFG45ScxCd',
+    productId: null,
     annualProductId: null,
-    mailboxLimit: Infinity,
+    mailboxLimit: 999,
     features: {
       aiAutoDrafts: true,
       aiAutoReply: true,
@@ -56,7 +56,7 @@ export const PLAN_CONFIG = {
 
 export type PlanType = keyof typeof PLAN_CONFIG;
 
-export interface SubscriptionState {
+interface SubscriptionState {
   plan: PlanType;
   status: 'active' | 'canceled' | 'past_due' | 'trialing' | 'none';
   stripeCustomerId: string | null;
@@ -79,7 +79,7 @@ interface SubscriptionContextType extends SubscriptionState {
 const SubscriptionContext = createContext<SubscriptionContextType | undefined>(undefined);
 
 export function SubscriptionProvider({ children }: { children: ReactNode }) {
-  const { user, session, organization } = useAuth();
+  const { user, tokens, organization } = useAuth();
   const [state, setState] = useState<SubscriptionState>({
     plan: 'starter',
     status: 'none',
@@ -91,21 +91,16 @@ export function SubscriptionProvider({ children }: { children: ReactNode }) {
   const [isFreeOverride, setIsFreeOverride] = useState(false);
 
   const fetchSubscription = useCallback(async () => {
-    if (!session?.access_token) {
+    if (!tokens?.access_token) {
       setState(prev => ({ ...prev, loading: false }));
       return;
     }
 
     try {
-      // Check if user is super_admin — they get full Pro access automatically
-      const { data: superAdminCheck } = await supabase
-        .from('user_roles')
-        .select('role')
-        .eq('user_id', session.user.id)
-        .eq('role', 'super_admin')
-        .maybeSingle();
+      // Check if user is super_admin
+      const roleData = await api<{ role: string } | null>(`/users/${user?.id}/roles?role=super_admin`).catch(() => null);
 
-      if (superAdminCheck) {
+      if (roleData?.role === 'super_admin') {
         setIsFreeOverride(true);
         setState({
           plan: 'pro',
@@ -119,11 +114,7 @@ export function SubscriptionProvider({ children }: { children: ReactNode }) {
       }
 
       // Check for plan override
-      const { data: overrideData } = await supabase
-        .from('user_plan_overrides')
-        .select('granted_plan, is_active')
-        .eq('user_id', session.user.id)
-        .maybeSingle();
+      const overrideData = await api<{ granted_plan: string; is_active: boolean } | null>(`/users/${user?.id}/plan-override`).catch(() => null);
 
       if (overrideData?.is_active && overrideData.granted_plan) {
         const overridePlan = overrideData.granted_plan as PlanType;
@@ -147,19 +138,21 @@ export function SubscriptionProvider({ children }: { children: ReactNode }) {
         return;
       }
 
-      const { data: subData } = await supabase
-        .from('subscriptions')
-        .select('*')
-        .eq('organization_id', organization.id)
-        .maybeSingle();
+      // Fetch subscription from API
+      const subData = await api<{
+        plan: string;
+        status: string;
+        stripe_customer_id: string | null;
+        stripe_subscription_id: string | null;
+        current_period_end: string | null;
+      } | null>(`/organizations/${organization.id}/subscription`).catch(() => null);
 
       if (subData) {
-        // Map legacy 'professional' plan name to 'pro'
-        let plan = (subData.plan as string) || 'starter';
+        let plan = subData.plan || 'starter';
         if (plan === 'professional') plan = 'pro';
-        
+
         setState({
-          plan: (plan as PlanType),
+          plan: plan as PlanType,
           status: (subData.status as SubscriptionState['status']) || 'active',
           stripeCustomerId: subData.stripe_customer_id,
           stripeSubscriptionId: subData.stripe_subscription_id,
@@ -170,13 +163,17 @@ export function SubscriptionProvider({ children }: { children: ReactNode }) {
         setState(prev => ({ ...prev, plan: 'starter', status: 'none', loading: false }));
       }
 
-      const { data, error } = await supabase.functions.invoke('check-subscription', {
-        headers: { Authorization: `Bearer ${session.access_token}` },
-      });
+      // Cross-check with Stripe
+      const checkData = await api<{
+        subscribed: boolean;
+        product_id?: string;
+        subscription_end?: string;
+        error?: string;
+      }>('/check-subscription').catch(() => null);
 
-      if (!error && data && !data.error) {
+      if (checkData && !checkData.error) {
         let detectedPlan: PlanType = 'starter';
-        const productId = data.product_id;
+        const productId = checkData.product_id;
         if (
           productId === PLAN_CONFIG.pro.productId ||
           productId === PLAN_CONFIG.pro.annualProductId
@@ -187,15 +184,15 @@ export function SubscriptionProvider({ children }: { children: ReactNode }) {
           productId === PLAN_CONFIG.starter.annualProductId
         ) {
           detectedPlan = 'starter';
-        } else if (data.subscribed && productId) {
+        } else if (checkData.subscribed && productId) {
           detectedPlan = 'pro';
         }
 
         setState(prev => ({
           ...prev,
-          plan: data.subscribed ? detectedPlan : prev.plan,
-          status: data.subscribed ? 'active' : prev.status,
-          currentPeriodEnd: data.subscription_end || prev.currentPeriodEnd,
+          plan: checkData.subscribed ? detectedPlan : prev.plan,
+          status: checkData.subscribed ? 'active' : prev.status,
+          currentPeriodEnd: checkData.subscription_end || prev.currentPeriodEnd,
           loading: false,
         }));
       }
@@ -203,7 +200,7 @@ export function SubscriptionProvider({ children }: { children: ReactNode }) {
       console.error('Error fetching subscription:', error);
       setState(prev => ({ ...prev, loading: false }));
     }
-  }, [organization?.id, session?.access_token]);
+  }, [organization?.id, tokens?.access_token, user?.id]);
 
   useEffect(() => {
     fetchSubscription();
@@ -234,45 +231,43 @@ export function SubscriptionProvider({ children }: { children: ReactNode }) {
   }, [state.plan]);
 
   const startCheckout = useCallback(async (plan: PlanType, billingInterval: 'monthly' | 'annual' = 'monthly') => {
-    if (!session?.access_token) {
+    const token = getAccessToken();
+    if (!token) {
       throw new Error('Please sign in to upgrade');
     }
 
     const planConfig = PLAN_CONFIG[plan];
-    const priceId = billingInterval === 'annual' 
-      ? planConfig.annualPriceId 
+    const priceId = billingInterval === 'annual'
+      ? planConfig.annualPriceId
       : planConfig.monthlyPriceId;
-    
+
     if (!priceId) {
       window.open('mailto:sales@wibookly.com?subject=Enterprise%20Plan%20Inquiry', '_blank');
       return;
     }
 
-    const { data, error } = await supabase.functions.invoke('create-checkout', {
-      body: { priceId },
-      headers: { Authorization: `Bearer ${session.access_token}` },
+    const data = await api<{ url?: string }>('/create-checkout', {
+      method: 'POST',
+      body: JSON.stringify({ priceId }),
     });
 
-    if (error) throw error;
     if (data?.url) {
       window.open(data.url, '_blank');
     }
-  }, [session?.access_token]);
+  }, []);
 
   const openCustomerPortal = useCallback(async () => {
-    if (!session?.access_token) {
+    const token = getAccessToken();
+    if (!token) {
       throw new Error('Please sign in to manage subscription');
     }
 
-    const { data, error } = await supabase.functions.invoke('customer-portal', {
-      headers: { Authorization: `Bearer ${session.access_token}` },
-    });
+    const data = await api<{ url?: string }>('/customer-portal', { method: 'POST' });
 
-    if (error) throw error;
     if (data?.url) {
       window.open(data.url, '_blank');
     }
-  }, [session?.access_token]);
+  }, []);
 
   return (
     <SubscriptionContext.Provider
