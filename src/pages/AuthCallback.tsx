@@ -1,29 +1,13 @@
 import { useEffect, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
-import { supabase } from '@/integrations/supabase/client';
+import { useAuth } from '@/lib/auth';
 import { COGNITO_CONFIG } from '@/lib/cognito-config';
 import { readPkceVerifier, clearPkceVerifier } from '@/lib/pkce-storage';
-import { Loader2 } from 'lucide-react';
+import { storeTokens, type CognitoTokens } from '@/lib/aws-api';
 import wibooklyLogo from '@/assets/wibookly-logo.png';
-
-/**
- * /auth/callback
- *
- * Handles Cognito Login/Signup ONLY.
- *
- * Flow:
- *   1. Read `code` from URL
- *   2. Read PKCE verifier from sessionStorage ("cognito_code_verifier")
- *   3. HARD FAIL if verifier is missing
- *   4. Exchange code with Cognito token endpoint including code_verifier
- *   5. Validate id_token issuer
- *   6. Bridge session to backend
- *   7. Remove verifier after exchange
- */
 
 const COGNITO_ISSUER_PREFIX = `https://cognito-idp.${COGNITO_CONFIG.region}.amazonaws.com/${COGNITO_CONFIG.userPoolId}`;
 
-/** Decode the payload of a JWT without verification (for issuer inspection only). */
 function decodeJwtPayload(jwt: string): Record<string, unknown> | null {
   try {
     const parts = jwt.split('.');
@@ -39,18 +23,17 @@ function decodeJwtPayload(jwt: string): Record<string, unknown> | null {
 export default function AuthCallback() {
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
+  const { bootstrapSession } = useAuth();
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     // Handle "connected" query param (redirect from oauth-callback edge function)
     const connectedProvider = searchParams.get('connected');
     if (connectedProvider) {
-      console.log('[AuthCallback] Provider connected:', connectedProvider);
       navigate('/integrations?connected=' + connectedProvider, { replace: true });
       return;
     }
 
-    // Primary: use React Router's searchParams
     let code = searchParams.get('code');
     let stateParam = searchParams.get('state');
     let errorParam = searchParams.get('error');
@@ -65,80 +48,59 @@ export default function AuthCallback() {
       errorDescription = raw.get('error_description');
     }
 
-    console.log('[AuthCallback] url:', window.location.href);
-    console.log('[AuthCallback] code present:', !!code);
-    console.log('[AuthCallback] state present:', !!stateParam);
-
     if (errorParam) {
-      console.error('[AuthCallback] OAuth error:', errorParam, errorDescription);
       setError(errorDescription || errorParam);
       return;
     }
 
     if (!code) {
-      console.error('[AuthCallback] No authorization code in URL');
       setError('No authorization code received from the identity provider.');
       return;
     }
 
-    // ── Detect Connect flow vs Cognito login flow ──
-    // Connect flows have a state param containing { provider, userId, organizationId }
-    // Cognito flows have a state param containing { v: <pkce_verifier> }
+    // Detect Connect flow vs Cognito login flow
     if (stateParam) {
       try {
         const raw = stateParam.startsWith('connect:') ? stateParam.slice(8) : stateParam;
         const parsed = JSON.parse(atob(raw));
-        
-        // If state contains provider + userId, this is a Connect flow
-        // Proxy the request to the oauth-callback edge function
         if (parsed?.provider && parsed?.userId) {
-          console.log('[AuthCallback] Detected Connect flow for provider:', parsed.provider);
-          const edgeFnUrl = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/oauth-callback?code=${encodeURIComponent(code)}&state=${encodeURIComponent(stateParam)}`;
-          window.location.href = edgeFnUrl;
+          // This is a mailbox connect flow — proxy to backend
+          const backendUrl = `https://f4rjhkx0cg.execute-api.us-west-2.amazonaws.com/oauth-callback?code=${encodeURIComponent(code)}&state=${encodeURIComponent(stateParam)}`;
+          window.location.href = backendUrl;
           return;
         }
-      } catch (e) {
-        console.warn('[AuthCallback] State parse attempt for connect detection:', e);
+      } catch {
+        // Not a connect flow, continue with Cognito login
       }
     }
 
-    // ── Cognito Login Flow: Retrieve PKCE verifier ──
+    // Retrieve PKCE verifier
     let codeVerifier: string | null = null;
 
     if (stateParam) {
       try {
         const parsed = JSON.parse(atob(stateParam));
         codeVerifier = parsed?.v || null;
-        console.log('[PKCE] verifier from state param, length:', codeVerifier?.length);
-      } catch (e) {
-        console.warn('[PKCE] Failed to parse state param:', e);
+      } catch {
+        // ignore
       }
     }
 
     if (!codeVerifier) {
       codeVerifier = readPkceVerifier();
-      console.log('[PKCE] verifier from storage fallback, length:', codeVerifier?.length);
     }
 
     if (!codeVerifier) {
-      console.error('[AuthCallback] PKCE verifier missing from state, localStorage, and cookie');
       setError('Authentication session expired. Please try signing in again.');
       return;
     }
 
-    console.log('[AuthCallback] PKCE verifier found, proceeding with token exchange');
-    handleCognitoTokenExchange(code, codeVerifier);
+    handleTokenExchange(code, codeVerifier);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // ── Cognito Token Exchange ────────────────────────────────────────
-
-  const handleCognitoTokenExchange = async (code: string, codeVerifier: string) => {
+  const handleTokenExchange = async (code: string, codeVerifier: string) => {
     try {
-      console.log('[AuthCallback] Exchanging code at:', COGNITO_CONFIG.tokenEndpoint);
-      console.log('[AuthCallback] redirect_uri:', COGNITO_CONFIG.redirectUri);
-      console.log('[AuthCallback] PKCE verifier length:', codeVerifier.length);
-
       const tokenResponse = await fetch(COGNITO_CONFIG.tokenEndpoint, {
         method: 'POST',
         headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
@@ -153,141 +115,45 @@ export default function AuthCallback() {
 
       if (!tokenResponse.ok) {
         const errBody = await tokenResponse.json().catch(() => ({}));
-        const errMsg = errBody.error_description || errBody.error || 'Token exchange failed';
-        console.error('[AuthCallback] Token exchange failed:', errMsg);
         clearPkceVerifier();
-        throw new Error(errMsg);
+        throw new Error(errBody.error_description || errBody.error || 'Token exchange failed');
       }
 
-      // Exchange succeeded — remove the single-use verifier
       clearPkceVerifier();
 
-      const tokens = await tokenResponse.json();
-      console.log('[AuthCallback] Token response keys:', Object.keys(tokens));
+      const rawTokens = await tokenResponse.json();
 
-      // Validate id_token presence and format
-      const rawIdToken = tokens.id_token;
-      if (!rawIdToken || typeof rawIdToken !== 'string') {
-        throw new Error('No valid ID token received from Cognito.');
+      // Validate id_token
+      const idToken = rawTokens.id_token?.trim();
+      if (!idToken || idToken.split('.').length !== 3) {
+        throw new Error('Invalid ID token received from Cognito.');
       }
 
-      const id_token = rawIdToken.trim();
-      if (id_token.split('.').length !== 3) {
-        throw new Error('Received an invalid token format. Expected a JWT.');
-      }
-
-      // Inspect issuer to confirm this is a Cognito token
-      const payload = decodeJwtPayload(id_token);
+      const payload = decodeJwtPayload(idToken);
       const issuer = (payload?.iss as string) || '';
-      console.log('[AuthCallback] id_token issuer:', issuer);
-
       if (!issuer.startsWith(COGNITO_ISSUER_PREFIX)) {
-        throw new Error(
-          `Unexpected token issuer: ${issuer}. Expected Cognito issuer.`
-        );
+        throw new Error(`Unexpected token issuer: ${issuer}`);
       }
 
-      // Bridge Cognito session to backend
-      await handleCognitoSession(id_token, tokens);
+      // Store tokens (access_token is used for API Gateway calls)
+      const cognitoTokens: CognitoTokens = {
+        access_token: rawTokens.access_token,
+        id_token: idToken,
+        refresh_token: rawTokens.refresh_token,
+        obtained_at: Date.now(),
+      };
+
+      storeTokens(cognitoTokens);
+
+      // Bootstrap the auth context with new tokens
+      await bootstrapSession(cognitoTokens);
+
+      navigate('/integrations', { replace: true });
     } catch (err) {
       console.error('[AuthCallback] Error:', err);
       setError(err instanceof Error ? err.message : 'Authentication failed');
     }
   };
-
-  // ── Cognito Session Bridge ────────────────────────────────────────
-
-  const handleCognitoSession = async (
-    id_token: string,
-    tokens: { access_token?: string; refresh_token?: string }
-  ) => {
-    console.log('[AuthCallback] id_token validated, length:', id_token.length);
-
-    // Store Cognito tokens
-    localStorage.setItem(
-      'cognito_tokens',
-      JSON.stringify({
-        access_token: tokens.access_token,
-        id_token,
-        refresh_token: tokens.refresh_token,
-        obtained_at: Date.now(),
-      })
-    );
-
-    // Bridge to backend session
-    const bridgeResponse = await fetch(
-      `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/cognito-user-bridge`,
-      {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ id_token }),
-      }
-    );
-
-    if (!bridgeResponse.ok) {
-      const errBody = await bridgeResponse.json().catch(() => ({}));
-      if (errBody.error === 'account_suspended') {
-        setError(`__SUSPENDED__${errBody.message || 'Your account has been suspended. If you have any questions, please reach out to support@wibookly.ai'}`);
-        return;
-      }
-      throw new Error(errBody.error || 'Failed to bridge authentication');
-    }
-
-    const bridgeData = await bridgeResponse.json();
-    if (!bridgeData.token_hash) {
-      throw new Error('No session token received from bridge');
-    }
-
-    // Establish backend session
-    const { error: verifyError } = await supabase.auth.verifyOtp({
-      token_hash: bridgeData.token_hash,
-      type: 'magiclink',
-    });
-
-    if (verifyError) {
-      throw new Error(`Session verification failed: ${verifyError.message}`);
-    }
-
-    console.log('[AuthCallback] Session established, redirecting to /integrations');
-    navigate('/integrations', { replace: true });
-  };
-
-  // ── Render ────────────────────────────────────────────────────────
-
-  const isSuspended = error?.startsWith('__SUSPENDED__');
-  const suspendedMessage = isSuspended ? error.replace('__SUSPENDED__', '') : null;
-
-  if (isSuspended) {
-    return (
-      <div className="min-h-screen bg-gradient-to-br from-destructive/10 via-background to-accent/20 flex flex-col items-center justify-center p-6">
-        <div className="w-full max-w-md bg-card/80 backdrop-blur-sm p-8 rounded-2xl shadow-lg border border-border/50 text-center">
-          <img src={wibooklyLogo} alt="Wibookly" className="h-20 w-auto mx-auto mb-6" />
-          <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-destructive/10 flex items-center justify-center">
-            <svg className="w-8 h-8 text-destructive" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-              <circle cx="12" cy="12" r="10"/>
-              <line x1="4.93" y1="4.93" x2="19.07" y2="19.07"/>
-            </svg>
-          </div>
-          <h1 className="text-2xl font-bold text-foreground mb-2">Account Suspended</h1>
-          <p className="text-muted-foreground mb-6 leading-relaxed">
-            {suspendedMessage}
-          </p>
-          <a
-            href="mailto:support@wibookly.ai"
-            className="inline-flex items-center gap-2 px-6 py-3 bg-primary text-primary-foreground rounded-xl font-medium hover:bg-primary/90 transition-colors"
-          >
-            Contact Support
-          </a>
-          <button
-            onClick={() => navigate('/auth', { replace: true })}
-            className="block mx-auto mt-4 text-sm text-muted-foreground hover:text-foreground transition-colors"
-          >
-            ← Back to sign in
-          </button>
-        </div>
-      </div>
-    );
-  }
 
   if (error) {
     return (

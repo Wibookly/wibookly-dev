@@ -51,7 +51,7 @@ interface MonthlyCharges {
 }
 
 export default function Billing() {
-  const { profile, organization, session } = useAuth();
+  const { profile, organization, tokens } = useAuth();
   const { plan, status, openCustomerPortal } = useSubscription();
   const { toast } = useToast();
 
@@ -162,7 +162,7 @@ export default function Billing() {
   }, [fetchData]);
 
   const handleSave = async () => {
-    if (!organization?.id || !profile?.user_id || !session?.access_token) return;
+    if (!organization?.id || !profile?.user_id || !tokens?.access_token) return;
     setSaving(true);
 
     try {
